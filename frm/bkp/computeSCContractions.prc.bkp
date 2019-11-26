@@ -1,0 +1,304 @@
+#procedure computeSCContractions
+
+
+#include config.inc
+#include `leftDiagDefFile' # global
+#call eliminateMomentum
+.sort
+
+* Isolate momenta so they are not matched
+repeat id SCC(?args1,G(n0l?,p1?),?args2) = SCC(?args1,G(n0l,acc(p1)),?args2);
+* Protect 4 dim indices
+repeat id SCC(?args1,G(n0l?,v1?ve),?args2) = SCC(?args1,G(n0l,acc(v1)),?args2);
+
+#do i=0,9
+    if( match(SCC(n0l?nl,?args1,G(n0l?,v0l?!vhv$temp),?args2)*
+              SCC(n1l?nl,?args3,G(n1l?,v0l?),?args4)) );
+        multiply replace_($temp,vhv`i');
+    elseif( match(SCC(n0l?nl,?args1,G(n0l?,v0l?!vhv$temp),?args2,G(n0l?,v0l?),?args3)) );
+        multiply replace_($temp,vhv`i');
+    endif;
+#enddo
+
+repeat id SCC(?args1,G(n0l?,acc(v1?)),?args2) = SCC(?args1,G(n0l,v1),?args2);
+repeat id SCC(?args1,G(n0l?,acc(p1?)),?args2) = SCC(?args1,G(n0l,p1),?args2);
+
+* All remaining indices should be 4-dim in HV scheme, d-dim in CDR; replace with unsummable indices if 4
+#if `dimScheme' == HV
+    #do i = 0,19
+        multiply replace_(v`i'l,vhv`i'l);
+        multiply replace_(v`i'r,vhv`i'r);
+    #enddo
+#endif
+.sort
+
+#call preprocChains
+
+b SCC;
+.sort
+cf ddf;
+Keep Brackets;
+
+#message spin sums
+repeat;
+id SCC(dd(n1?,n2?),?args1, QQ(fUt, p1?, ?args2), QQ(fUtBar, p1?,?args3), ?args4) =
+    SCC(dd(n1,n2),?args1, G(n1,p1), ?args4) + mt*SCC(dd(n1,n2),?args1, G(n1), ?args4);
+
+id SCC(dd(n1?,n2?),?args1, QQ(fVt, p1?, ?args2), QQ(fVtBar, p1?,?args3), ?args4) =
+    SCC(dd(n1,n2),?args1, G(n1,p1), ?args4) - mt*SCC(dd(n1,n2),?args1, G(n1), ?args4);
+
+id SCC(dd(n1?,n2?),?args1, QQ(fUb, p1?, ?args2), QQ(fUbBar, p1?,?args3), ?args4) =
+    SCC(dd(n1,n2),?args1, G(n1,p1), ?args4) + mb*SCC(dd(n1,n2),?args1, G(n1), ?args4);
+
+id SCC(dd(n1?,n2?),?args1, QQ(fVb, p1?, ?args2), QQ(fVbBar, p1?,?args3), ?args4) =
+    SCC(dd(n1,n2),?args1, G(n1,p1), ?args4) - mb*SCC(dd(n1,n2),?args1, G(n1), ?args4);
+
+id SCC(dd(n1?,n2?),?args1, QQ(fUq, p1?, ?args2), QQ(fUqBar, p1?,?args3), ?args4) =
+    SCC(dd(n1,n2),?args1, G(n1,p1), ?args4);
+
+id SCC(dd(n1?,n2?),?args1, QQ(fVq, p1?, ?args2), QQ(fVqBar, p1?,?args3), ?args4) =
+    SCC(dd(n1,n2),?args1, G(n1,p1), ?args4);
+
+id SCC(dd(n1?,n2?),?args1, QQ(fUu, p1?, ?args2), QQ(fUuBar, p1?,?args3), ?args4) =
+    SCC(dd(n1,n2),?args1, G(n1,p1), ?args4);
+
+id SCC(dd(n1?,n2?),?args1, QQ(fVu, p1?, ?args2), QQ(fVuBar, p1?,?args3), ?args4) =
+    SCC(dd(n1,n2),?args1, G(n1,p1), ?args4);
+
+id SCC(dd(n1?,n2?),?args1, QQ(fUd, p1?, ?args2), QQ(fUdBar, p1?,?args3), ?args4) =
+    SCC(dd(n1,n2),?args1, G(n1,p1), ?args4);
+
+id SCC(dd(n1?,n2?),?args1, QQ(fVd, p1?, ?args2), QQ(fVdBar, p1?,?args3), ?args4) =
+    SCC(dd(n1,n2),?args1, G(n1,p1), ?args4);
+endrepeat;
+
+repeat id SCC(dd(n1?,n2?), dd(n3?,n4?), ?args) = SCC(ddf(n1,n2), ddf(n3,n4), ?args);
+repeat id SCC(dd(n1?,n2?), ?args) = dd(n1,n2)*SCC(?args);
+repeat id SCC(ddf(n1?,n2?), ?args) = ddf(n1,n2)*SCC(?args);
+
+id SCC(?args) = SC(?args);
+
+b SC;
+.sort
+#message replace chain indices
+Keep Brackets;
+repeat id once SC(n1?,?args) = n1*SC(?args);
+id SC = 1;
+
+b dd, ddf;
+.sort
+Keep Brackets;
+#do i = 0, 10
+    id dd(n`i'r, n1?) = dd(n1, n`i'r);
+    id ddf(n`i'r, n1?) = ddf(n1, n`i'r);
+#enddo
+id ddf(n1?, n2?)*ddf(n3?!{,n1}, n4?) = dd(n1, n2)*dd(n1, n4)*dd(n1, n3);
+
+b G, G5, dd;
+.sort
+f Gc, G5c;
+Keep Brackets;
+repeat;
+    id dd(n1?,n2?)*G(n2?,v1?) = Gc(n1,v1)*dd(n1,n2);
+    id dd(n1?,n2?)*G(n2?) = Gc(n1)*dd(n1,n2);
+    id dd(n1?,n2?)*G5(n2?) = G5c(n1)*dd(n1,n2);
+endrepeat;
+id dd(n1?,n2?) = 1;
+
+b Gc, G5c;
+.sort
+Keep Brackets;
+
+id G5c(n1?) = G5(n1);
+id Gc(n1?) = G(n1);
+id Gc(n1?, v1?) = G(n1, v1);
+
+#call postprocChains
+b VB;
+.sort
+
+#message >> polarization sums
+
+id VB(fEpsAStar, v1?, p1?)*VB(fEpsA, v2?, p1?) = -d_(v1,v2);
+id VB(fEpsWStar, v1?, p1?)*VB(fEpsW, v2?, p1?) = -d_(v1,v2) + p1(v1)*p1(v2)/(mW*mW);
+id VB(fEpsZStar, v1?, p1?)*VB(fEpsZ, v2?, p1?) = -d_(v1,v2) + p1(v1)*p1(v2)/(mZ*mZ);
+
+* Axial gauge contractions modified by Seth for mixed inital/final case, to avoid invariants
+* TODO: have reference vectors as user option
+
+* Pair of initial gluon case
+id  VB(fEpsGStar, v1?, p1?{p1,p2})*VB(fEpsG, v2?, p1?)
+   *VB(fEpsGStar, v3?, p2?{p1,p2})*VB(fEpsG, v4?, p2?) 
+ =  (-d_(v1,v2) + 2*DS(p1+p2,0,1)*(p1(v1)*p2(v2) + p1(v2)*p2(v1)))
+   *(-d_(v3,v4) + 2*DS(p1+p2,0,1)*(p1(v3)*p2(v4) + p1(v4)*p2(v3)));
+
+* One initial, one final case
+id VB(fEpsGStar, v1?, p1?{p1,p2})*VB(fEpsG, v2?, p1?)
+   *VB(fEpsGStar, v3?, p2?!{p1,p2})*VB(fEpsG, v4?, p2?)
+ =  (-d_(v1,v2) - 2*DS(p1-p2,0,1)*(p1(v1)*p2(v2) + p1(v2)*p2(v1)))
+   *(-d_(v3,v4) - 2*DS(p1-p2,0,1)*(p1(v3)*p2(v4) + p1(v4)*p2(v3)));
+
+* Both final case
+id VB(fEpsGStar, v1?, p1?!{p1,p2})*VB(fEpsG, v2?, p1?)
+   *VB(fEpsGStar, v3?, p2?!{p1,p2})*VB(fEpsG, v4?, p2?)
+ =  (-d_(v1,v2) + 2*DS(p1+p2,0,1)*(p1(v1)*p2(v2) + p1(v2)*p2(v1)))
+   *(-d_(v3,v4) + 2*DS(p1+p2,0,1)*(p1(v3)*p2(v4) + p1(v4)*p2(v3)));
+
+b VB;
+.sort
+Keep Brackets;
+* contract remaining gluons, only after pairs of gluons are contracted!
+
+id VB(fEpsGStar, v1?, p1?)*VB(fEpsG, v2?, p1?) = -d_(v1,v2);
+
+* go ahead and sum pure 4-d tensors, they should be only ones exposed
+#if `dimScheme' == HV
+    b d_,p1,p2,p3,p4,p5,p6,G;
+    .sort
+    dimension 4;
+    Keep Brackets;
+    #do i=1,1
+        if ( match(d_(v1?,v2?$temp)) );
+            sum $temp;
+            redefine i "0";
+        elseif ( match(p1?(v1?vhvext$temp)) );
+            sum $temp;
+            redefine i "0";
+        endif;
+        b d_,p1,p2,p3,p4,p5,p6,G;
+        .sort
+        Keep Brackets;
+    #enddo
+    .sort
+    dimension d;
+#endif
+
+b G, G5;
+.sort
+F g1,g2;
+Keep Brackets;
+
+* Gamma5 substitution, up to 3 fermion lines (change hard-coding later)
+
+#do i = 0,2
+    repeat id G5(`i')*G(`i') = G5(`i');
+    repeat id G(`i', v1?)*G(`i') = G(`i', v1);
+    repeat id G5(`i')*G(`i', v1?) = -G(`i',v1)*G5(`i');
+    repeat id G5(`i')*G5(`i') = G(`i');
+    #do j=1,1
+        repeat id G(`i',v1?,?a,v2?!{v1?},v1?,?b) = 2*d_(v1,v2)*G(`i',v1,?a,?b)-G(`i',v1,?a,v1,v2,?b);
+        repeat id G(`i',?a,v1?,v1?,?b) = d_(v1,v1)*G(`i',?a,?b);
+        repeat id G(`i',?a)*G(`i',?b)*G5(`i') = G(`i',?a,?b)*G5(`i');
+        id once G(`i',?a,v1?,?b,v1?,?c) = G(`i',?a)*G(`i',v1,?b,v1)*G(`i',?c);
+        if ( match(G(`i',v1?,?a,v1?)) ) redefine j "0";
+        .sort
+    #enddo
+    id G(`i',?a)*G5(`i') = distrib_(-1,4,g1,g2,?a);
+    id g1(?args) = e_(?args);
+    id g2(?args) = g_(`i',?args);
+* Any gamma5 left should be alone
+    id G5(`i') = 0;
+#enddo
+
+id G(v1?,v2?) = g_(v1,v2);
+id G(v1?) = gi_(v1);
+id G5(v1?) = g5_(v1);
+
+* This trace module was in testing version, but looks to be needed; check
+
+#call Traces(3)
+.sort
+dimension 4;
+#do i = 0,19
+    sum vhv`i'l,vhv`i'r;
+    sum v`i'el;
+#enddo
+.sort
+
+* Should be no FORM epsilon tensors generated by code anymore, remove this later
+b e_;
+.sort
+Keep Brackets;
+#message contracting eps tensor
+contract, 0;
+
+** check if e_(p1,p2,p3,p4) vanishes (uncomment)
+*b e_;
+*.sort
+*cf f;
+*Keep Brackets;
+*
+*id e_(v1?,v2?,v3?,v4?) = e_(v1,v2,v3,v4);
+*
+*contract;
+*
+*b e_;
+*.sort
+*collect f;
+*
+*b f, e_;
+*.sort
+*Keep Brackets;
+*
+*id f(n?)*e_(v1?,v2?,v3?,v4?) = n;
+*id f(n?) = 0;
+
+
+b e_;
+.sort 
+Keep Brackets;
+
+id e_(p1?,p2?,p3?,p4?) = 0;
+
+b DS;
+.sort
+Keep Brackets;
+
+repeat id once DS(p1?,m1?,n1?)^n2? = DS(p1,m1,n1*n2);
+repeat id once DS(p1?,m1?,n1?)*DS(p1?,m1?,n2?) = DS(p1,m1,n1+n2);
+
+b DS, p1,p2,p3,p4,p5,p6;
+.sort
+Keep Brackets;
+
+repeat;
+	id once DS(p1 + p2, 0, n1?)*p1.p2 = 1/2*DS(p1+p2,0,n1-1);
+	id DS(p1?,m1?,0) = 1;
+endrepeat;
+
+#call eliminateMomentum
+#include processSpecific.inc
+
+* Additional DS stuff by Seth
+b DS, p1,p2,p3,p4,p5,p6;
+.sort
+Keep Brackets;
+
+splitarg DS;
+id DS(-p1?,p2?,m1?,n1?) = DS(p1,-p2,m1,n1);
+repeat id once DS(?args,n1?)^n2? = DS(?args,n1*n2);
+repeat id once DS(?args,n1?)*DS(?args,n2?) = DS(?args,n1+n2);
+
+repeat;
+* temp generic case; may hurt performance
+    id once DS(p1?, -p2?, m1?, n1?)*p1?.p2? = -1/2*(DS(p1,-p2,m1,n1-1)-m1^2*DS(p1,-p2,m1,n1));
+    id once DS(p1?, p2?, m1?, n1?)*p1?.p2? = 1/2*(DS(p1,p2,m1,n1-1) +m1^2*DS(p1,p2,m1,n1));
+    id DS(?args, 0) = 1;
+endrepeat;
+
+#include processSpecific.inc
+
+b DS, p1,p2,p3,p4,p5,p6;
+.sort
+Keep Brackets;
+
+repeat;
+* temp generic case; may hurt performance
+    id once DS(p1?, -p2?, m1?, n1?)*p1?.p2? = -1/2*(DS(p1,-p2,m1,n1-1)-m1^2*DS(p1,-p2,m1,n1));
+    id once DS(p1?, p2?, m1?, n1?)*p1?.p2? = 1/2*(DS(p1,p2,m1,n1-1) +m1^2*DS(p1,p2,m1,n1));
+    id DS(?args, 0) = 1;
+endrepeat;
+
+repeat id DS(p1?,p2?,?args) = DS(p1+p2,?args);
+
+#endprocedure

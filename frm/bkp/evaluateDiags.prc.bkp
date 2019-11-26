@@ -1,0 +1,317 @@
+#procedure evaluateDiags(FILE, MARKER, NUM, NUMPIECES)
+
+dimension d;
+#include `FILE' # global
+.global
+#if `subsetNLODiagrams' == 1 && `LOOPS' == 1
+    #define first "`subsetfirst'+`NUM'"
+    #define last "`subsetlast'"
+#endif
+* Make sure we don't redo diagrams
+#if `NUM' >= `NUMPIECES'
+    #redefine last "0"
+#endif
+
+#do i = `first', `last', `NUMPIECES'
+    #include `FILE' # d`i'
+    .store
+
+    g diag`MARKER'`i' = d`i';
+    .sort:test message;
+    #message d`i'
+
+    #call treatDiagram
+    #call collectSC
+    b VB, SCC;
+    .sort:First collectSC;
+    Keep Brackets;
+*   strip color
+    id VB(n1?, v1?, p1?, cOli1?) = VB(n1,v1,p1);
+    repeat id SCC(?args1, QQ(n1?, p1?, cOli1?, n2?), ?args4) = SCC(?args1, QQ(n1, p1, n2), ?args4);
+
+    #include `kinematicsFile'
+* temp remove colorMatrices by Seth
+    #call colorMatrices
+    .sort:Color matrices;
+
+#if `LOOPS' == 1
+    mul nf^`nfl';
+*    #if `nInFermions' > 0
+*        mul nif;
+*    #endif
+
+    b SCC;
+    .sort:Bracket SCC;
+    Keep Brackets;
+    id SCC(n1?, ?args) = acc(n1)*SCC(n1,?args);
+
+    b G, G5, acc;
+    .sort;Bracket Gs;
+    Keep Brackets;
+    #do i=0,10
+        id acc(n1?)*G(n2?!{n1?},v1?) = acc(n2,`i')*G(n2, v1);
+        id acc(n1?)*G(n2?!{n1?}) = acc(n2,`i')*G(n2);
+        id acc(n1?)*G5(n2?!{n1?}) = acc(n2,`i')*G5(n2);
+    #enddo
+    id acc(n1?) = 1;
+    repeat id acc(n1?, n3?)*acc(n1?,n3?) = acc(n1, n3);
+    b acc,G ;
+    .sort:Test message;
+    Keep Brackets;
+    repeat id acc(n1?,n2?)*G(n1?,v1?) = acc(n1,n2)*G(n2,v1);
+    repeat id acc(n1?,n2?)*G(n1?) = acc(n1,n2)*G(n2);
+    repeat id acc(n1?,n2?)*G5(n1?) = acc(n1,n2)*G5(n2);
+    id acc(n1?,n2?) = 1;
+
+    #call diracAlgebra
+
+    b G, G5;
+    .sort:Dirac algebra;
+    F g1,g2,test;
+    Keep Brackets;
+
+* Alter gamma_5 behavior to be consistent with large numbers of gamma matrices (by Seth)
+* tmep message
+    #message gamma loop
+
+    #do i = 0,3
+        repeat id G5(`i')*G(`i') = G5(`i');
+        repeat id G(`i', v1?)*G(`i') = G(`i', v1);
+        repeat id G5(`i')*G(`i', v1?) = -G(`i',v1)*G5(`i');
+        repeat id G5(`i')*G5(`i') = G(`i');
+        #do j=1,1
+            repeat id G(`i',v1?,?a,v2?!{v1?},v1?,?b) = 2*d_(v1,v2)*G(`i',v1,?a,?b)-G(`i',v1,?a,v1,v2,?b);
+            repeat id G(`i',?a,v1?,v1?,?b) = d_(v1,v1)*G(`i',?a,?b);
+            repeat id G(`i',?a)*G(`i',?b)*G5(`i') = G(`i',?a,?b)*G5(`i');
+            id once G(`i',?a,v1?,?b,v1?,?c) = G(`i',?a)*G(`i',v1,?b,v1)*G(`i',?c);
+            if ( match(G(`i',v1?,?a,v1?)) ) redefine j "0";
+            .sort:G5 loop;
+        #enddo
+        id G(`i',?a)*G5(`i') = distrib_(-1,4,g1,g2,?a);
+
+        id g1(?args) = e_(?args);
+        id g2(?args) = g_(`i',?args);
+* Any gamma5 left should be alone
+        id G5(`i') = 0;
+    #enddo
+    id G(v1?,v2?) = g_(v1,v2);
+    id G(v1?) = gi_(v1);
+    id G5(v1?) = g5_(v1);
+
+    b g_, e_;
+    .sort:Gamma algebra;
+
+* changed by Seth to d-dim trace
+    #call Traces(3);
+#endif
+
+    b SCC;
+    .sort:Trace, SCC brackets;
+    Keep Brackets;
+    id SCC(?args) = SC(?args);
+
+    b SC;
+    .sort:SC bracket;
+    on properorder;
+    Keep Brackets;
+    repeat id once SC(n1?,n2?,?args) = n2*SC(n1,?args);
+    id SC(n1?) = 1;
+    b QQ;
+    .sort:SC simplification;
+    Keep Brackets;
+    id QQ(?args, l) = QQ(?args);
+    id QQ(?args, r) = QQ(?args);
+    .sort:QQ l/r removal;
+
+    b e_;
+    print;
+    .sort:Epsilon handling;
+    cf tag, indtag;
+    Keep Brackets;
+
+    contract, 0;
+
+    b G;
+    .sort:Epsilon contraction;
+    b VB;
+    .sort:VB bracket;
+    Keep Brackets;
+
+    id VB(n1?, p1?, p2?, ?args) = VB(n1, acc(p1), p2, ?args);
+    .sort:VB momentum preservation;
+
+    on properorder;
+    #do l=1,4
+        id once G(n1?,v1?!v100)*VB(fEpsGStar, v1?, p1?, ?args) = G(n1, 
+v100`l'l1l)*VB(fEpsGStar, v100`l'l1l, p1, ?args);
+        id once G(n1?,v1?!v100)*VB(fEpsG, v1?, p1?, ?args) = G(n1, 
+v100`l'l5l)*VB(fEpsG, v100`l'l5l, p1, ?args);
+    #enddo
+
+* These index relabelings seem to have no purpose and screw up multi bosons
+
+*    id G(n1?,v1?)*VB(fEpsWStar, v1?, p1?, ?args) = G(n1, v1000l2l)*VB(fEpsWStar, v1000l2l, p1, ?args);
+*    id G(n1?,v1?)*VB(fEpsZStar, v1?, p1?, ?args) = G(n1, v1000l3l)*VB(fEpsZStar, v1000l3l, p1, ?args);
+*    id G(n1?,v1?)*VB(fEpsAStar, v1?, p1?, ?args) = G(n1, v1000l4l)*VB(fEpsAStar, v1000l4l, p1, ?args);
+*    id G(n1?,v1?)*VB(fEpsW, v1?, p1?, ?args) = G(n1, v1000l6l)*VB(fEpsW, v1000l6l, p1, ?args);
+*    id G(n1?,v1?)*VB(fEpsZ, v1?, p1?, ?args) = G(n1, v1000l7l)*VB(fEpsZ, v1000l7l, p1, ?args);
+*    id G(n1?,v1?)*VB(fEpsA, v1?, p1?, ?args) = G(n1, v1000l8l)*VB(fEpsA, v1000l8l, p1, ?args);
+
+    b VB;
+    .sort:VB index relabeling;
+    Keep Brackets;
+    id VB(n1?, acc(p1?), p2?, ?args) = VB(n1, p1, p2, ?args);
+
+    b G;
+    .sort:G bracket;
+    Keep Brackets;
+
+    #call eliminateMomentum
+    #call diracAlgebra
+    #call simplifyBosons
+    #call applyDiracEquation
+    #call diracAlgebra
+    #call simplifyBosons
+
+#if `dimScheme' == HV && `LOOPS' == 1
+
+* Relabel 4d indices
+
+b VB;
+.sort:VB bracket;
+Keep Brackets;
+
+id VB(n1?, p1?, p2?, ?args) = VB(n1, acc(p1), p2, ?args);
+.sort:VB momentum preservation;
+
+b d4d,VB;
+.sort
+Keep Brackets;
+repeat;
+id d4d(p1?,v1?) = d_(p1,v1);
+id d4d(v1?,p1?) = d_(p1,v1);
+id d4d(v1?,v2?)*d4d(v1?,v3?) = d4d(v2,v3);
+id d4d(v1?,v2?)*d4d(v2?,v3?) = d4d(v1,v3);
+id d4d(v1?,v2?)*d4d(v3?,v1?) = d4d(v2,v3);
+id d4d(v1?,v2?)*d4d(v3?,v2?) = d4d(v1,v3);
+endrepeat;
+.sort
+Keep Brackets;
+#do i=0,2
+.sort
+Keep Brackets;
+    if ( match(d4d(v1?,v2?!ve$temp)) );
+        multiply replace_($temp,v`i'el);
+        id d4d(v1?,v`i'el) = d_(v1,v`i'el);
+    else if ( match(VB(n1?, v1?!ve$temp, p1?, ?args)) );
+        multiply replace_($temp,v`i'el);
+    endif;
+#enddo
+
+b VB;
+.sort:VB index relabeling;
+Keep Brackets;
+id VB(n1?, acc(p1?), p2?, ?args) = VB(n1, p1, p2, ?args);
+.sort
+
+#endif
+
+    id G(n1?)*G(n1?,v1?) = G(n1,v1);
+    id G(n1?)*G5(n1?) = G5(n1);
+    id G(n1?,v1?)*G(n1?) = G(n1,v1);
+    id G5(n1?)*G(n1?) = G5(n1);
+*    #call simplifyBosons
+    id QQ(?args, l) = QQ(?args);
+    id QQ(?args, r) = QQ(?args);
+
+    #call eliminateMomentum
+    #call simplifyBosons
+    #include `kinematicsFile';
+    .sort:Bosons and kinematics;
+
+    ab cc, cOlT, cOlf, delta, delta3;
+    .sort:color antibracket;
+    collect color;
+    splitarg color;
+    repeat id color(n1?, n2?, ?args) = color(n1) + color(n2, ?args);
+    b color;
+    .sort:color bracket;
+    Keep Brackets;
+    factarg, (-1), color;
+    id color(?args,n2?, n1?) = n1*color(?args, n2);
+    b sDS;
+    .sort:sDS bracket;
+    Keep Brackets;
+
+    id sDS(?args) = DS(?args);
+    b DS;
+    .sort:DS bracket;
+    Keep Brackets;
+    repeat id DS(p1?, m1?, n1?)*DS(p1?,m1?,n2?) = DS(p1,m1,n1+n2);
+
+    #call collectSC
+    b SCC;
+    .sort:SCC bracket;
+    cf tags;
+    Keep Brackets;
+
+*   use smallest momentum index carrying fermion to sort chains 
+    id SCC(n1?, QQ(n2?,p1?,?args), ?args2) = SCC(n1, QQ(n2,p1,?args), ?args2)*tags(p1);
+    id tags(p1?)*tags(p2?) = tags(p1, p2);
+    repeat id tags(p1?, ?args1)*tags(p2?, ?args2) = tags(p1, ?args1,p2,?args2);
+    symmetrize tags;
+    b SCC, tags;
+    .sort:SCC tags;
+    Keep Brackets;
+
+* Changed by Seth: add third Dirac chain handling
+    id SCC(n1?, QQ(n2?, p1?,?args), ?args2)*tags(p1?, ?args3) =
+        SCC(n0`MARKER', QQ(n2,p1,?args), ?args2)*tags(p1, ?args3);
+    id SCC(n1?, QQ(n2?, p2?,?args), ?args2)*tags(p1?, p2?, ?args3) =
+        SCC(n1`MARKER', QQ(n2,p2,?args), ?args2)*tags(p1, p2, ?args3);
+    id SCC(n1?, QQ(n2?, p3?,?args), ?args2)*tags(p1?, p2?, p3?) = 
+        SCC(n2`MARKER', QQ(n2,p3,?args), ?args2);
+
+*    id SCC(n1?, QQ(n2?, p1?,?args), ?args2)*tags(p1?, ?args3) =
+*        SCC(n0`MARKER', QQ(n2,p1,?args), ?args2)*tags(p1, ?args3);
+*    id SCC(n1?, QQ(n2?, p2?,?args), ?args2)*tags(p1?, p2?) =
+*        SCC(n1`MARKER', QQ(n2,p2,?args), ?args2);
+
+*   if there is only one dirac chain, remove tags()
+    id tags(?args) = 1;
+*    id tags(p1?) = 1;
+
+    repeat id SCC(n1?, ?args1, G(n2?!{,n1?}, v1?), ?args2) =
+        SCC(n1, ?args1, G(n1,v1,0), ?args2);
+    repeat id SCC(n1?, ?args1, G5(n2?!{,n1?}), ?args2) =
+        SCC(n1, ?args1, G5(n1,0), ?args2);
+    repeat id SCC(n1?, ?args1, G(n2?!{,n1?}), ?args2) =
+        SCC(n1, ?args1, G(n1,0), ?args2);
+    repeat id SCC(n1?, ?args1, PL(n2?!{,n1?}), ?args2) =
+        SCC(n1, ?args1, PL(n1,0), ?args2);
+    repeat id SCC(n1?, ?args1, PR(n2?!{,n1?}), ?args2) =
+        SCC(n1, ?args1, PR(n1,0), ?args2);
+
+    argument;
+        id G(n1?,v1?,0) = G(n1,v1);
+        id G5(n1?,0) = G5(n1);
+        id G(n1?,0) = G(n1);
+        id PL(n1?,0) = PL(n1);
+        id PR(n1?,0) = PR(n1);
+    endargument;
+*    b SCC;
+    b SCC, tags;
+    print;
+    .sort:Tagging done;
+
+    b delta, delta3, i_, VB, SCC, DS, color, TI, p1, p2, p3, p4, p5, `bracketconstants';
+    .sort:Final bracket;
+    Keep Brackets;
+    #write<math/diag`MARKER'`i'.m> "(%E)" diag`MARKER'`i';
+    b delta, delta3, e, i_, g, VB, SCC, DS, color, TI, p1, p2, p3, p4, p5;
+    .store
+
+    save sav/diag`MARKER'`i'.sav diag`MARKER'`i';
+#enddo
+
+#endprocedure

@@ -1,0 +1,399 @@
+#procedure computeSCContractions
+
+#define SPINLINES "3"
+#include config.inc
+#include `leftDiagDefFile' # global
+#call eliminateMomentum
+.sort
+s d2;
+
+#if `dimScheme' == HV
+    dimension 4;
+#endif
+
+#if `leftNLoops' == 1
+
+* Isolate momenta so they are not matched
+repeat id SCC(?args1,G(n0l?,p1?),?args2) = SCC(?args1,G(n0l,acc(p1)),?args2);
+* Protect 4 dim indices
+repeat id SCC(?args1,G(n0l?,v1?ve),?args2) = SCC(?args1,G(n0l,acc(v1)),?args2);
+
+#if `dimScheme' == HV
+*Split d-dimensional contracted gammas into a 4-dim and eps-dim part
+
+repeat;
+    id SCC(n0l?nl,?args1,G(n0l?,v0l?),?args2)*
+       SCC(n1l?nl,?args3,G(n1l?,v0l?),?args4) = 
+       SCC(n0l,?args1,G4(n0l,v0l),?args2)*
+       SCC(n1l,?args3,G4(n1l,v0l),?args4) +
+       SCC(n0l,?args1,Ge(n0l,v0l),?args2)*
+       SCC(n1l,?args3,Ge(n1l,v0l),?args4);
+
+    id SCC(n0l?nl,?args1,G(n0l?,v0l?),?args2,G(n0l?,v0l?),?args3) =
+       SCC(n0l,?args1,G4(n0l,v0l),?args2,G4(n0l,v0l),?args3) +
+       SCC(n0l,?args1,Ge(n0l,v0l),?args2,Ge(n0l,v0l),?args3);
+endrepeat;
+
+#elseif `dimScheme' == oldHV
+    #do i=0,9
+        if( match(SCC(n0l?nl,?args1,G(n0l?,v0l?!vdhv$temp),?args2)*
+                  SCC(n1l?nl,?args3,G(n1l?,v0l?),?args4)) );
+            multiply replace_($temp,vdhv`i');
+        elseif( match(SCC(n0l?nl,?args1,G(n0l?,v0l?!vdhv$temp),?args2,G(n0l?,v0l?),?args3)) );
+            multiply replace_($temp,vdhv`i');
+        endif;
+    #enddo
+
+#endif * `dimScheme' == HV
+#endif * `leftNLoops' == 1
+
+repeat id SCC(?args1,G(n0l?,acc(v1?)),?args2) = SCC(?args1,G(n0l,v1),?args2);
+repeat id SCC(?args1,G(n0l?,acc(p1?)),?args2) = SCC(?args1,G(n0l,p1),?args2);
+
+#if `dimScheme' == HV
+* All remaining indices should be 4-dim in HV scheme, d-dim in CDR; replace with default dimension
+    #do i = 0,19
+        sum v`i'l,v`i'r,v`i'el;
+    #enddo
+
+#elseif `dimScheme' == oldHV
+    #do i = 0,19
+        multiply replace_(v`i'l,vhv`i'l);
+        multiply replace_(v`i'r,vhv`i'r);
+    #enddo
+
+#endif * `dimScheme' == HV
+.sort
+
+#call preprocChains
+
+b SCC;
+.sort
+cf ddf;
+Keep Brackets;
+
+#message spin sums
+repeat;
+
+* Should be able to handle generic quark spin sum by using mass()
+
+id SCC(dd(n1?,n2?),?args1, QQ(U, p1?, ?args2), QQ(Bar(U), p1?,?args3), ?args4) =
+    SCC(dd(n1,n2),?args1, G(n1,p1), ?args4) + mass(p1)*SCC(dd(n1,n2),?args1, G(n1), ?args4);
+
+id SCC(dd(n1?,n2?),?args1, QQ(V, p1?, ?args2), QQ(Bar(V), p1?,?args3), ?args4) =
+    SCC(dd(n1,n2),?args1, G(n1,p1), ?args4) - mass(p1)*SCC(dd(n1,n2),?args1, G(n1), ?args4);
+
+endrepeat;
+
+repeat id SCC(dd(n1?,n2?), dd(n3?,n4?), ?args) = SCC(ddf(n1,n2), ddf(n3,n4), ?args);
+repeat id SCC(dd(n1?,n2?), ?args) = dd(n1,n2)*SCC(?args);
+repeat id SCC(ddf(n1?,n2?), ?args) = ddf(n1,n2)*SCC(?args);
+
+id SCC(?args) = SC(?args);
+
+b SC;
+.sort
+#message replace chain indices
+Keep Brackets;
+repeat id once SC(n1?,?args) = n1*SC(?args);
+id SC = 1;
+
+b dd, ddf;
+.sort
+Keep Brackets;
+#do i = 0, 10
+    id dd(n`i'r, n1?) = dd(n1, n`i'r);
+    id ddf(n`i'r, n1?) = ddf(n1, n`i'r);
+#enddo
+id ddf(n1?, n2?)*ddf(n3?!{,n1}, n4?) = dd(n1, n2)*dd(n1, n4)*dd(n1, n3);
+
+b G, Ge, G4, G5, dd;
+.sort
+f Gc, Gec, G5c;
+Keep Brackets;
+id G4(?args) = G(?args);
+repeat;
+    id dd(n1?,n2?)*G(n2?,v1?) = Gc(n1,v1)*dd(n1,n2);
+    id dd(n1?,n2?)*G(n2?) = Gc(n1)*dd(n1,n2);
+    id dd(n1?,n2?)*Ge(n2?,v1?) = Gec(n1,v1)*dd(n1,n2);
+    id dd(n1?,n2?)*G5(n2?) = G5c(n1)*dd(n1,n2);
+endrepeat;
+id dd(n1?,n2?) = 1;
+
+b Gc, Gec, G5c;
+.sort
+Keep Brackets;
+
+id G5c(n1?) = G5(n1);
+id Gec(n1?, v1?) = Ge(n1, v1);
+id Gc(n1?) = G(n1);
+id Gc(n1?, v1?) = G(n1, v1);
+
+#call postprocChains
+
+#if `dimScheme' == HV
+b VB, Ge;
+.sort
+
+* Any Ge dotted with anything 4-dimensional should vanish
+id Ge(n1?,p1?) = 0;
+id Ge(n1?,v1?)*VB(n2?,v1?,p1?) = 0;
+#endif
+
+b VB;
+.sort
+
+
+#message >> polarization sums
+
+id VB(fEpsAStar, v1?, p1?)*VB(fEpsA, v2?, p1?) = -d_(v1,v2);
+id VB(fEpsWStar, v1?, p1?)*VB(fEpsW, v2?, p1?) = -d_(v1,v2) + p1(v1)*p1(v2)/(mW*mW);
+id VB(fEpsZStar, v1?, p1?)*VB(fEpsZ, v2?, p1?) = -d_(v1,v2) + p1(v1)*p1(v2)/(mZ*mZ);
+
+* Pair of initial state gluons first (unambiguous)
+id  VB(fEpsGStar, v1?, p1?{p1,p2})*VB(fEpsG, v2?, p1?)
+   *VB(fEpsGStar, v3?, p2?{p1,p2})*VB(fEpsG, v4?, p2?)
+ =  (-d_(v1,v2) + 2*DS(p1+p2,0,1)*(p1(v1)*p2(v2) + p1(v2)*p2(v1)))
+   *(-d_(v3,v4) + 2*DS(p1+p2,0,1)*(p1(v3)*p2(v4) + p1(v4)*p2(v3)));
+
+* Pair of final state gluons (ambiguous if more than two final state gluons)
+*
+* We use a do loop here in order to avoid the ambiguity that comes with multiple
+* possible pairings of gluons. For 3 final-state gluons (p3, p4, p5), FORM could
+* arbitrarily pair p3 and p4 for some terms and p4 and p5 for others. This
+* breaks gauge invariance. With the do loop, p3 and p4 will be paired for every
+* term.
+#do i = 3, 5
+#do j = 4, 6
+id  VB(fEpsGStar, v1?, p`i')*VB(fEpsG, v2?, p`i')
+   *VB(fEpsGStar, v3?, p`j')*VB(fEpsG, v4?, p`j')
+ =  (-d_(v1,v2) + 2*DS(p`i'+p`j',0,1)*(p`i'(v1)*p`j'(v2) + p`i'(v2)*p`j'(v1)))
+   *(-d_(v3,v4) + 2*DS(p`i'+p`j',0,1)*(p`i'(v3)*p`j'(v4) + p`i'(v4)*p`j'(v3)));
+#enddo
+#enddo
+
+* One initial state gluon, one final state gluon
+*
+* After identifying intial-state and final-state pairs, there will be at most
+* one gluon in the initial state and one in the final state, so no do loop is
+* necessary.
+*
+* Note the different sign for the DS and p1-p2 versus the other two cases.
+* Although algebraically equivalent, it seems to be necessary because some DS[]
+* with a sum of momenta will not be handled correctly and will end up in the C
+* code. The sign difference here prevents that error.
+id  VB(fEpsGStar, v1?, p1?{p1,p2})*VB(fEpsG, v2?, p1?)
+   *VB(fEpsGStar, v3?, p2?!{p1,p2})*VB(fEpsG, v4?, p2?)
+ =  (-d_(v1,v2) - 2*DS(p1-p2,0,1)*(p1(v1)*p2(v2) + p1(v2)*p2(v1)))
+   *(-d_(v3,v4) - 2*DS(p1-p2,0,1)*(p1(v3)*p2(v4) + p1(v4)*p2(v3)));
+
+******
+
+b VB;
+.sort
+Keep Brackets;
+
+* Contract remaining gluon (only after pairs of gluons are contracted)
+id VB(fEpsGStar, v1?, p1?)*VB(fEpsG, v2?, p1?) = -d_(v1,v2);
+
+******
+*print;
+.sort
+
+#if `dimScheme' == HV
+* Might get some more momenta dotted into eps-dim gammas from polarization sum
+* of massive bosons
+id Ge(n1?, p1?) = 0;
+
+* Pull all epsilon-dim gamma matrices to left to prepare to put in new trace
+#do i = 0,`SPINLINES'-1
+* once Ge gets moved to its own spinline it's supposed to replace Tr[1] = 4, so divide by 4
+    id once Ge(`i',v1?) = Ge(`i',v1)/4;
+    repeat;
+        id G(`i')*Ge(`i',v1?) = Ge(`i',v1)*G(`i');
+        id G(`i',v1?)*Ge(`i',v2?) = -Ge(`i',v2)*G(`i',v1);
+        id G5(`i')*Ge(`i',v1?) = Ge(`i',v1)*G5(`i');
+    endrepeat;
+
+* epsilon-dim gammas can be placed on a new spinline by themselves
+    id Ge(`i',v1?) = Ge(`i'+10,v1);
+#enddo
+
+#elseif `dimScheme' == oldHV
+    b d_,p1,p2,p3,p4,p5,p6,G,e_;
+    .sort
+    dimension 4;
+    Keep Brackets;
+    #do i=1,1
+        if ( match(d_(v1?,v2?$temp)) );
+            sum $temp;
+            redefine i "0";
+        elseif ( match(p1?(v1?vhvext$temp)) );
+            sum $temp;
+            redefine i "0";
+        endif;
+        b d_,p1,p2,p3,p4,p5,p6,G,e_;
+        .sort
+        Keep Brackets;
+    #enddo
+    .sort
+    dimension d;
+
+#endif
+
+b G, G5;
+.sort
+F g1,g2;
+Keep Brackets;
+
+* Gamma5 substitution, up to 3 fermion lines (change hard-coding later)
+
+#do i = 0,2
+    repeat id G5(`i')*G(`i') = G5(`i');
+    repeat id G(`i', v1?)*G(`i') = G(`i', v1);
+    repeat id G5(`i')*G(`i', v1?) = -G(`i',v1)*G5(`i');
+    repeat id G5(`i')*G5(`i') = G(`i');
+
+#if `dimScheme' == oldHV
+    #do j=1,1
+        repeat id G(`i',v1?,?a,v2?!{v1?},v1?,?b) = 2*d_(v1,v2)*G(`i',v1,?a,?b)-G(`i',v1,?a,v1,v2,?b);
+        repeat id G(`i',?a,v1?,v1?,?b) = d_(v1,v1)*G(`i',?a,?b);
+        repeat id G(`i',?a)*G(`i',?b)*G5(`i') = G(`i',?a,?b)*G5(`i');
+        id once G(`i',?a,v1?,?b,v1?,?c) = G(`i',?a)*G(`i',v1,?b,v1)*G(`i',?c);
+        if ( match(G(`i',v1?,?a,v1?)) ) redefine j "0";
+        .sort
+    #enddo
+    id G(`i',?a)*G5(`i') = distrib_(-1,4,g1,g2,?a);
+    id g1(?args) = e_(?args);
+    id g2(?args) = g_(`i',?args);
+* Any gamma5 left should be alone
+    id G5(`i') = 0;
+*    repeat id G(`i',v1?,v2?,?args) = G(`i',v1)*G(`i',v2,?args);
+#endif
+#enddo
+
+id Ge(v1?,v2?) = g_(v1,v2);
+id G(v1?,v2?) = g_(v1,v2);
+id G(v1?) = gi_(v1);
+id G5(v1?) = g5_(v1);
+*id G5(v1?) = 1/24*g_(v1,vdhv0,vdhv1,vdhv2,vdhv3)*e_(vdhv0,vdhv1,vdhv2,vdhv3);
+.sort
+
+#if `dimScheme' == HV
+#do i = 0, `SPINLINES'-1
+    b g_,d_;
+    .sort
+    Keep Brackets;
+    trace4, `i';
+#enddo
+
+.sort
+dimension d2;
+#do i = 10, `SPINLINES'+9
+    b g_,d_;
+    .sort
+    Keep Brackets;
+    tracen, `i';
+#enddo
+
+#elseif `dimScheme' == oldHV
+
+#call Traces(3)
+.sort
+
+dimension 4;
+#do i = 0,19
+    sum vhv`i'l,vhv`i'r;
+    sum v`i'el;
+#enddo
+.sort
+
+#do i = 0,9
+    sum vdhv`i';
+#enddo
+.sort
+#endif
+
+* Final epsilon tensor manipulation
+
+b e_;
+.sort
+#if `dimScheme' == HV
+	dimension 4;
+#endif
+Keep Brackets;
+#message contracting eps tensor
+contract, 0;
+
+b e_;
+*print;
+.sort 
+Keep Brackets;
+
+* This must be replaced with the option for the full expression of an
+* epsilon tensor (this has been done in the FourVector class in tred).
+#if `disableEpsTensor' == 1
+    id e_(p1?,p2?,p3?,p4?) = 0;
+#endif
+
+b DS;
+.sort
+Keep Brackets;
+
+repeat id once DS(p1?,m1?,n1?)^n2? = DS(p1,m1,n1*n2);
+repeat id once DS(p1?,m1?,n1?)*DS(p1?,m1?,n2?) = DS(p1,m1,n1+n2);
+
+b DS, p1,p2,p3,p4,p5,p6;
+.sort
+Keep Brackets;
+
+repeat;
+	id once DS(p1 + p2, 0, n1?)*p1.p2 = 1/2*DS(p1+p2,0,n1-1);
+	id DS(p1?,m1?,0) = 1;
+endrepeat;
+
+#call eliminateMomentum
+#include processSpecific.inc
+
+* Additional DS stuff by Seth
+b DS, p1,p2,p3,p4,p5,p6;
+.sort
+Keep Brackets;
+
+splitarg DS;
+id DS(-p1?,p2?,m1?,n1?) = DS(p1,-p2,m1,n1);
+repeat id once DS(?args,n1?)^n2? = DS(?args,n1*n2);
+repeat id once DS(?args,n1?)*DS(?args,n2?) = DS(?args,n1+n2);
+
+repeat;
+* temp generic case; may hurt performance
+    id once DS(p1?, -p2?, m1?, n1?)*p1?.p2? = -1/2*(DS(p1,-p2,m1,n1-1)-m1^2*DS(p1,-p2,m1,n1));
+    id once DS(p1?, p2?, m1?, n1?)*p1?.p2? = 1/2*(DS(p1,p2,m1,n1-1) +m1^2*DS(p1,p2,m1,n1));
+    id DS(?args, 0) = 1;
+endrepeat;
+
+#include processSpecific.inc
+
+b DS, p1,p2,p3,p4,p5,p6;
+.sort
+Keep Brackets;
+
+repeat;
+* temp generic case; may hurt performance
+    id once DS(p1?, -p2?, m1?, n1?)*p1?.p2? = -1/2*(DS(p1,-p2,m1,n1-1)-m1^2*DS(p1,-p2,m1,n1));
+    id once DS(p1?, p2?, m1?, n1?)*p1?.p2? = 1/2*(DS(p1,p2,m1,n1-1) +m1^2*DS(p1,p2,m1,n1));
+    id DS(?args, 0) = 1;
+endrepeat;
+
+repeat id DS(p1?,p2?,?args) = DS(p1+p2,?args);
+
+* Replace epsilon (which has been labeled d2 above) with d since 
+* later code expects d and not epsilon; check and simplify this later
+
+.sort
+
+#if `dimScheme' == HV
+    id d2 = d - 4;
+#endif
+
+#endprocedure
