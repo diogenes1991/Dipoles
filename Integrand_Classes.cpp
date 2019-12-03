@@ -1,6 +1,6 @@
 #include <cmath>
 #include <iostream>
-#include "Integrand_Classes_2.h"
+#include "Integrand_Classes.h"
 
 
 using namespace std;
@@ -19,7 +19,6 @@ main(int argc, char* argv[]){
     double vars[4]={0.5,2,7,3};
     
 
-    ~Curly_G_ia;
     cout << "Curly_G_ia(0.5) = " << Curly_G_ia.eval_D(vars) << " , " << Curly_G_ia.eval_R(vars) << endl;
 
 
