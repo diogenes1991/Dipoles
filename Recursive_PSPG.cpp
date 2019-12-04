@@ -19,6 +19,9 @@ if((argc-1)<4||(argc-1)<(2+atoi(argv[1]))){
     abort();
 }
 
+if((argc-1)>(2+atoi(argv[1]))){
+    cout << "Warning: You provided too many arguments, using the first "<<(2+atoi(argv[1]))<<" arguments only" <<endl;
+}
 
 const int NPar = atoi(argv[1]);
 const double sqrts = atof(argv[2]);
