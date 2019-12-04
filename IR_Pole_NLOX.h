@@ -451,7 +451,7 @@ void Get_Process_EW_Poles_NEW( const int next, int* subproc_id, double *pp, doub
     /// A --> ffbar + PDF Counterterm ///
     if(Scheme==1){
     for(int i=0;i<=next-1;i++){
-        if(subproc_id[i]==22)ret_val[1] += 40./9;
+        if(subproc_id[i]==22)ret_val[1] -= 40./9;
         }
     }    
    ret_val[0] *=ccborn[0];
@@ -515,6 +515,16 @@ void Get_Process_QCD_Poles( const int next, int* subproc_id, double* pp, double 
     
 }
 
+
+double gamma_I(int PID){
+    if(IsColored(PID)){
+        if(PID!=21) return 3./2;
+        else return 11./6 - 5./9;
+    }
+    else return 0;
+    
+}
+
 void Get_Process_QCD_Poles_NEW( const int next, int* subproc_id, double* pp, double ren_scale, double *ccborn, double* ret_val){
 
     ret_val[0] = 0;
@@ -525,7 +535,7 @@ void Get_Process_QCD_Poles_NEW( const int next, int* subproc_id, double* pp, dou
     if(i==2) cout << " ---> ";
     cout << PID_to_Name(subproc_id[i]) << "(" << i+1 << ")";
     if(i!=next-1&&i!=1) cout << " + ";
-    else if(i!=1) cout << endl<<endl;
+    else if(i!=1) cout << endl;
     }
     }
     
@@ -538,7 +548,7 @@ void Get_Process_QCD_Poles_NEW( const int next, int* subproc_id, double* pp, dou
             double pe[5],ps[5];
             for(int k=0;k<5;k++){pe[k]=pp[5*i+k];ps[k]=pp[5*j+k];}            
             if(DEBUG){
-                cout << "Now threading the <T"<<i+1<<"T"<<j+1<<"> = "<< ccborn[CC_count] << endl;
+                cout << "Now including the <T"<<i+1<<"T"<<j+1<<"> = "<< ccborn[CC_count] << endl;
             if(DEBUG>1){
                 cout << "Emitter momentum = {"<<pe[0]<<","<<pe[1]<<","<<pe[2]<<","<<pe[3]<<","<<pe[4]<<"}"<<endl;
                 cout << "Spectator momentum = {"<<ps[0]<<","<<ps[1]<<","<<ps[2]<<","<<ps[3]<<","<<ps[4]<<"}"<<endl;
@@ -548,12 +558,16 @@ void Get_Process_QCD_Poles_NEW( const int next, int* subproc_id, double* pp, dou
             
 
             ret_val[0] -= 2*ccborn[CC_count];
-            ret_val[1] -= 2*(3./2. + log(ren_scale*ren_scale/(2*(Lorentz_Dot(pe,ps)))))*ccborn[CC_count];
-            CC_count += 1;
-        
+            ret_val[1] -= (gamma_I(subproc_id[i]) + gamma_I(subproc_id[j]) + 2*log(ren_scale*ren_scale/(2*(Lorentz_Dot(pe,ps)))))*ccborn[CC_count];
+            
             }
+            CC_count += 1;
         }
     }
+    
+//     for(int i=0;i<=next-1;i++){
+//         if(subproc_id[i]==21)ret_val[1] -= 5./3*ccborn[0];
+//         }
     
 }
 
