@@ -380,7 +380,7 @@ void Integrate_End(){
 //     cout << "Born Integration Initiated with seed = " << seed <<endl;
     
     Vegas(ndim, ncomp,
-        Integrand_PSV_End, &userdata, nvec,
+        Integrand_Dipole_End, &userdata, nvec,
         epsrel, epsabs,
         flags, seed,
         mineval, maxeval,
@@ -409,6 +409,7 @@ main(int argc, char* argv[]){
 
     Integrate_Sub();
     Integrate_Plu();
+    Integrate_End();
  
 
 }     
