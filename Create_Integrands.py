@@ -12,39 +12,83 @@ def find_substring(string, substring):
             return locations_found
     return recurse([], 0)
 
-def ReadConfigFile(CONFIGFILE):
+class Amplitude:
+    def __init__(self,CONFIGFILE):
+        self.readconfig(CONFIGFILE)
+        self.loadconfig()
 
-    CONFIG = {'INITIAL_STATE': [],\
+    def readconfig(self,CONFIGFILE):
+        CONFIG = {'INITIAL_STATE': [],\
               'FINAL_STATE'  : [],\
               'RADIATIVE'    : [],\
               'MODELFILE'    : 'StandardModel',\
               'VERBOSE'      : 0 }
     
-    COMMCHAR = '#'
+        COMMCHAR = '#'
 
-    f = open(CONFIGFILE,'r')
-    configfile= []
-    for l in f:
-    	if l.find(COMMCHAR)==0 or len(l)==0 or l=='\n':
-    		continue
-        configfile.append([False,l])
+        f = open(CONFIGFILE,'r')
+        configfile= []
+        for l in f:
+            if l.find(COMMCHAR)==0 or len(l)==0 or l=='\n':
+                continue
+            configfile.append([False,l])
 
-    for configuration in CONFIG.keys():
-        warn = True
+        for configuration in CONFIG.keys():
+            warn = True
+            for line in configfile:
+                if configuration in line[1]:
+                    thisconfig = line[1].strip().split('=')
+                    CONFIG[thisconfig[0].strip()] = (thisconfig[1].strip()).split(',')
+                    warn = False
+                    line[0] = True
+            if warn:
+                print "\33[95mWarning\33[0m: Configuartion",configuration,"not found in configuration file, using default:",CONFIG[configuration]
+        
         for line in configfile:
-            if configuration in line[1]:
-                thisconfig = line[1].strip().split('=')
-                CONFIG[thisconfig[0].strip()] = (thisconfig[1].strip()).split(',')
-                warn = False
-                line[0] = True
-        if warn:
-            print "\33[95mWarning\33[0m: Configuartion",configuration,"not found in configuration file, using default:",CONFIG[configuration]
-    
-    for line in configfile:
-    	if not line[0]:
-    		print "\33[95mWarning\33[0m: Configuartion",(((line[1].strip()).split('='))[0]).strip(),"is not a valid configuration setting, please check the syntax"
+            if not line[0]:
+                print "\33[95mWarning\33[0m: Configuartion",(((line[1].strip()).split('='))[0]).strip(),"is not a valid configuration setting, please check the syntax"
 
-    return CONFIG 
+        self.config = CONFIG
+
+    def loadconfig(self):
+        
+        self.verbose = int(self.config['VERBOSE'][0])
+
+        try:
+            LoadedModel = __import__(self.config['MODELFILE'][0])
+        except:
+            print "\33[31mError\33[0m: Model file",self.config['MODELFILE'][0],"not found."
+            sys.exit()
+                
+        self.Model =  LoadedModel.WorkingModel
+        self.ParticleContent = self.Model.ParticleContent
+
+        self.INIBORN = []
+        for particle in self.config['INITIAL_STATE']:
+            try:
+                self.INIBORN.append(self.ParticleContent[particle])
+            except:
+                print "\33[31mError\33[0m: Particle class",particle,"not defined."
+                sys.exit()
+                    
+        self.FINBORN = []
+        self.FINRADI = []
+        for particle in self.config['FINAL_STATE']:
+            try:
+                self.FINBORN.append(self.ParticleContent[particle])
+                self.FINRADI.append(self.ParticleContent[particle])
+            except:
+                print "\33[31mError\33[0m: Particle class",particle,"not defined."
+                sys.exit()
+        
+        try:    
+            self.FINRADI.append(self.ParticleContent[self.config['RADIATIVE'][0]])
+        except:
+            print "\33[31mError\33[0m: Particle class",self.config['RADIATIVE'][0],"not defined"
+            sys.exit()
+
+        self.BORNPROC = Process(self.INIBORN,self.FINBORN)
+        self.RADIPROC = Process(self.INIBORN,self.FINRADI)
 
 def main(CONFIGFILE):
 
@@ -53,95 +97,83 @@ def main(CONFIGFILE):
 	### request this via the input file
 	### 
     
-    CONFIG = ReadConfigFile(CONFIGFILE)
-    
-    VERBOSE = CONFIG['VERBOSE']
-    try:
-        LoadedModel = __import__(CONFIG['MODELFILE'][0])
-    except:
-        print "\33[31mError\33[0m: Model file",CONFIG['MODELFILE'][0],"not found."
-        sys.exit()
-            
-    Model =  LoadedModel.WorkingModel
-    ParticleContent = Model.ParticleContent
-
-    ###
-    ###   Loading of Configuration file 
-    ###
-    
-    INIBORN = []
-    for particle in CONFIG['INITIAL_STATE']:
-    	try:
-        	INIBORN.append(ParticleContent[particle])
-        except:
-        	print "\33[31mError\33[0m: Particle class",particle,"not defined."
-        	sys.exit()
-                
-    FINBORN = []
-    FINRADI = []
-    for particle in CONFIG['FINAL_STATE']:
-    	try:
-    		FINBORN.append(ParticleContent[particle])
-        	FINRADI.append(ParticleContent[particle])
-        except:
-        	print "\33[31mError\33[0m: Particle class",particle,"not defined."
-        	sys.exit()
-    
-    try:    
-    	FINRADI.append(ParticleContent[CONFIG['RADIATIVE'][0]])
-    except:
-    	print "\33[31mError\33[0m: Particle class",CONFIG['RADIATIVE'][0],"not defined."
-        sys.exit()
-
-    BORNPROC = Process(INIBORN,FINBORN)
-    RADIPROC = Process(INIBORN,FINRADI)
-    
-    print "Born processes:",str(BORNPROC)
-    BORNPROC.Print()
-
-    print "Radiative processes:",str(RADIPROC)
-    RADIPROC.Print()
-
-    # fconfig = open(CONFIGFILE,'r')
-    # mystr = fconfig.readline()
-    # INIDS = []
-    # mystr = mystr.strip()
-    # start = mystr.find('=')
-    # ends = find_substring(mystr,",")
-    # ends = [start] + ends
-    # ends.append(len(mystr))
-
-    # #   PARTIICLE IDs FETCHING ROUTINE  #
-
-    # for i in range(0,len(ends)-1):
-    #     toappend = ""
-    #     for j in range(ends[i]+1,ends[i+1]):
-    #         toappend = toappend + mystr[j]
-    #     INIDS.append(toappend)
-    # INIDS = map(int,INIDS)
-
-    # mystr = fconfig.readline()
-    # FIIDS = []
-    # mystr = mystr.strip()
-    # start = mystr.find('=')
-    # ends = find_substring(mystr,",")
-    # ends = [start] + ends
-    # ends.append(len(mystr))
-
-    # for i in range(0,len(ends)-1):
-    #     toappend = ""
-    #     for j in range(ends[i]+1,ends[i+1]):
-    #         toappend = toappend + mystr[j]
-    #     FIIDS.append(toappend)
-    # FIIDS = map(int,FIIDS)
-
-    # mystr = fconfig.readline()
-    # if mystr.find("0")>0: VERBOSE = 0
-    # elif mystr.find("1")>0: VERBOSE = 1
-    # elif mystr.find("2")>0: VERBOSE = 2
+    AMPLITUDE = Amplitude(CONFIGFILE)
 
     #   C++ INTEGRAND FILES CREATION  #
 
+    LINKING = {}
+    for subproc in AMPLITUDE.RADIPROC.subproc:
+        LINKING[subproc] = []
+        # 
+        #    THERE HAS TO BE A BETTER WAY, BUT FOR NOW THIS WORKS!
+        #
+        # To find the eikonal limits for this process we need 
+        # to eliminate a single Boson from the process and then do two 
+        # things:
+        #         - If we removed the boson from the initial state we need 
+        #           move (lopp over finals) a particle from the final state to the initial
+        #           
+        #               - For each tentative move we need to search for the resulting key in the 
+        #               born subprocess list to see if the contributuon needs to be included 
+        #         - Else we look for the process directly in the born subprocess list
+        # print "Now analyzing the radiative subprocess:",subproc
+        counter = -1
+        
+        for particle in AMPLITUDE.RADIPROC.subproc[subproc]:
+            counter += 1
+            
+            if particle.typ != "Boson":
+                continue
+            
+            # Otherwise we eliminate the Boson from the process and build a newlist 
+            
+            newlist = []
+            for index in range(len(AMPLITUDE.RADIPROC.subproc[subproc])):
+                if index == counter:
+                    continue
+                newlist.append(AMPLITUDE.RADIPROC.subproc[subproc][index])
+            
+            if counter >= len(AMPLITUDE.RADIPROC.ini):
+                # print "   The Boson",str(particle),"will be eliminated from the final state"
+                tentborn = AMPLITUDE.BORNPROC.BuildString(newlist)
+                if tentborn in AMPLITUDE.BORNPROC.subproc.keys():
+                    LINKING[subproc].append(tentborn)
+            else:
+                # print "   The Boson",str(particle),"will be eliminated from the initial state"
+                for index in range(len(AMPLITUDE.RADIPROC.ini),len(AMPLITUDE.RADIPROC.ini)+len(AMPLITUDE.RADIPROC.fin)-1):
+                    # Copy 
+                    swaped = [particle for particle in AMPLITUDE.RADIPROC.subproc[subproc]]
+                    
+                    # Swap 
+                    # print "      Swapping",swaped[counter],"<->",swaped[index],"(",AMPLITUDE.Model.CrossDictionary[swaped[index].nam],")"
+                    # print "      Poping",swaped[counter]
+                    swaped[index] = AMPLITUDE.ParticleContent[AMPLITUDE.Model.CrossDictionary[swaped[index].nam]]
+                    swaped[counter],swaped[index]=swaped[index],swaped[counter]
+                    
+                    # Copy, but poped
+                    newlist = []
+                    for i in range(len(AMPLITUDE.RADIPROC.subproc[subproc])):
+                        if i == index:
+                            continue
+                        newlist.append(swaped[i])
+                    
+                    # Resort the initials
+                    sortedin = []
+                    for i in range(len(AMPLITUDE.RADIPROC.ini)):
+                        sortedin.append(newlist[i])
+                    def MyF(p):
+                        return -p.pid
+                    sortedin.sort(key=MyF)
+                    for i in range(len(AMPLITUDE.RADIPROC.ini)):
+                        newlist[i] = sortedin[i]
+
+                    tentborn = AMPLITUDE.RADIPROC.BuildString(newlist)
+                    if tentborn in AMPLITUDE.BORNPROC.subproc.keys():
+                        LINKING[subproc].append(tentborn)
+                        # print "      The subprocess",tentborn,"\33[95mwas\33[0m found in the Born"
+                    # else:
+                        # print "      The subprocess",tentborn,"\33[95mwas not\33[0m found in the Born"            
+    print LINKING
     # EXTIDS = INIDS + FIIDS + [22]
     # NEXT = len(EXTIDS)
 
@@ -408,18 +440,3 @@ if __name__ == "__main__":
         print "Error: No input file",sys.argv[1],"found"
         sys.exit()
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
