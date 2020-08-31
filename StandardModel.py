@@ -62,17 +62,17 @@ class StandardModel(Model):
 
         p = CompositeParticle("p",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,g,A])
 
-        j = CompositeParticle("j",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,g])
+        j = CompositeParticle("j",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,g,A])
         
         lp = CompositeParticle("lp",[ep,mup,taup])
         
         lm = CompositeParticle("lm",[em,mum,taum])
         
         Zj = CompositeParticle("Zj",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,ep,em,mup,mum,taup,taum,ne,nm,nt,nebar,nmbar,ntbar])
-        Zj.DaughterOf(Z)
+        # Zj.DaughterOf(Z)
         
         Wj = CompositeParticle("Wj",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,ep,em,mup,mum,taup,taum,ne,nm,nt,nebar,nmbar,ntbar])
-        Wj.DaughterOf(Wp)
+        # Wj.DaughterOf(Wp)
         
         jb = CompositeParticle("jb",[b,bbar])
 
@@ -88,6 +88,6 @@ class StandardModel(Model):
                 ParticleContent[obj.nam] = obj
         
         self.ParticleContent = ParticleContent
-        self.reload()
+        self.BuildModel()
 
 WorkingModel = StandardModel()
