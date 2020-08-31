@@ -85,6 +85,7 @@ class Process:
         aux += "_"
         for i in self.fin:
             aux += i.nam + ""
+        aux += " ("+str(len(self.scatters))+")"
         return aux
     
     def Print(self):
@@ -129,7 +130,7 @@ class Process:
                 except:
                     self.sym_weights[symmetry] = particle.sym_weights[symmetry]
 
-    def BuildSubProcesses(self):
+    def BuildScatters(self):
         EVEN_FER = True
         SORT_SYM = True
         ABST_SYM = True
@@ -163,7 +164,6 @@ class Process:
             self.scatters.append(pars)
         
         if EVEN_FER:
-            #print 'Now reducing by spin conservation'
             aux = []
             for tent in self.scatters:
                 par = 0
@@ -259,6 +259,30 @@ class Process:
                 return n
             self.scatters.sort(key=SortFunction)
 
+    def BuildSubProcesses(self):
+        self.BuildScatters()
+        self.subproc = {}
+        for scatter in self.scatters:
+            count = 0
+            key = ""
+            for particle in scatter:
+                count += 1
+                key += particle.nam
+                if count == len(self.ini):
+                    key += "_"
+            self.subproc[key] = scatter
+
+    def BuildString(self,LIST):
+        key = ""
+        count = 0
+        for particle in LIST:
+            count += 1
+            key += particle.nam
+            if count == len(self.ini):
+                key += "_"
+        return key
+
+
 class Model:
     def __str__(self):
         retval = '{'
@@ -267,9 +291,21 @@ class Model:
         retval += '}'
         return retval
 
-    def reload(self):
+    def BuildModel(self):
         self.sym = {}
         # print self.ParticleContent
         # for particle in self.ParticleContent.keys():
             # if isinstance(self.ParticleContent[particle],Particle):
                 # self.sym[]
+
+        self.CrossDictionary = {}
+        for particle in self.ParticleContent:
+            if not isinstance(self.ParticleContent[particle],Particle):
+                continue
+            self.CrossDictionary[self.ParticleContent[particle].nam] = self.ParticleContent[particle].nam
+            for otherparticle in self.ParticleContent:
+                if not isinstance(self.ParticleContent[otherparticle],Particle):
+                    continue
+                if self.ParticleContent[particle].pid == -self.ParticleContent[otherparticle].pid:
+                    self.CrossDictionary[self.ParticleContent[particle].nam] = self.ParticleContent[otherparticle].nam
+        
