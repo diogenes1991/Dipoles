@@ -1,6 +1,3 @@
-
-
-
 def Charge(PID):
     aux = 0
     Qu = 2/3.
@@ -14,7 +11,6 @@ def Charge(PID):
     if  PID < 0 : aux *= -1.0
     return aux
 
-
 def Symb_Charge(PID):
     aux = ""
     if  abs(PID) <= 6 and int(abs(PID))%2==1: aux = "Qu-Qw"
@@ -24,8 +20,7 @@ def Symb_Charge(PID):
     if abs(PID) == 24 : aux = "Qw"
     if  PID < 0 : aux = ["-"]+aux 
     return aux
-
-    
+  
 def signo( j ):
     if  j >= 0 : return 1.
     else: return -1.
@@ -35,6 +30,7 @@ def PID_to_Name(PID):
     aux = abs(PID)
     # Quarks #
     if aux<=6:
+        if  aux==0: out = out + "g"
         if  aux==1: out = out + "d"
         if  aux==2: out = out + "u"
         if  aux==3: out = out + "s"
@@ -61,8 +57,8 @@ def PID_to_Name(PID):
 
 
     # Gauge Bosons and Higgs #
-    elif aux>20 and  aux<26 :
-        if aux==21:  out = out + "g"
+
+    elif (aux>20 and  aux<26):
         if aux==22:  out = out + "A"
         if aux==23:  out = out + "Z"
         if PID==24:  out = out + "Wp"
