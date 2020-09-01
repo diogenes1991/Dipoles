@@ -85,7 +85,7 @@ class Process:
         aux += "_"
         for i in self.fin:
             aux += i.nam + ""
-        aux += " ("+str(len(self.scatters))+")"
+        # aux += " ("+str(len(self.scatters))+")"
         return aux
     
     def Print(self):
@@ -281,7 +281,6 @@ class Process:
             if count == len(self.ini):
                 key += "_"
         return key
-
 
 class Model:
     def __str__(self):
