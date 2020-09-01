@@ -1,0 +1,74 @@
+
+## Process
+initialState = ####Initial State####
+finalState   = ####Final State####
+
+## Model
+## Use the MB model, i.e. with massive b quarks
+fieldsFile   = _CT_MB
+verticesFile = _CT_MB
+
+## NLO coupling powers
+alphaMode = new
+
+## Amplitude-squared coupling-power combinations, to specify those 
+## amplitude-squared coupling-power combinations which result from 
+## interfering tree with tree_star or loop with tree_star diagrams
+## of different coupling-power combinations at the amplitude level
+## in a comma-separated list
+## All AlphaQCD powers for born and virt in a generic 2->2 process
+## if all particles were QCD partons, NLOX will figure out all the
+## possible coupling-power combinations in the given subprocess on
+## its own
+## If the virtAlphaQCD line is commented out, only tree level will
+## be generated
+
+####TREE CP####
+####LOOP CP####
+
+## Or, specify the desired coupling-power orders at the level of the
+## amplitude. All possible interference terms will be generated that
+## give rise to the order gPowTree * gPowTree or gPowTree * gPowLoop
+## in a comma-separated list
+# gPowTree = 
+# gPowLoop = 
+
+## Parameter file
+## Using the complex-mass scheme and the Gmu scheme 
+parameterFile = _standard_mb_olpMode_GmuScheme
+
+## Phase-space point file
+## For a subprocess in OLP mode, which will contribute in a process archive, 
+## the PSP in the test programs will be overwritten by the one pointed to in 
+## the last run 
+## Test PSP for 0 0 -> mt mt, with mt = 171.2 GeV, COM 1 TeV 
+## pspFile       = _ab_tt_2to2_1TeV
+## Test PSP for mb mb -> mt mt, with mb = 4.2 GeV and mt = 171.2 GeV, COM 1 TeV
+## pspFile       = _bb_tt_2to2_1TeV
+
+## Process path
+# processPath = 
+## Or, OLP mode and OLP process path in which this subprocess will be
+## placed
+olpMode = true
+olpProcessPath = ####PATH####
+
+## Miscellaneous (default values are given in the commented lines; see input.py)
+## olpCuba = false
+## useOldColor = false
+## useColorApplyIdentities2 = true
+## useOldDiagColor = true
+## useNewSpinSums = true
+## generateColorCorrelations = true
+## applyWardIdentityPhoton = true
+## applyWardIdentityGluon = true
+## applyGaugeConditionsGluon = true
+## collectDS = true
+## useOldTensorDecomposition = true
+## psDotProduct = false
+## psLastMomentum = false
+
+## FORM settings
+formWorkspace   = 40M
+formMaxTermSize = 10K
+
