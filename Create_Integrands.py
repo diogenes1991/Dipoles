@@ -12,18 +12,76 @@ def find_substring(string, substring):
             return locations_found
     return recurse([], 0)
 
+def seek_and_destroy(template,data,permissive=False):
+    tmp_arg_mrk = "####"
+    com_char = '//'
+    special_chars = []
+    try:
+        template_file = open(template,"r")
+    except:
+        print "\33[31mError\33[0m: Template file:",template,"not found"
+        sys.exit()
+    filled_template = ""
+    has_empty = False
+    for template_line in template_file:
+        if template_line.find(com_char)==0:
+            continue
+        template_args = find_substring(template_line,tmp_arg_mrk)
+        line = template_line
+        if len(template_args)%2 != 0:
+            print "\33[31mError\33[0m: Template key marker error in:",template_line,"\n"
+            print "The correct usage is: ////Some Template Argument//// "
+            sys.exit()
+        for index in range(len(template_args)/2):
+            template_key = template_line[(template_args[2*index]+len(tmp_arg_mrk)):template_args[2*index+1]]
+            template_pattern = tmp_arg_mrk+template_key+tmp_arg_mrk
+            try:
+                line = line.replace(template_pattern,data[template_key])
+            except:
+                print "\33[31mError\33[0m: Template key:",template_key,"was not found in dictionary"
+                sys.exit()        
+            has_empty = (data[template_key] == '')
+        for char in special_chars:
+            line = line.replace(char,str('\\'+char))
+        filled_template += line
+    if has_empty:
+        wrn_msg = "\33[95mWarning\33[0m: "
+        wrn_msg += "data structure: "+str(data)+" has an empty template argument"
+        if not permissive:
+            wrn_msg += ", skkiped"
+            filled_template = ""
+        else:
+            wrn_msg += ", written with missing arguments"
+        print wrn_msg
+    template_file.close()
+    return filled_template
+
+def MakeDir(Path):
+        line = "mkdir "+Path
+        os.system(line)
+    
+def WriteFile(Path,Content):
+    F = open(Path,"w+")
+    F.write(Content)
+    F.close()
+
 class Amplitude:
     def __init__(self,CONFIGFILE):
         self.readconfig(CONFIGFILE)
         self.loadconfig()
+        self.linksubamps()
 
     def readconfig(self,CONFIGFILE):
-        CONFIG = {'INITIAL_STATE': [],\
-              'FINAL_STATE'  : [],\
-              'RADIATIVE'    : [],\
-              'MODELFILE'    : 'StandardModel',\
-              'VERBOSE'      : 0 }
-    
+        CONFIG = {'INITIAL STATE': [0],\
+                  'FINAL STATE'  : [0],\
+                  'RADIATIVE'    : [0],\
+                  'MODELFILE'    : ['StandardModel'],\
+                  'PATH'         : [os.getcwd()],\
+                  'NLOX PATH'    : [0] ,\
+                  'VERBOSE'      : [0] }
+        
+        REQUIRED = set(['INITIAL STATE','FINAL STATE','NLOX PATH'])
+
         COMMCHAR = '#'
 
         f = open(CONFIGFILE,'r')
@@ -42,12 +100,17 @@ class Amplitude:
                     warn = False
                     line[0] = True
             if warn:
-                print "\33[95mWarning\33[0m: Configuartion",configuration,"not found in configuration file, using default:",CONFIG[configuration]
+                if configuration not in REQUIRED:
+                    print "\33[95mWarning\33[0m: Configuartion",configuration,"not found in configuration file, using default:",CONFIG[configuration][0]
+                else:
+                    print "\33[31mError\33[0m: Configuration",configuration,"not found in configuration, this is a required configuration."
+                    sys.exit()
+
         
         for line in configfile:
             if not line[0]:
                 print "\33[95mWarning\33[0m: Configuartion",(((line[1].strip()).split('='))[0]).strip(),"is not a valid configuration setting, please check the syntax"
-
+        f.close()
         self.config = CONFIG
 
     def loadconfig(self):
@@ -63,32 +126,157 @@ class Amplitude:
         self.Model =  LoadedModel.WorkingModel
         self.ParticleContent = self.Model.ParticleContent
 
-        self.INIBORN = []
-        for particle in self.config['INITIAL_STATE']:
+        self.ini = []
+        for particle in self.config['INITIAL STATE']:
             try:
-                self.INIBORN.append(self.ParticleContent[particle])
+                self.ini.append(self.ParticleContent[particle])
             except:
                 print "\33[31mError\33[0m: Particle class",particle,"not defined."
                 sys.exit()
                     
-        self.FINBORN = []
-        self.FINRADI = []
-        for particle in self.config['FINAL_STATE']:
+        self.fin = []
+        self.finrad = []
+        for particle in self.config['FINAL STATE']:
             try:
-                self.FINBORN.append(self.ParticleContent[particle])
-                self.FINRADI.append(self.ParticleContent[particle])
+                self.fin.append(self.ParticleContent[particle])
+                self.finrad.append(self.ParticleContent[particle])
             except:
                 print "\33[31mError\33[0m: Particle class",particle,"not defined."
                 sys.exit()
         
         try:    
-            self.FINRADI.append(self.ParticleContent[self.config['RADIATIVE'][0]])
+            self.finrad.append(self.ParticleContent[self.config['RADIATIVE'][0]])
         except:
             print "\33[31mError\33[0m: Particle class",self.config['RADIATIVE'][0],"not defined"
             sys.exit()
 
-        self.BORNPROC = Process(self.INIBORN,self.FINBORN)
-        self.RADIPROC = Process(self.INIBORN,self.FINRADI)
+        self.BornProc = Process(self.ini,self.fin)
+        self.RadiProc = Process(self.ini,self.finrad)
+        
+        self.path = self.config['PATH'][0]+"/"+str(self.BornProc)
+        if os.path.exists(self.path):
+            print "\33[31mError\33[0m: Source directory",self.path,"already exists, please remove it first"
+            sys.exit()
+
+    def linksubamps(self):
+        self.link = {}
+        for subproc in self.RadiProc.subproc:
+            self.link[subproc] = []
+            counter = -1
+            for particle in self.RadiProc.subproc[subproc]:
+                counter += 1
+                
+                #   Basically I need to append a sublist of the process, I should 
+                #   make use of the body of the function to copy the subprocess 
+                #   only after striping the undesired particle 
+                #
+                #   If the Boson was found in the initial state we loop over all
+                #   possible swappings that send it to the final state and then 
+                #   remove it
+
+                rem_pos = counter
+
+                if particle.typ != "Boson":
+                    continue
+                
+                # Otherwise we eliminate the Boson from the process and build a newlist 
+                
+                newlist = []
+                for index in range(len(self.RadiProc.subproc[subproc])):
+                    if index == counter:
+                        continue
+                    newlist.append(self.RadiProc.subproc[subproc][index])
+                
+                if counter >= len(self.RadiProc.ini):
+                    # print "   The Boson",str(particle),"will be eliminated from the final state"
+                    tentborn = self.BornProc.BuildString(newlist)
+                    if tentborn in self.BornProc.subproc.keys() and tentborn not in self.link[subproc]:
+                        self.link[subproc].append(tentborn)
+                else:
+                    # print "   The Boson",str(particle),"will be eliminated from the initial state"
+                    for index in range(len(self.RadiProc.ini),len(self.RadiProc.ini)+len(self.RadiProc.fin)-1):
+                        # Copy 
+                        swaped = [particle for particle in self.RadiProc.subproc[subproc]]
+                        
+                        # Swap 
+                        # print "      Swapping",swaped[counter],"<->",swaped[index],"(",AMPLITUDE.Model.CrossDictionary[swaped[index].nam],")"
+                        # print "      Poping",swaped[counter]
+                        swaped[index] = self.ParticleContent[self.Model.CrossDictionary[swaped[index].nam]]
+                        swaped[counter],swaped[index]=swaped[index],swaped[counter]
+                        
+                        # Copy, but poped
+                        newlist = []
+                        for i in range(len(self.RadiProc.subproc[subproc])):
+                            if i == index:
+                                continue
+                            newlist.append(swaped[i])
+                        
+                        # Resort the initials
+                        sortedin = []
+                        for i in range(len(self.RadiProc.ini)):
+                            sortedin.append(newlist[i])
+                        def MyF(p):
+                            return -p.pid
+                        sortedin.sort(key=MyF)
+                        for i in range(len(self.RadiProc.ini)):
+                            newlist[i] = sortedin[i]
+
+                        tentborn = self.RadiProc.BuildString(newlist)
+                        if tentborn in self.BornProc.subproc.keys() and tentborn not in self.link[subproc]:
+                            self.link[subproc].append(tentborn)
+                            # print "      The subprocess",tentborn,"\33[95mwas\33[0m found in the Born"
+                        # else:
+                            # print "      The subprocess",tentborn,"\33[95mwas not\33[0m found in the Born"            
+        print self.link
+
+    def Build(self):
+
+        ###
+        ###   This is the part of the code that will 
+        ###   handle templates, creates and moves files
+        ### 
+
+
+        self.TplDir = "tpl/"
+        self.SrcDir = self.path
+        self.MatDir = self.SrcDir+"/Matrix_Elements"
+
+        MakeDir(self.SrcDir)
+        self.BuildRadiativeProcess()  
+
+        MakeDir(self.MatDir)
+        self.BuildMatrixElements()
+
+
+    def BuildRadiativeProcess(self):
+        RadiDict = { 'Include Born'   : '\n' ,\
+                     'Include Radi'   : '\n' ,\
+                     'nBorn'          : str(len(self.BornProc.subproc)) ,\
+                     'nRadi'          : str(len(self.RadiProc.subproc)) ,\
+                     'Construct Born' : '\n' ,\
+                     'Construct Radi' : '\n'  }
+        TAB3 = '   '
+        TAB6 = TAB3+TAB3
+        TAB9 = TAB6+TAB3
+        count = 0
+        for subproc in self.RadiProc.scatters:
+            SubProc = self.RadiProc.BuildString(subproc)
+            RadiDict['Include Radi'] += '#include Matrix_Elements/'+SubProc+'/code/'+SubProc+'.h\n'
+            RadiDict['Construct Radi'] += TAB9+'RadiSubProc['+str(count)+'] = '+'new Sub_'+SubProc+'(pc);\n'
+            RadiDict['Construct Radi'] += TAB9+'RadiMap.insert({"'+SubProc+'",'+str(count)+'});\n'
+            count += 1
+        count = 0
+        for subproc in self.BornProc.scatters:
+            SubProc = self.BornProc.BuildString(subproc)
+            RadiDict['Include Born'] += '#include Matrix_Elements/'+SubProc+'/code/'+SubProc+'.h\n'
+            RadiDict['Construct Born'] += TAB9+'BornSubProc['+str(count)+'] = '+'new Sub_'+SubProc+'(pc);\n'
+            RadiDict['Construct Born'] += TAB9+'BornMap.insert({"'+SubProc+'",'+str(count)+'});\n'
+            count += 1
+        ProcessHeader = seek_and_destroy(self.TplDir+"Radiative_Process.tpl",RadiDict)
+        WriteFile(self.SrcDir+"/Radiative_Process.h",ProcessHeader)
+
+    def BuildMatrixElements(self):
+        return 0
 
 def main(CONFIGFILE):
 
@@ -98,83 +286,12 @@ def main(CONFIGFILE):
 	### 
     
     AMPLITUDE = Amplitude(CONFIGFILE)
+    AMPLITUDE.Build()
 
     #   C++ INTEGRAND FILES CREATION  #
 
-    LINKING = {}
-    for subproc in AMPLITUDE.RADIPROC.subproc:
-        LINKING[subproc] = []
-        # 
-        #    THERE HAS TO BE A BETTER WAY, BUT FOR NOW THIS WORKS!
-        #
-        # To find the eikonal limits for this process we need 
-        # to eliminate a single Boson from the process and then do two 
-        # things:
-        #         - If we removed the boson from the initial state we need 
-        #           move (lopp over finals) a particle from the final state to the initial
-        #           
-        #               - For each tentative move we need to search for the resulting key in the 
-        #               born subprocess list to see if the contributuon needs to be included 
-        #         - Else we look for the process directly in the born subprocess list
-        # print "Now analyzing the radiative subprocess:",subproc
-        counter = -1
-        
-        for particle in AMPLITUDE.RADIPROC.subproc[subproc]:
-            counter += 1
-            
-            if particle.typ != "Boson":
-                continue
-            
-            # Otherwise we eliminate the Boson from the process and build a newlist 
-            
-            newlist = []
-            for index in range(len(AMPLITUDE.RADIPROC.subproc[subproc])):
-                if index == counter:
-                    continue
-                newlist.append(AMPLITUDE.RADIPROC.subproc[subproc][index])
-            
-            if counter >= len(AMPLITUDE.RADIPROC.ini):
-                # print "   The Boson",str(particle),"will be eliminated from the final state"
-                tentborn = AMPLITUDE.BORNPROC.BuildString(newlist)
-                if tentborn in AMPLITUDE.BORNPROC.subproc.keys():
-                    LINKING[subproc].append(tentborn)
-            else:
-                # print "   The Boson",str(particle),"will be eliminated from the initial state"
-                for index in range(len(AMPLITUDE.RADIPROC.ini),len(AMPLITUDE.RADIPROC.ini)+len(AMPLITUDE.RADIPROC.fin)-1):
-                    # Copy 
-                    swaped = [particle for particle in AMPLITUDE.RADIPROC.subproc[subproc]]
-                    
-                    # Swap 
-                    # print "      Swapping",swaped[counter],"<->",swaped[index],"(",AMPLITUDE.Model.CrossDictionary[swaped[index].nam],")"
-                    # print "      Poping",swaped[counter]
-                    swaped[index] = AMPLITUDE.ParticleContent[AMPLITUDE.Model.CrossDictionary[swaped[index].nam]]
-                    swaped[counter],swaped[index]=swaped[index],swaped[counter]
-                    
-                    # Copy, but poped
-                    newlist = []
-                    for i in range(len(AMPLITUDE.RADIPROC.subproc[subproc])):
-                        if i == index:
-                            continue
-                        newlist.append(swaped[i])
-                    
-                    # Resort the initials
-                    sortedin = []
-                    for i in range(len(AMPLITUDE.RADIPROC.ini)):
-                        sortedin.append(newlist[i])
-                    def MyF(p):
-                        return -p.pid
-                    sortedin.sort(key=MyF)
-                    for i in range(len(AMPLITUDE.RADIPROC.ini)):
-                        newlist[i] = sortedin[i]
-
-                    tentborn = AMPLITUDE.RADIPROC.BuildString(newlist)
-                    if tentborn in AMPLITUDE.BORNPROC.subproc.keys():
-                        LINKING[subproc].append(tentborn)
-                        # print "      The subprocess",tentborn,"\33[95mwas\33[0m found in the Born"
-                    # else:
-                        # print "      The subprocess",tentborn,"\33[95mwas not\33[0m found in the Born"            
-    print LINKING
-    # EXTIDS = INIDS + FIIDS + [22]
+    
+    # # EXTIDS = INIDS + FIIDS + [22]
     # NEXT = len(EXTIDS)
 
     # PROCESSNAME = PID_to_Name(EXTIDS[0])+PID_to_Name(EXTIDS[1])+'_'
@@ -434,9 +551,9 @@ if __name__ == "__main__":
     try:
         main(sys.argv[1])
     except IndexError:
-        print "Error: No input file specified"
+        print "\33[31mError\33[0m: No input file specified"
         sys.exit()
     except IOError: 
-        print "Error: No input file",sys.argv[1],"found"
+        print "\33[31mError\33[0m: No input file",sys.argv[1],"found"
         sys.exit()
     
