@@ -1,10 +1,11 @@
-INITIAL_STATE = p,p
 
-FINAL_STATE = Z,b,bbar
-
+INITIAL STATE = p,p
+FINAL STATE = Z,b,bbar
 RADIATIVE = X
 
-VERBOSE = 0
-
 MODELFILE = StandardModel
+PATH = /home/diogenes1991/Open_Dipoles
 
+NLOX PATH = /home/diogenes1991/NLOX
+
+VERBOSE = 0
