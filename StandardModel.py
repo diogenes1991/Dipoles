@@ -36,6 +36,8 @@ class StandardModel(Model):
         bbar = Particle("bbar",{'btness':-1,'Charge': 1},-5,'Fermion')
         tbar = Particle("tbar",{'btness':-1,'Charge':-2},-6,'Fermion')
 
+        self.quarks = set([u,d,c,s,b,t,ubar,dbar,cbar,sbar,bbar,tbar])
+
         ##
         ## Fermoions: Leptons
         ##
@@ -53,6 +55,15 @@ class StandardModel(Model):
         nmbar = Particle("nmbar",{'mness':-1,'Charge':0},-14,'Fermion')
         taup  = Particle("taup", {'tness':-1,'Charge':3},-15,'Fermion')
         ntbar = Particle("ntbar",{'tness':-1,'Charge':0},-16,'Fermion')
+
+        self.leptons = set([ep,ep,mup,mum,taup,taum,ne,nebar,nm,nmbar,nt,ntbar])
+
+        self.QCDPars = set([g])
+        self.QCDPars = self.QCDPars.union(self.quarks)  
+        
+        self.EWKPars = set([A,Z,Wp,Wm])
+        self.EWKPars = self.EWKPars.union(self.quarks)
+        self.EWKPars = self.EWKPars.union(self.leptons)      
 
         ########################################################################
         ## Declare composite particles:
