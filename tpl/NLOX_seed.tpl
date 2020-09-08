@@ -23,8 +23,8 @@ alphaMode = new
 ## If the virtAlphaQCD line is commented out, only tree level will
 ## be generated
 
-####TREE CP####
-####LOOP CP####
+####Tree CP####
+####Loop CP####
 
 ## Or, specify the desired coupling-power orders at the level of the
 ## amplitude. All possible interference terms will be generated that
@@ -51,7 +51,7 @@ parameterFile = _standard_mb_olpMode_GmuScheme
 ## Or, OLP mode and OLP process path in which this subprocess will be
 ## placed
 olpMode = true
-olpProcessPath = ####PATH####
+olpProcessPath = ####Path####
 
 ## Miscellaneous (default values are given in the commented lines; see input.py)
 ## olpCuba = false
@@ -67,6 +67,8 @@ olpProcessPath = ####PATH####
 ## useOldTensorDecomposition = true
 ## psDotProduct = false
 ## psLastMomentum = false
+
+numThreads = 8
 
 ## FORM settings
 formWorkspace   = 40M
