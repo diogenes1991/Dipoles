@@ -9,7 +9,15 @@ class Particle:
         
     def __str__(self):
         return self.nam
-    
+
+class Boson(Particle):
+    def Carries(Symmetry):
+        self.carrier = Symmetry
+
+class Fermion(Particle):
+    def Dummy(self):
+        return 1
+
 class CompositeParticle:
     def __init__(self,Name,Subparticles,Mother=None,Degree=2):
         self.nam = Name
@@ -68,6 +76,9 @@ class Process:
     def __init__(self,Initial_State,Final_State):
         self.ini = Initial_State
         self.fin = Final_State
+        self.nex = len(Initial_State)+len(Final_State)
+        self.lni = len(Initial_State)
+        self.lnf = len(Final_State)
         
         self.proc = []
         for i in self.ini:
@@ -307,4 +318,3 @@ class Model:
                     continue
                 if self.ParticleContent[particle].pid == -self.ParticleContent[otherparticle].pid:
                     self.CrossDictionary[self.ParticleContent[particle].nam] = self.ParticleContent[otherparticle].nam
-        
