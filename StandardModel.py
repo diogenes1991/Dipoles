@@ -61,7 +61,7 @@ class StandardModel(Model):
         self.QCDPars = set([g])
         self.QCDPars = self.QCDPars.union(self.quarks)  
         
-        self.EWKPars = set([A,Z,Wp,Wm])
+        self.EWKPars = set([A,Z,Wp,Wm,h])
         self.EWKPars = self.EWKPars.union(self.quarks)
         self.EWKPars = self.EWKPars.union(self.leptons)      
 
