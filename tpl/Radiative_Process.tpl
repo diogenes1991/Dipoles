@@ -1,7 +1,7 @@
 #ifndef __RADIATIVE_PROCESS_H_
 #define __RADIATIVE_PROCESS_H_
 
-#include Dipole_Headers.h
+#include "Dipole_Definitions.h"
 
 ####Include Born####
 ####Include Radi####
