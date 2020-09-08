@@ -1,77 +1,17 @@
 #!/usr/bin/env python
 
 from Particle_Engine import *
-
-def find_substring(string, substring):
-    substring_length = len(substring)    
-    def recurse(locations_found, start):
-        location = string.find(substring, start)
-        if location != -1:
-            return recurse(locations_found + [location], location+substring_length)
-        else:
-            return locations_found
-    return recurse([], 0)
-
-def seek_and_destroy(template,data,permissive=False):
-    tmp_arg_mrk = "####"
-    com_char = '//'
-    special_chars = []
-    try:
-        template_file = open(template,"r")
-    except:
-        print "\33[31mError\33[0m: Template file:",template,"not found"
-        sys.exit()
-    filled_template = ""
-    has_empty = False
-    for template_line in template_file:
-        if template_line.find(com_char)==0:
-            continue
-        template_args = find_substring(template_line,tmp_arg_mrk)
-        line = template_line
-        if len(template_args)%2 != 0:
-            print "\33[31mError\33[0m: Template key marker error in:",template_line,"\n"
-            print "The correct usage is: ////Some Template Argument//// "
-            sys.exit()
-        for index in range(len(template_args)/2):
-            template_key = template_line[(template_args[2*index]+len(tmp_arg_mrk)):template_args[2*index+1]]
-            template_pattern = tmp_arg_mrk+template_key+tmp_arg_mrk
-            try:
-                line = line.replace(template_pattern,data[template_key])
-            except:
-                print "\33[31mError\33[0m: Template key:",template_key,"was not found in dictionary"
-                sys.exit()        
-            has_empty = (data[template_key] == '')
-        for char in special_chars:
-            line = line.replace(char,str('\\'+char))
-        filled_template += line
-    if has_empty:
-        wrn_msg = "\33[95mWarning\33[0m: "
-        wrn_msg += "data structure: "+str(data)+" has an empty template argument"
-        if not permissive:
-            wrn_msg += ", skkiped"
-            filled_template = ""
-        else:
-            wrn_msg += ", written with missing arguments"
-        print wrn_msg
-    template_file.close()
-    return filled_template
-
-def MakeDir(Path):
-        line = "mkdir "+Path
-        os.system(line)
-    
-def WriteFile(Path,Content):
-    F = open(Path,"w+")
-    F.write(Content)
-    F.close()
+from Utilities import *
 
 class Amplitude:
     def __init__(self,CONFIGFILE):
-        self.readconfig(CONFIGFILE)
-        self.loadconfig()
-        self.linksubamps()
+        self.ReadConfig(CONFIGFILE)
+        self.LoadConfig()
+        self.LinkProcs()
+        self.ReflectLink()
+        self.Build()
 
-    def readconfig(self,CONFIGFILE):
+    def ReadConfig(self,CONFIGFILE):
         CONFIG = {'INITIAL STATE': [0],\
                   'FINAL STATE'  : [0],\
                   'RADIATIVE'    : [0],\
@@ -113,9 +53,10 @@ class Amplitude:
         f.close()
         self.config = CONFIG
 
-    def loadconfig(self):
+    def LoadConfig(self):
         
         self.verbose = int(self.config['VERBOSE'][0])
+        self.nlox = self.config['NLOX PATH'][0]+'/nlox.py'
 
         try:
             LoadedModel = __import__(self.config['MODELFILE'][0])
@@ -158,7 +99,7 @@ class Amplitude:
             print "\33[31mError\33[0m: Source directory",self.path,"already exists, please remove it first"
             sys.exit()
 
-    def linksubamps(self):
+    def LinkProcs(self):
         self.link = {}
         for subproc in self.RadiProc.subproc:
             self.link[subproc] = []
@@ -174,13 +115,13 @@ class Amplitude:
                 #   possible swappings that send it to the final state and then 
                 #   remove it
 
-                rem_pos = counter
-
-                if particle.typ != "Boson":
+                if particle.typ != 'Boson':
                     continue
-                
+
+                WHICH = [counter]
+
                 # Otherwise we eliminate the Boson from the process and build a newlist 
-                
+
                 newlist = []
                 for index in range(len(self.RadiProc.subproc[subproc])):
                     if index == counter:
@@ -227,7 +168,15 @@ class Amplitude:
                             # print "      The subprocess",tentborn,"\33[95mwas\33[0m found in the Born"
                         # else:
                             # print "      The subprocess",tentborn,"\33[95mwas not\33[0m found in the Born"            
-        print self.link
+
+    def ReflectLink(self):
+        self.rlink = {}
+        for rad in self.link:
+            for born in self.link[rad]:
+                if born in self.rlink:
+                    self.rlink[born].append(rad)
+                else:
+                    self.rlink[born] = [rad]
 
     def Build(self):
 
@@ -237,20 +186,21 @@ class Amplitude:
         ### 
 
 
-        self.TplDir = "tpl/"
+        self.TplDir = 'tpl/'
         self.SrcDir = self.path
-        self.MatDir = self.SrcDir+"/Matrix_Elements"
+        self.MatDir = self.SrcDir+'/Matrix_Elements'
 
         MakeDir(self.SrcDir)
-        self.BuildRadiativeProcess()  
+        self.BuildNLOXProcess()  
 
-        MakeDir(self.MatDir)
-        self.BuildMatrixElements()
+        self.BuildSeeds()
+        # self.BuildMatrixElements()
+        self.BuildSubProc()
+        self.BuildDipoles()
 
-
-    def BuildRadiativeProcess(self):
-        RadiDict = { 'Include Born'   : '\n' ,\
-                     'Include Radi'   : '\n' ,\
+    def BuildNLOXProcess(self):
+        RadiDict = { 'Include Born'   : '' ,\
+                     'Include Radi'   : '' ,\
                      'nBorn'          : str(len(self.BornProc.subproc)) ,\
                      'nRadi'          : str(len(self.RadiProc.subproc)) ,\
                      'Construct Born' : '\n' ,\
@@ -258,302 +208,211 @@ class Amplitude:
         TAB3 = '   '
         TAB6 = TAB3+TAB3
         TAB9 = TAB6+TAB3
-        count = 0
-        for subproc in self.RadiProc.scatters:
-            SubProc = self.RadiProc.BuildString(subproc)
-            RadiDict['Include Radi'] += '#include Matrix_Elements/'+SubProc+'/code/'+SubProc+'.h\n'
-            RadiDict['Construct Radi'] += TAB9+'RadiSubProc['+str(count)+'] = '+'new Sub_'+SubProc+'(pc);\n'
-            RadiDict['Construct Radi'] += TAB9+'RadiMap.insert({"'+SubProc+'",'+str(count)+'});\n'
-            count += 1
+        
         count = 0
         for subproc in self.BornProc.scatters:
             SubProc = self.BornProc.BuildString(subproc)
-            RadiDict['Include Born'] += '#include Matrix_Elements/'+SubProc+'/code/'+SubProc+'.h\n'
-            RadiDict['Construct Born'] += TAB9+'BornSubProc['+str(count)+'] = '+'new Sub_'+SubProc+'(pc);\n'
-            RadiDict['Construct Born'] += TAB9+'BornMap.insert({"'+SubProc+'",'+str(count)+'});\n'
+            RadiDict['Include Born'] += '#include "../'+SubProc+'/code/Sub_'+SubProc+'.h"\n'
+            RadiDict['Construct Born'] += TAB9+'subproc['+str(count)+'] = '+'new Sub_'+SubProc+'(pc);\n'
+            # RadiDict['Construct Born'] += TAB9+'BornMap.insert({"'+SubProc+'",'+str(count)+'});\n'
             count += 1
-        ProcessHeader = seek_and_destroy(self.TplDir+"Radiative_Process.tpl",RadiDict)
-        WriteFile(self.SrcDir+"/Radiative_Process.h",ProcessHeader)
+
+        for subproc in self.RadiProc.scatters:
+            SubProc = self.RadiProc.BuildString(subproc)
+            RadiDict['Include Radi'] += '#include "../'+SubProc+'/code/Sub_'+SubProc+'.h"\n'
+            RadiDict['Construct Radi'] += TAB9+'subproc['+str(count)+'] = '+'new Sub_'+SubProc+'(pc);\n'
+            # RadiDict['Construct Radi'] += TAB9+'RadiMap.insert({"'+SubProc+'",'+str(count)+'});\n'
+            count += 1
+        
+        ProcessHeader = seek_and_destroy(self.TplDir+"nlox_process.tpl",RadiDict)
+        WriteFile(self.SrcDir+"/nlox_process.h",ProcessHeader)
+
+    def BuildSeeds(self,DetectCP=False):
+        cutpoint = len(self.BornProc.ini)
+        for subproc in self.BornProc.subproc:
+            DICT = {'Initial State'   : '' ,\
+                    'Final State'     : '' ,\
+                    'Tree CP'         : 'bornAlphaQCD = ' ,\
+                    'Loop CP'         : 'virtAlphaQCD = ' ,\
+                    'Path'            : '' }
+            Ini = [ s.nam for s in self.BornProc.subproc[subproc][:cutpoint]]
+            Fin = [ s.nam for s in self.BornProc.subproc[subproc][cutpoint:]]
+            count = 1
+            for parname in Ini:
+                DICT['Initial State'] += parname
+                if count != len(Ini):
+                    DICT['Initial State'] += ','
+                count += 1
+            count = 1
+            for parname in Fin:
+                DICT['Final State'] += parname
+                if count != len(Fin):
+                    DICT['Final State'] += ','
+                count += 1
+            BornPow = len(Ini)+len(Fin)-1
+            for i in range(BornPow+1):
+                if i!=0:
+                    DICT['Tree CP'] += str(BornPow-i)
+                    if i != BornPow:
+                        DICT['Tree CP'] += ','
+                DICT['Loop CP'] += str(BornPow-i)
+                if i != BornPow:
+                    DICT['Loop CP'] += ','
+            DICT['Path'] +=  self.MatDir
+            SubProcSeed = seek_and_destroy(self.TplDir+"NLOX_seed.tpl",DICT)
+            WriteFile(self.SrcDir+'/'+subproc+'.in',SubProcSeed)  
+
+
+        cutpoint = len(self.RadiProc.ini)
+        for subproc in self.RadiProc.subproc:
+            DICT = {'Initial State'   : '' ,\
+                    'Final State'     : '' ,\
+                    'Tree CP'         : 'bornAlphaQCD = ' ,\
+                    'Loop CP'         : 'virtAlphaQCD = ' ,\
+                    'Path'            : '' }
+            Ini = [ s.nam for s in self.RadiProc.subproc[subproc][:cutpoint]]
+            Fin = [ s.nam for s in self.RadiProc.subproc[subproc][cutpoint:]]
+            count = 1
+            for parname in Ini:
+                DICT['Initial State'] += parname
+                if count != len(Ini):
+                    DICT['Initial State'] += ','
+                count += 1
+            count = 1
+            for parname in Fin:
+                DICT['Final State'] += parname
+                if count != len(Fin):
+                    DICT['Final State'] += ','
+                count += 1
+            RadiPow = len(Ini)+len(Fin)
+            for i in range(RadiPow+1):
+                if i!=0:
+                    DICT['Tree CP'] += str(RadiPow-i)
+                    if i != RadiPow:
+                        DICT['Tree CP'] += ','
+            DICT['Loop CP'] = '##virtAlphaQCD'
+            DICT['Path'] +=  self.MatDir
+            SubProcSeed = seek_and_destroy(self.TplDir+"NLOX_seed.tpl",DICT)
+            WriteFile(self.SrcDir+'/'+subproc+'.in',SubProcSeed)          
 
     def BuildMatrixElements(self):
-        return 0
+        Here = os.getcwd()
+        os.chdir(self.SrcDir)
+        
+        for subproc in self.BornProc.subproc:
+            print 'Generating born and virtual process:',subproc
+            cmd = self.nlox+' '+subproc +'.in > '+subproc+'.log'
+            os.system(cmd)
+            cmd = 'mv '+subproc+'.log '+self.MatDir+'/'+subproc
+            os.system(cmd)
+
+        for subproc in self.RadiProc.subproc:
+            print 'Generating real radiative process:',subproc
+            cmd = self.nlox+' '+subproc +'.in > '+subproc+'.log'
+            os.system(cmd)
+            cmd = 'mv '+subproc+'.log '+self.MatDir+'/'+subproc
+            os.system(cmd)
+
+        os.chdir(Here)
+
+    def BuildSubProc(self):
+        for subproc in self.RadiProc.subproc:
+            DICT={'SubProcHeader'    : '' ,\
+                  'SubProcName'      : '' ,\
+                  'SubProcMat'       : '' ,\
+                  'SubProcSub'       : '' ,\
+                  'SubProcPlu'       : '//empty for now' ,\
+                  'SubProcEnd'       : '//empty for now'}
+            DICT['SubProcHeader'] = subproc.upper()
+            DICT['SubProcName'] = subproc+'_Dipoles'
+            DICT['SubProcMat'] = '#include "Matrix_Elements/'+subproc+'/code/Sub_'+subproc+'.h" \n'
+            
+            # Include the necesary Borns
+            for linked in self.link[subproc]:
+                DICT['SubProcMat'] += '#include "Matrix_Elements/'+linked+'/code/Sub_'+linked+'.h"\n'
+
+            # Construction of the EWK Subtracted Function
+            # This uses auto coupling-power detection
+            
+            EWKc = 0
+            QCDc = 0
+
+            for particle in self.RadiProc.subproc[subproc]:
+                if particle in self.Model.EWKPars:
+                    EWKc += 1
+                if particle in self.Model.QCDPars:
+                    QCDc += 1
+            # print QCDc,'QCD particles and',EWKc,'EWK particles'
+
+            MaxQCD = QCDc - 2
+            MinQCD = self.RadiProc.nex - EWKc   
+
+            MaxEWK = EWKc - 2
+            MinEWK = self.RadiProc.nex - QCDc
+
+            # print 'QCD range = [',MinQCD,',',MaxQCD,']'
+            # print 'EWK range = [',MinEWK,',',MaxEWK,']'
+
+            CPSQCD = []
+            for val in range(MinQCD,MaxQCD+1):
+                CPSQCD.append('as'+str(val)+'ae'+str(self.RadiProc.nex-val-2))
+
+            CPSEWK = []
+            for val in range(MinEWK,MaxEWK+1):
+                CPSEWK.append('as'+str(self.RadiProc.nex-val-2)+'ae'+str(val))
+            # print CPSQCD
+            # print CPSEWK
+
+            for CP in CPSQCD:
+                DICT['SubProcSub'] += 'Subprocess* Radiative = proc->call(RadiProc('+CP+'));\n'
+
+
+
+            
+            ce = 1
+            for emitter in self.RadiProc.subproc[subproc]:
+                cs = 1
+                for spectator in self.RadiProc.subproc[subproc]:
+                    if 'Charge' in emitter.sym and 'Charge' in spectator.sym and cs!=ce:
+                        CONF = ('I' if (ce<len(self.RadiProc.ini)) else 'F' ) + ('I' if (cs<len(self.RadiProc.ini)) else 'F' )
+                        DICT['SubProcSub'] += 'Add '+emitter.nam+'('+str(ce)+') as emitter and '+spectator.nam+'('+str(cs)+') as spectator '+CONF+' Dipole\n'
+                    cs += 1
+                ce += 1
+
+
+            
+
+
+            
+                # PlusDistrb += subproc+'(p)-'+linked+'(Maptype(p));\n'
+                # Endpoint   += subproc+'()'
+
+
+            SubFunctionH = seek_and_destroy(self.TplDir+'/Dipole_FunctionsH.tpl',DICT)
+            SubFunctionC = seek_and_destroy(self.TplDir+'/Dipole_FunctionsC.tpl',DICT)
+            WriteFile(self.SrcDir+'/'+subproc+'_Function.cpp',SubFunctionC)
+            WriteFile(self.SrcDir+'/'+subproc+'_Function.h',SubFunctionH)
+
+    def BuildDipoles(self):
+        for born in self.rlink:
+            print 'For',born,'we have',len(self.rlink[born]),'corrections'
+            for rad in self.rlink[born]:
+                fir = self.RadiProc.subproc[rad][self.RadiProc.lni:]
+                inr = self.RadiProc.subproc[rad][:self.RadiProc.lni]
+
+                inb = self.BornProc.subproc[born][:self.BornProc.lni]
+                fib = self.BornProc.subproc[born][self.BornProc.lni:]
+
+                if inb==inr:
+                    print rad,'and',born,'have the same initial state'
+                    extra = 0
+
+                else:
+                    print rad,'and',born,'have different initial states'
 
 def main(CONFIGFILE):
-
-    ###
-	### This declares the Model file to be used, later we shall
-	### request this via the input file
-	### 
     
     AMPLITUDE = Amplitude(CONFIGFILE)
-    AMPLITUDE.Build()
-
-    #   C++ INTEGRAND FILES CREATION  #
-
-    
-    # # EXTIDS = INIDS + FIIDS + [22]
-    # NEXT = len(EXTIDS)
-
-    # PROCESSNAME = PID_to_Name(EXTIDS[0])+PID_to_Name(EXTIDS[1])+'_'
-    # for ip in range(2,len(EXTIDS)-1):
-    #     PROCESSNAME = PROCESSNAME + PID_to_Name(EXTIDS[ip])
-
-
-    # PROCESSNAME_SUB = PROCESSNAME+"_Subtracted.cpp"
-    # FSUB = open (PROCESSNAME_SUB,"w+")
-    # PROCESSNAME_PLU = PROCESSNAME+"_Plus.cpp"
-    # FPLU = open (PROCESSNAME_PLU,"w+")
-    # PROCESSNAME_END = PROCESSNAME+"_Endpoint.cpp"
-    # FEND = open (PROCESSNAME_END,"w+")
-
-
-    # def_vec_args = ""
-    # cal_vec_args = ""
-    # for i in range(1,NEXT+1):
-    #     def_vec_args = def_vec_args +"Vector p"+str(i)
-    #     cal_vec_args = cal_vec_args +"p"+str(i) 
-    #     if i!=NEXT: 
-    #         def_vec_args = def_vec_args + ","
-    #         cal_vec_args = cal_vec_args + ","
-
-    # line = "double "+PROCESSNAME+"_Subtracted"+"("+def_vec_args+"){\n"
-    # FSUB.write(line)
-    # line = "double out = 0;\n"
-    # FSUB.write(line)
-    # line = "Vector p_data["+str(NEXT)+"]={"+cal_vec_args+"};\n"
-    # FSUB.write(line)
-    # line = "Vector p_tilde["+str(NEXT-1)+"];\n"
-    # FSUB.write(line)
-
-
-    # line = "double "+PROCESSNAME+"_Part_Int"+"("+def_vec_args+"){\n"
-    # FPLU.write(line)
-    # line = "double out = 0;\n"
-    # FPLU.write(line)
-
-    # line = "double "+PROCESSNAME+"_Full_Int"+"("+def_vec_args+"){\n"
-    # FEND.write(line)
-    # line = "double out = 0;\n"
-    # FEND.write(line)
-
-
-    # if VERBOSE:
-    #     for i in range(0,NEXT):
-    #         if i==0: 
-    #             print "QED dipole routine triggered for the process ",
-    #         if i==2: print " ---> ",
-    #         if i==NEXT-1: print '[',
-    #         line = PID_to_Name(EXTIDS[i])+"("+str(i+1)+")"
-    #         print line,
-    #         if i==NEXT-1: print ']',
-    #         if i!=NEXT-1 and i!=1: print " + ",
-    #         elif i!=1: print
-                
-
-    # for i in range(0,NEXT):
-    #         for j in range(0,NEXT):
-    #             ch = Charge(abs(EXTIDS[i]))*Charge(abs(EXTIDS[j]))*signo(EXTIDS[i])*signo(EXTIDS[j])
-    #             sym_ch = "("+str(signo(EXTIDS[i])*signo(EXTIDS[j]))+")*("+Symb_Charge(abs(EXTIDS[i]))+")*("+Symb_Charge(abs(EXTIDS[j]))+")"
-    #             if ch!=0 and j!=i:
-    #                 conf = 0;
-    #                 if i<2 and j<2: conf = 0
-    #                 if i<2 and j>=2: conf = 1
-    #                 if i>=2 and j<2: conf = 2
-    #                 if i>=2 and j>=2: conf = 3
-    #                 dipconf = ["II","IF","FI","FF"]
-    #                 dipsubconf = ["fermion","boson"]
-    #                 if abs(EXTIDS[i])!=24:
-    #                     subconf = 0
-    #                 else:
-    #                     subconf = 1
-                
-    #                 if(VERBOSE):
-    #                     print "Including ", dipconf[conf] , " dipole with ",
-    #                     line = PID_to_Name(EXTIDS[i]) + "(" + str(i+1) + ") as emitter and "
-    #                     print line,
-    #                     line = PID_to_Name(EXTIDS[j]) +"(" + str(j+1) + ") as spectator"
-    #                     print line
-    #                 SUBNAMES = ["g_ab","g_ai","g_ia","g_ij"]
-    #                 PLUNAMES = ["CurlyG_ab","CurlyG_ai","CurlyG_ia","CurlyG_ij"]
-    #                 ENDNAMES = ["G_ab","G_ai","G_ia","G_ij"]
-                    
-                    
-    #                 line = "Build_"+dipconf[conf]+"_Momenta("+str(NEXT-1)+","+"p_data,p_tilde,"+str(i+1)+","+str(j+1)+");\n"
-    #                 FSUB.write(line)
-    #                 line = "out = out + ("+sym_ch+")*"+SUBNAMES[conf] + "_" + dipsubconf[subconf] +  "(p"+str(i+1)+",p"+str(j+1)+",p"+str(NEXT)+")"+"*"+PROCESSNAME+"(p_tilde);\n"
-    #                 FSUB.write(line)
-                    
-                    
-                    
-                    
-    #                 line = "out = out + ("+sym_ch+")*"+PLUNAMES[conf] + "_" + dipsubconf[subconf] + "(p"+str(i+1)+",p"+str(j+1)+",x"+"_"+str(i+1)+str(j+1)+");\n"
-    #                 FPLU.write(line)
-    #                 line = "out = out + ("+sym_ch+")*"+ENDNAMES[conf] + "_" + dipsubconf[subconf] + "(p"+str(i+1)+",p"+str(j+1)+");\n"
-    #                 FEND.write(line)
-                    
-                    
-    # line = "return " + PROCESSNAME + "A(p_data) + out;\n"        
-    # FSUB.write(line)            
-    # FSUB.write("}\n\n")
-    # FSUB.close()
-    # print 'Subtracted integrand built at',PROCESSNAME_SUB
-
-
-    # FPLU.write("return out;\n}")            
-
-
-
-
-    # FPLU.close()
-    # print 'Plus Distribution integrand built at',PROCESSNAME_PLU
-
-
-
-
-    # FEND.write("return out;\n")            
-    # FEND.write("}\n")
-    # line = "double "+PROCESSNAME+"_Endpoint"+"("+def_vec_args+"){\n"
-    # FEND.write(line)
-    # line = "double out = "+PROCESSNAME+'_Full_Int('+cal_vec_args+')'+";\n"
-    # FEND.write(line)
-    # line = "out = out*"+PROCESSNAME+"("+cal_vec_args+");\n"
-    # FEND.write(line)
-    # FEND.write('return out;\n}                                \n')
-    # FEND.close()
-    # print 'Endpoint integrand built at',PROCESSNAME_END
-
-    # print 'The matix elements must be provided as c++ callable objects',
-    # line = PROCESSNAME+'.o'
-    # print line,
-    # line = 'and '+PROCESSNAME+'A.o'
-    # print line
-
-
-
-
-    # #   MAIN C++ FILE CREATION   #
-
-    # MAIN_NAME = PROCESSNAME+"_Main.cpp"
-    # FMAIN = open(MAIN_NAME,"w+")
-
-    # FMAIN.write('#include <iostream>\n')
-    # FMAIN.write('#include <fstream>\n')
-    # FMAIN.write('#include <cmath>\n')
-    # FMAIN.write('#include "Standard_Model.h"\n')
-    # FMAIN.write('#include "Vector_Real.h"\n')
-    # FMAIN.write('#include "Phase_Spaces_Real.h"\n')
-    # FMAIN.write('#include "Dipole_Definitions.h"\n')
-    # line = '#include "'+PROCESSNAME_SUB+'"\n'
-    # FMAIN.write(line)
-    # #line = '#include "'+PROCESSNAME_PLU+'"\n'
-    # #FMAIN.write(line)
-    # #line = '#include "'+PROCESSNAME_END+'"\n'
-    # #FMAIN.write(line)
-
-    # FMAIN.write('\n\nmain(int argc, char* argv[]){        \n\n')        
-    # FMAIN.write('Vector p1 (5,3,4,0);                       \n')
-    # FMAIN.write('Vector p2 (13,12,0,5);                     \n')
-    # FMAIN.write('Vector p3 (12,11,5,1);                     \n')
-    # FMAIN.write('Vector p4 (10,8,1,1);                      \n')
-    # FMAIN.write('Vector p5 (17,8,15,0);                     \n')
-    # FMAIN.write('Vector p6 (7,6,1,1);                       \n')
-    # FMAIN.write('                                           \n')
-    # FMAIN.write('cout.precision(16);                        \n')
-    # FMAIN.write('                                           \n')
-    # line = 'cout << ' + PROCESSNAME + '_Subtracted('
-    # for i in range(0,NEXT): 
-    #     line = line + 'p'+str(i+1)
-    #     if i!=NEXT-1: line = line + ','
-    # line = line + ') << endl;\n'
-    # FMAIN.write(line)
-    # FMAIN.write('\n\n}                                      \n')
-
-    # FMAIN.close()
-
-
-
-
-    # # NLOX Configuration files creation               #
-    # # NOTE: THIS CREATES THE LEADING ALPHA CORRECTION #
-
-
-    # NLOXC = PROCESSNAME+'_NLOX.dat'
-    # FNLOX = open(NLOXC,'w+')
-    # FTEMP = open('NLOX_Configuration.Template','r') 
-            
-    # for j in FTEMP:
-    #     i = ''
-    #     for k in range(0,len(j)-1):
-    #         i = i+j[k]
-    #     if i.find('initialState')==0:
-    #         i = i + PID_to_Name(EXTIDS[0])+','+PID_to_Name(EXTIDS[1])
-    #     if i.find('finalState')==0: 
-    #         for ip in range(2,len(EXTIDS)-1):
-    #             i = i + PID_to_Name(EXTIDS[ip])
-    #             if ip!=len(EXTIDS)-2: i = i+','
-    #     if i.find('alphaQCD')==0:
-    #         i = i + '0'
-    #     if i.find('alphaEW')==0:
-    #         i = i + str(2+(len(EXTIDS)-4))
-    #     if i.find('processPath')==0:
-    #         i = i + PROCESSNAME
-    #     i = i+'\n'
-    #     FNLOX.write(i)
-    # FTEMP.close()
-    # FNLOX.close()
-    # line = 'NLOX configuration file generated at '+NLOXC
-    # print line
-
-
-    # #  MAKEFILE CREATION # 
-
-
-    # MKFLN = PROCESSNAME+'_Makefile'
-    # FMAKE = open(MKFLN,'w+')
-    # FTEMP = open('Makefile.Template','r') 
-            
-    # for j in FTEMP:
-    #     i = ''
-    #     for k in range(0,len(j)-1):
-    #         i = i+j[k]
-    #     #print i
-    #     if i.find('PROCESS')==0:
-    #         i = i + PROCESSNAME
-    #     if i.find('SOURCE')==0: 
-    #         i = i + PROCESSNAME+'_Main'
-    #     if i.find('OUT')==0: 
-    #         i = i + PROCESSNAME +'_Main_Test'
-    #     if i.find('@nlox.py')>0: 
-    #         i = i +' '+NLOXC+' > '+PROCESSNAME+'_NLOX.log'
-    #     i = i+'\n'
-    #     FMAKE.write(i)
-    # FTEMP.close()
-    # FMAKE.close()
-    # line = 'Makefile generated at '+MKFLN
-    # print line
-    # #line = 'make -f '+MKFLN
-    # #os.system(line)
-
-
-
-    # #  FILE ACCUMULATION AND COMPILATION # 
-
-
-    # line  = 'mkdir '+PROCESSNAME
-    # os.system(line)
-    # line = 'mv '+PROCESSNAME_END+' '+PROCESSNAME_PLU+' '+PROCESSNAME_SUB+' '
-    # line = line +' '+MAIN_NAME+' '+NLOXC+' '+MKFLN+' '+ PROCESSNAME
-    # os.system(line)
-    # line = 'cp ' + sys.argv[1]+' '+PROCESSNAME
-    # os.system(line)
 
 if __name__ == "__main__":
-    try:
-        main(sys.argv[1])
-    except IndexError:
-        print "\33[31mError\33[0m: No input file specified"
-        sys.exit()
-    except IOError: 
-        print "\33[31mError\33[0m: No input file",sys.argv[1],"found"
-        sys.exit()
-    
+    main(sys.argv[1])
