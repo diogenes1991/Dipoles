@@ -7,8 +7,6 @@ class Amplitude:
     def __init__(self,CONFIGFILE):
         self.ReadConfig(CONFIGFILE)
         self.LoadConfig()
-        # self.BuildProcess()
-        self.LinkProcs()
         self.VetoLinks()
         self.BuildDipoles()
         # self.LinkProcs2()
@@ -160,30 +158,32 @@ class Amplitude:
         self.DipoleTree = {}
         self.Borns = {}
         for radi in self.RadiProc.subproc:
+            
             aux = {}
             self.GetDipoles(radi,aux)
-            self.DipoleTree[radi] = aux
-            print radi
-            for born in aux[radi]:
-                self.Borns[born] = aux[radi][born]
-                print '  '+born
+
+            sortedaux = {}
+            def MyF(p):
+                return -p.pid
+            for key in aux[radi]:
+                ini = aux[radi][key][:self.RadiProc.lni]
+                fin = aux[radi][key][self.RadiProc.lni:]
+                ini.sort(key=MyF)
+                fin.sort(key=MyF)
+                new  = ini + fin
+                sortedaux[self.RadiProc.BuildString(new)] = new
+
+            self.DipoleTree[radi] = sortedaux
+            for born in sortedaux:
+                self.Borns[born] = sortedaux[born]
+                
+            
 
     def VetoLinks(self):
-        ## TODO: This method only checks constant final states, not variable  
-        vetolink = {}
-        for radi in self.link:
-            vetoborn = {}
-            for born in self.link[radi]:
-                skip = False
-                fib = self.link[radi][born][self.RadiProc.lni:]
-                for par in self.fin:
-                    if par not in fib:
-                        skip = True
-                if not skip:
-                    vetoborn[born] = self.link[radi][born]
-            if bool(vetoborn):
-                vetolink[radi] = vetoborn
-        self.vetolink = vetolink
+        # This is based on the assumption that the born matrix elements are
+        # tree level matrix elements, by virtue of which a matrix element
+        # can be discarded if the exeternal particles do not 
+        print 'Empty'
         
     def Build(self):
 
