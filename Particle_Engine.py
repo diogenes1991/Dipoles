@@ -318,3 +318,6 @@ class Model:
                     continue
                 if self.ParticleContent[particle].pid == -self.ParticleContent[otherparticle].pid:
                     self.CrossDictionary[self.ParticleContent[particle].nam] = self.ParticleContent[otherparticle].nam
+
+        self.Composites = {n:p for (n,p) in self.ParticleContent.items() if isinstance(p,CompositeParticle)}
+        self.Fundamentals = {n:p for (n,p) in self.ParticleContent.items() if isinstance(p,Particle)}
