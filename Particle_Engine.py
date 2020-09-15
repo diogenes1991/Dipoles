@@ -321,3 +321,64 @@ class Model:
 
         self.Composites = {n:p for (n,p) in self.ParticleContent.items() if isinstance(p,CompositeParticle)}
         self.Fundamentals = {n:p for (n,p) in self.ParticleContent.items() if isinstance(p,Particle)}
+
+    
+    def CanMakeVertex(self,PAR1,PAR2):
+            out = False
+            for Set in self.Couplings:
+                if (PAR1 in Set and PAR2 in Set):
+                    out = True
+            return out
+
+    def ConnectedComponents(self,PARS,C,N):
+            ## 
+            ##  Construir una lista de vertices conexos
+            ##  CC = ["1"]
+            ##  cc = ["1"]
+            ##  cc -> Guardas a todos los conectados a "1"
+            ##  CC = ["1","3","7"]
+            ##  cc = ["3","7"]
+            ##  C[0] += 1
+            ##  call ConnectedComponets(G-CC,C)
+            ##
+            
+            if len(PARS) == 0:
+                return 0
+            
+            CC = [PARS[0]]
+            cc = [PARS[0]]
+            breakwhile = 0 
+            while breakwhile == 0:
+                breakwhile = 1
+                aux = []
+                for Par1 in cc:
+                    for Par2 in PARS:
+                        if self.CanMakeVertex(Par1,Par2) and Par2 not in aux:
+                            aux.append(Par2)
+                for Par in aux:
+                    if Par not in CC:
+                        CC.append(Par)
+                        CC.sort()
+                        breakwhile = 0
+                cc = aux
+
+            NCC = []
+            for Par in CC:
+                NCC.append(Par.nam)
+            C.append(NCC)
+            
+            PARSNew = []
+            for Par in PARS:
+                if Par in CC:
+                    continue
+                PARSNew.append(Par)
+            
+            self.ConnectedComponents(PARSNew,C,N)
+
+        
+
+        
+
+
+
+    
