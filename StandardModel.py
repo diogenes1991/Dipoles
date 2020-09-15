@@ -56,14 +56,18 @@ class StandardModel(Model):
         taup  = Particle("taup", {'tness':-1,'Charge':3},-15,'Fermion')
         ntbar = Particle("ntbar",{'tness':-1,'Charge':0},-16,'Fermion')
 
-        self.leptons = set([ep,ep,mup,mum,taup,taum,ne,nebar,nm,nmbar,nt,ntbar])
+        self.leptons = set([ep,em,mup,mum,taup,taum,ne,nebar,nm,nmbar,nt,ntbar])
 
         self.QCDPars = set([g])
         self.QCDPars = self.QCDPars.union(self.quarks)  
         
         self.EWKPars = set([A,Z,Wp,Wm,h])
         self.EWKPars = self.EWKPars.union(self.quarks)
-        self.EWKPars = self.EWKPars.union(self.leptons)      
+        self.EWKPars = self.EWKPars.union(self.leptons)
+
+        self.YUKPars = set([Wp,Wm,Z,t,tbar,b,bbar,h])
+
+        self.Couplings = [self.QCDPars,self.EWKPars,self.YUKPars]      
 
         ########################################################################
         ## Declare composite particles:
