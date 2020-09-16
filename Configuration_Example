@@ -1,13 +1,21 @@
 
-INITIAL STATE = b,g
-FINAL STATE = Z,b
-RADIATIVE = j
+INITIAL STATE = p,p
+FINAL STATE = Z,b,bbar
+RADIATIVE = A
 
 MODEL FILE = StandardModel
 
 PATH = /home/diogenes1991/Dipoles_Tests
 
 NLOX PATH = /home/diogenes1991/NLOX
-# SEED TEMP = 
+SEED TEMP = tpl/NLOX_seed.tpl
+
+# Stages:
+#   STAGE=0 Only Model loading and process creation no src written
+#   STAGE=1 Only src directory with NLOX seeeds are created
+#   STAGE=2 ME's are also created as well as their source directories
+#   STAGE=3 Dipole Tree is built with its source directories
+
+STAGE = 2
 
 VERBOSE = 1
