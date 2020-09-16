@@ -79,6 +79,8 @@ class Process:
         self.nex = len(Initial_State)+len(Final_State)
         self.lni = len(Initial_State)
         self.lnf = len(Final_State)
+
+        self.finfun = [ p for p in self.fin if isinstance(p,Particle)]
         
         self.proc = []
         for i in self.ini:
@@ -330,17 +332,7 @@ class Model:
                     out = True
             return out
 
-    def ConnectedComponents(self,PARS,C,N):
-            ## 
-            ##  Construir una lista de vertices conexos
-            ##  CC = ["1"]
-            ##  cc = ["1"]
-            ##  cc -> Guardas a todos los conectados a "1"
-            ##  CC = ["1","3","7"]
-            ##  cc = ["3","7"]
-            ##  C[0] += 1
-            ##  call ConnectedComponets(G-CC,C)
-            ##
+    def ConnectedComponents(self,PARS,C):
             
             if len(PARS) == 0:
                 return 0
@@ -373,12 +365,4 @@ class Model:
                     continue
                 PARSNew.append(Par)
             
-            self.ConnectedComponents(PARSNew,C,N)
-
-        
-
-        
-
-
-
-    
+            self.ConnectedComponents(PARSNew,C)
