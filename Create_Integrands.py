@@ -8,8 +8,7 @@ class Amplitude:
         self.ReadConfig(CONFIGFILE)
         self.LoadConfig()
         self.VetoProcs()
-        self.BuildDipoleTree()
-        self.BuildSource()
+        self.Build()
 
     # Configfile reading and loading into the amplitude class
 
@@ -21,7 +20,8 @@ class Amplitude:
                   'PATH'         : [os.getcwd()],\
                   'NLOX PATH'    : [0] ,\
                   'SEED TEMP'    : ['tpl/NLOX_seed.tpl'] ,\
-                  'VERBOSE'      : [0] }
+                  'VERBOSE'      : [0] ,\
+                  'STAGE'        : [0] }
         
         REQUIRED = set(['INITIAL STATE','FINAL STATE','NLOX PATH','RADIATIVE']) 
 
@@ -98,6 +98,7 @@ class Amplitude:
         self.path = self.config['PATH'][0]+"/"+str(self.RadiProc)
 
         self.seed_tpl = self.config['SEED TEMP'][0]
+        self.stage = int(self.config['STAGE'][0])
 
         if self.verbose:
             print 'Configuartion loaded succesfuly'
@@ -114,15 +115,103 @@ class Amplitude:
         for proc in ToDelete:
             del self.RadiProc.subproc[proc]
 
+    def Build(self):
+
+        self.TplDir = 'tpl/'
+        self.SrcDir = self.path
+        self.MatDir = self.SrcDir+'/Matrix_Elements'
+        
+        if self.stage:
+            MakeDir(self.SrcDir)
+            self.BuildDipoleTree()
+            self.BuildSeeds()
+            self.stage -= 1
+
+        if self.stage: 
+            self.BuildMatrixElements()
+            self.BuildProcess()
+            self.stage -= 1
+
     # Dipole Tree creation from the Radiative process
+    
+    def WriteDipoles(self):
+        for subproc in self.RadiProc.subproc:
+            DICT={'SubProcHeader'    : '' ,\
+                  'SubProcName'      : '' ,\
+                  'SubProcMat'       : '' ,\
+                  'SubProcSub'       : '' ,\
+                  'SubProcPlu'       : '//empty for now' ,\
+                  'SubProcEnd'       : '//empty for now'}
+            DICT['SubProcHeader'] = subproc.upper()
+            DICT['SubProcName'] = subproc+'_Dipoles'
+            DICT['SubProcMat'] = '#include "Matrix_Elements/'+subproc+'/code/Sub_'+subproc+'.h" \n'
+            
+            # Include the necesary Borns
+            for linked in self.link[subproc]:
+                DICT['SubProcMat'] += '#include "Matrix_Elements/'+linked+'/code/Sub_'+linked+'.h"\n'
 
-    def BuildDipoleStructure(self):
-        print len(self.Borns),len(self.RadiProc.subproc)
-        for radi in self.RadiProc.subproc:
-            print radi
-            for born in self.DipoleTree[radi]:
-                print '  ',born
+            # Construction of the EWK Subtracted Function
+            # This uses auto coupling-power detection
+            
+            EWKc = 0
+            QCDc = 0
 
+            for particle in self.RadiProc.subproc[subproc]:
+                if particle in self.Model.EWKPars:
+                    EWKc += 1
+                if particle in self.Model.QCDPars:
+                    QCDc += 1
+            # print QCDc,'QCD particles and',EWKc,'EWK particles'
+
+            MaxQCD = QCDc - 2
+            MinQCD = self.RadiProc.nex - EWKc   
+
+            MaxEWK = EWKc - 2
+            MinEWK = self.RadiProc.nex - QCDc
+
+            # print 'QCD range = [',MinQCD,',',MaxQCD,']'
+            # print 'EWK range = [',MinEWK,',',MaxEWK,']'
+
+            CPSQCD = []
+            for val in range(MinQCD,MaxQCD+1):
+                CPSQCD.append('as'+str(val)+'ae'+str(self.RadiProc.nex-val-2))
+
+            CPSEWK = []
+            for val in range(MinEWK,MaxEWK+1):
+                CPSEWK.append('as'+str(self.RadiProc.nex-val-2)+'ae'+str(val))
+            # print CPSQCD
+            # print CPSEWK
+
+            for CP in CPSQCD:
+                DICT['SubProcSub'] += 'Subprocess* Radiative = proc->call(RadiProc('+CP+'));\n'
+
+
+
+            
+            ce = 1
+            for emitter in self.RadiProc.subproc[subproc]:
+                cs = 1
+                for spectator in self.RadiProc.subproc[subproc]:
+                    if 'Charge' in emitter.sym and 'Charge' in spectator.sym and cs!=ce:
+                        CONF = ('I' if (ce<len(self.RadiProc.ini)) else 'F' ) + ('I' if (cs<len(self.RadiProc.ini)) else 'F' )
+                        DICT['SubProcSub'] += 'Add '+emitter.nam+'('+str(ce)+') as emitter and '+spectator.nam+'('+str(cs)+') as spectator '+CONF+' Dipole\n'
+                    cs += 1
+                ce += 1
+
+
+            
+
+
+            
+                # PlusDistrb += subproc+'(p)-'+linked+'(Maptype(p));\n'
+                # Endpoint   += subproc+'()'
+
+
+            SubFunctionH = seek_and_destroy(self.TplDir+'/Dipole_FunctionsH.tpl',DICT)
+            SubFunctionC = seek_and_destroy(self.TplDir+'/Dipole_FunctionsC.tpl',DICT)
+            WriteFile(self.SrcDir+'/'+subproc+'_Function.cpp',SubFunctionC)
+            WriteFile(self.SrcDir+'/'+subproc+'_Function.h',SubFunctionH)
+    
     def BuildDipoleTree(self):
         # This method is in charged of fetching all 
         # dipole combinations and collect the unique
@@ -226,34 +315,15 @@ class Amplitude:
                                 LINKED[SUBPROCESS].append({'BORNTAG':self.RadiProc.BuildString(SAUX),'UNSORTEDPARS':AUX,'SORTEDPARS':SAUX,'DIPTYP':TYP,'IJ':[id1,id2],'SUBTYP':SUBTYP})
     
     # Source code writting
-
-    def BuildSource(self):
-
-        ###
-        ###   This is the part of the code that will 
-        ###   handle templates, creates and moves files
-        ### 
-
-        self.TplDir = 'tpl/'
-        self.SrcDir = self.path
-        self.MatDir = self.SrcDir+'/Matrix_Elements'
-
-        MakeDir(self.SrcDir)
-        # self.BuildNLOXProcess()  
-
-        self.BuildSeeds()
-        # self.BuildMatrixElements()
-        # self.BuildSubProc()
-        # self.BuildDipoles()
-
+    
     def BuildSeeds(self):
 
         for subproc in self.RadiProc.subproc:
-
             DICT = {'Initial State'   : '' ,\
                     'Final State'     : '' ,\
                     'Tree CP'         : 'bornAlphaQCD = ' ,\
                     'Loop CP'         : 'virtAlphaQCD = ' ,\
+                    'enableTerms'      : '4' ,\
                     'Path'            : '' }
             Ini = [ s.nam for s in self.RadiProc.subproc[subproc][:self.RadiProc.lni]]
             Fin = [ s.nam for s in self.RadiProc.subproc[subproc][self.RadiProc.lni:]]
@@ -292,6 +362,7 @@ class Amplitude:
                     'Final State'     : '' ,\
                     'Tree CP'         : 'bornAlphaQCD = ' ,\
                     'Loop CP'         : 'virtAlphaQCD = ' ,\
+                    'enableTerms'      : '7' ,\
                     'Path'            : '' }
             Ini = [ s.nam for s in self.Borns[born][:self.RadiProc.lni]]
             Fin = [ s.nam for s in self.Borns[born][self.RadiProc.lni:]]
@@ -325,133 +396,60 @@ class Amplitude:
             SubProcSeed = seek_and_destroy(self.seed_tpl,DICT)
             WriteFile(self.SrcDir+'/'+born+'.in',SubProcSeed)
 
-
-    def BuildNLOXProcess(self):
-        RadiDict = { 'Include Born'   : '' ,\
+    def BuildProcess(self):
+        DICT = { 'Include Born'   : '' ,\
                      'Include Radi'   : '' ,\
-                     'nBorn'          : str(len(self.BornProc.subproc)) ,\
-                     'nRadi'          : str(len(self.RadiProc.subproc)) ,\
+                     'NSubProcesses'  : str(len(self.Borns)+len(self.RadiProc.subproc)) ,\
                      'Construct Born' : '\n' ,\
-                     'Construct Radi' : '\n'  }
+                     'Construct Radi' : '\n' ,\
+                     'Amplitude Map'  : '\n'}
         TAB3 = '   '
         TAB6 = TAB3+TAB3
         TAB9 = TAB6+TAB3
         
         count = 0
-        for subproc in self.BornProc.scatters:
-            SubProc = self.BornProc.BuildString(subproc)
-            RadiDict['Include Born'] += '#include "../'+SubProc+'/code/Sub_'+SubProc+'.h"\n'
-            RadiDict['Construct Born'] += TAB9+'subproc['+str(count)+'] = '+'new Sub_'+SubProc+'(pc);\n'
-            # RadiDict['Construct Born'] += TAB9+'BornMap.insert({"'+SubProc+'",'+str(count)+'});\n'
+        for subproc in self.Borns:
+            DICT['Include Born'] += '#include "../'+subproc+'/code/Sub_'+subproc+'.h"\n'
+            DICT['Construct Born'] += TAB9+'subproc['+str(count)+'] = '+'new Sub_'+subproc+'(pc);\n'
+            DICT['Amplitude Map'] += TAB9+'AmpMap.insert({"'+subproc+'",'+str(count)+'});\n'
             count += 1
 
-        for subproc in self.RadiProc.scatters:
-            SubProc = self.RadiProc.BuildString(subproc)
-            RadiDict['Include Radi'] += '#include "../'+SubProc+'/code/Sub_'+SubProc+'.h"\n'
-            RadiDict['Construct Radi'] += TAB9+'subproc['+str(count)+'] = '+'new Sub_'+SubProc+'(pc);\n'
-            # RadiDict['Construct Radi'] += TAB9+'RadiMap.insert({"'+SubProc+'",'+str(count)+'});\n'
+        for subproc in self.RadiProc.subproc:
+            DICT['Include Radi'] += '#include "../'+subproc+'/code/Sub_'+subproc+'.h"\n'
+            DICT['Construct Radi'] += TAB9+'subproc['+str(count)+'] = '+'new Sub_'+subproc+'(pc);\n'
+            DICT['Amplitude Map'] += TAB9+'AmpMap.insert({"'+subproc+'",'+str(count)+'});\n'
             count += 1
         
-        ProcessHeader = seek_and_destroy(self.TplDir+"nlox_process.tpl",RadiDict)
-        WriteFile(self.SrcDir+"/nlox_process.h",ProcessHeader)
+        ProcessHeader = seek_and_destroy(self.TplDir+"nlox_process.tpl",DICT)
+        WriteFile(self.MatDir+"/code/nlox_process.h",ProcessHeader)
 
     def BuildMatrixElements(self):
         Here = os.getcwd()
         os.chdir(self.SrcDir)
         
-        for subproc in self.BornProc.subproc:
-            print 'Generating born and virtual process:',subproc
+        count = 1
+        tot = str(len(self.Borns))
+        for subproc in self.Borns:
+            if self.verbose:
+                print 'Generating born and virtual process: ',subproc,'('+str(count)+'/'+tot+')'
             cmd = self.nlox+' '+subproc +'.in > '+subproc+'.log'
             os.system(cmd)
             cmd = 'mv '+subproc+'.log '+self.MatDir+'/'+subproc
             os.system(cmd)
-
+            count += 1
+        
+        count = 1
+        tot = str(len(self.RadiProc.subproc))
         for subproc in self.RadiProc.subproc:
-            print 'Generating real radiative process:',subproc
+            if self.verbose:
+                print 'Generating real radiative process:',subproc,'('+str(count)+'/'+tot+')'
             cmd = self.nlox+' '+subproc +'.in > '+subproc+'.log'
             os.system(cmd)
             cmd = 'mv '+subproc+'.log '+self.MatDir+'/'+subproc
             os.system(cmd)
+            count += 1
 
         os.chdir(Here)
-
-    def BuildSubProc(self):
-        for subproc in self.RadiProc.subproc:
-            DICT={'SubProcHeader'    : '' ,\
-                  'SubProcName'      : '' ,\
-                  'SubProcMat'       : '' ,\
-                  'SubProcSub'       : '' ,\
-                  'SubProcPlu'       : '//empty for now' ,\
-                  'SubProcEnd'       : '//empty for now'}
-            DICT['SubProcHeader'] = subproc.upper()
-            DICT['SubProcName'] = subproc+'_Dipoles'
-            DICT['SubProcMat'] = '#include "Matrix_Elements/'+subproc+'/code/Sub_'+subproc+'.h" \n'
-            
-            # Include the necesary Borns
-            for linked in self.link[subproc]:
-                DICT['SubProcMat'] += '#include "Matrix_Elements/'+linked+'/code/Sub_'+linked+'.h"\n'
-
-            # Construction of the EWK Subtracted Function
-            # This uses auto coupling-power detection
-            
-            EWKc = 0
-            QCDc = 0
-
-            for particle in self.RadiProc.subproc[subproc]:
-                if particle in self.Model.EWKPars:
-                    EWKc += 1
-                if particle in self.Model.QCDPars:
-                    QCDc += 1
-            # print QCDc,'QCD particles and',EWKc,'EWK particles'
-
-            MaxQCD = QCDc - 2
-            MinQCD = self.RadiProc.nex - EWKc   
-
-            MaxEWK = EWKc - 2
-            MinEWK = self.RadiProc.nex - QCDc
-
-            # print 'QCD range = [',MinQCD,',',MaxQCD,']'
-            # print 'EWK range = [',MinEWK,',',MaxEWK,']'
-
-            CPSQCD = []
-            for val in range(MinQCD,MaxQCD+1):
-                CPSQCD.append('as'+str(val)+'ae'+str(self.RadiProc.nex-val-2))
-
-            CPSEWK = []
-            for val in range(MinEWK,MaxEWK+1):
-                CPSEWK.append('as'+str(self.RadiProc.nex-val-2)+'ae'+str(val))
-            # print CPSQCD
-            # print CPSEWK
-
-            for CP in CPSQCD:
-                DICT['SubProcSub'] += 'Subprocess* Radiative = proc->call(RadiProc('+CP+'));\n'
-
-
-
-            
-            ce = 1
-            for emitter in self.RadiProc.subproc[subproc]:
-                cs = 1
-                for spectator in self.RadiProc.subproc[subproc]:
-                    if 'Charge' in emitter.sym and 'Charge' in spectator.sym and cs!=ce:
-                        CONF = ('I' if (ce<len(self.RadiProc.ini)) else 'F' ) + ('I' if (cs<len(self.RadiProc.ini)) else 'F' )
-                        DICT['SubProcSub'] += 'Add '+emitter.nam+'('+str(ce)+') as emitter and '+spectator.nam+'('+str(cs)+') as spectator '+CONF+' Dipole\n'
-                    cs += 1
-                ce += 1
-
-
-            
-
-
-            
-                # PlusDistrb += subproc+'(p)-'+linked+'(Maptype(p));\n'
-                # Endpoint   += subproc+'()'
-
-
-            SubFunctionH = seek_and_destroy(self.TplDir+'/Dipole_FunctionsH.tpl',DICT)
-            SubFunctionC = seek_and_destroy(self.TplDir+'/Dipole_FunctionsC.tpl',DICT)
-            WriteFile(self.SrcDir+'/'+subproc+'_Function.cpp',SubFunctionC)
-            WriteFile(self.SrcDir+'/'+subproc+'_Function.h',SubFunctionH)
     
 def main(CONFIGFILE):
     
