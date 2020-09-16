@@ -1,7 +1,7 @@
 #ifndef __INTEGRANDS_H_
 #define __INTEGRANDS_H_
 
-#include "Radiative_Process.h"
+#include "nlox_process.h"
 
 class Integrands{
     

@@ -7,17 +7,20 @@
 class Process {
   Subprocess** subproc;
   int numSubprocesses;
+  std::unordered_map<std::string,int> AmpMap;
 
   public:
     ProcessConst pc;
     
     Process() {
-      numSubprocesses = ####nBorn#### + ####nRadi####;
+      numSubprocesses = ####NSubProcesses####;
       subproc = new Subprocess* [numSubprocesses];
 
       // Initialize classes derived from Subprocess
         ####Construct Born####
         ####Construct Radi####
+
+        ####Amplitude Map####
         
     }
 
