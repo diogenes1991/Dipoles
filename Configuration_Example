@@ -1,11 +1,11 @@
 
-INITIAL STATE = p,p
+INITIAL STATE = b,g
 FINAL STATE = Z,b
-RADIATIVE = A
+RADIATIVE = j
 
 MODEL FILE = StandardModel
 
-PATH = /home/diogenes1991/Open_Dipoles
+PATH = /home/diogenes1991/Dipoles_Tests
 
 NLOX PATH = /home/diogenes1991/NLOX
 # SEED TEMP = 
