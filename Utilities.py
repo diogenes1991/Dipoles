@@ -1,5 +1,11 @@
 import sys,os
 
+def CSS(n,m=0):
+            out = ''
+            for number in range(n-m+1):
+                out += str(n-number) + (',' if number != (n-m) else '')
+            return out
+
 def find_substring(string, substring):
     substring_length = len(substring)    
     def recurse(locations_found, start):
@@ -55,7 +61,7 @@ def seek_and_destroy(template,data,permissive=False):
     return filled_template
 
 def MakeDir(Path):
-        line = 'mkdir '+Path
+        line = 'mkdir -p '+Path
         if os.path.exists(Path):
             print "\33[31mError\33[0m: Directory",Path,"already exists, please remove it first"
             sys.exit()
