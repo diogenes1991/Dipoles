@@ -9,6 +9,7 @@ class Amplitude:
         self.LoadConfig()
         self.VetoProcs()
         self.BuildDipoleTree()
+        self.BuildSource()
 
     # Configfile reading and loading into the amplitude class
 
@@ -94,8 +95,10 @@ class Amplitude:
             sys.exit()
 
         self.RadiProc = Process(self.ini,self.finrad)
-        
         self.path = self.config['PATH'][0]+"/"+str(self.RadiProc)
+
+        self.seed_tpl = self.config['SEED TEMP'][0]
+
         if self.verbose:
             print 'Configuartion loaded succesfuly'
             for conf in self.config:
@@ -224,7 +227,7 @@ class Amplitude:
     
     # Source code writting
 
-    def Build(self):
+    def BuildSource(self):
 
         ###
         ###   This is the part of the code that will 
@@ -236,58 +239,35 @@ class Amplitude:
         self.MatDir = self.SrcDir+'/Matrix_Elements'
 
         MakeDir(self.SrcDir)
-        self.BuildNLOXProcess()  
+        # self.BuildNLOXProcess()  
 
         self.BuildSeeds()
         # self.BuildMatrixElements()
-        self.BuildSubProc()
-        self.BuildDipoles()
+        # self.BuildSubProc()
+        # self.BuildDipoles()
 
-    def BuildSeeds(self,DetectCP=False):
-        cutpoint = len(self.BornProc.ini)
-        for subproc in self.BornProc.subproc:
-            DICT = {'Initial State'   : '' ,\
-                    'Final State'     : '' ,\
-                    'Tree CP'         : 'bornAlphaQCD = ' ,\
-                    'Loop CP'         : 'virtAlphaQCD = ' ,\
-                    'Path'            : '' }
-            Ini = [ s.nam for s in self.BornProc.subproc[subproc][:cutpoint]]
-            Fin = [ s.nam for s in self.BornProc.subproc[subproc][cutpoint:]]
-            count = 1
-            for parname in Ini:
-                DICT['Initial State'] += parname
-                if count != len(Ini):
-                    DICT['Initial State'] += ','
-                count += 1
-            count = 1
-            for parname in Fin:
-                DICT['Final State'] += parname
-                if count != len(Fin):
-                    DICT['Final State'] += ','
-                count += 1
-            BornPow = len(Ini)+len(Fin)-1
-            for i in range(BornPow+1):
-                if i!=0:
-                    DICT['Tree CP'] += str(BornPow-i)
-                    if i != BornPow:
-                        DICT['Tree CP'] += ','
-                DICT['Loop CP'] += str(BornPow-i)
-                if i != BornPow:
-                    DICT['Loop CP'] += ','
-            DICT['Path'] +=  self.MatDir
-            SubProcSeed = seek_and_destroy(self.TplDir+"NLOX_seed.tpl",DICT)
-            WriteFile(self.SrcDir+'/'+subproc+'.in',SubProcSeed)  
+    def BuildSeeds(self):
 
-
-        cutpoint = len(self.RadiProc.ini)
         for subproc in self.RadiProc.subproc:
+
             DICT = {'Initial State'   : '' ,\
                     'Final State'     : '' ,\
                     'Tree CP'         : 'bornAlphaQCD = ' ,\
                     'Loop CP'         : 'virtAlphaQCD = ' ,\
                     'Path'            : '' }
-            Ini = [ s.nam for s in self.RadiProc.subproc[subproc][:cutpoint]]
-            Fin = [ s.nam for s in self.RadiProc.subproc[subproc][cutpoint:]]
+            Ini = [ s.nam for s in self.RadiProc.subproc[subproc][:self.RadiProc.lni]]
+            Fin = [ s.nam for s in self.RadiProc.subproc[subproc][self.RadiProc.lni:]]
+
+            EWKc = 0
+            QCDc = 0
+            for particle in self.RadiProc.subproc[subproc]:
+                if particle in self.Model.EWKPars:
+                    EWKc += 1
+                if particle in self.Model.QCDPars:
+                    QCDc += 1
+            MaxQCD = QCDc - 2
+            MinQCD = self.RadiProc.nex - EWKc 
+
             count = 1
             for parname in Ini:
                 DICT['Initial State'] += parname
@@ -300,16 +280,51 @@ class Amplitude:
                 if count != len(Fin):
                     DICT['Final State'] += ','
                 count += 1
-            RadiPow = len(Ini)+len(Fin)
-            for i in range(RadiPow+1):
-                if i!=0:
-                    DICT['Tree CP'] += str(RadiPow-i)
-                    if i != RadiPow:
-                        DICT['Tree CP'] += ','
+
+            DICT['Tree CP'] += CSS(MaxQCD,MinQCD)
             DICT['Loop CP'] = '##virtAlphaQCD'
             DICT['Path'] +=  self.MatDir
-            SubProcSeed = seek_and_destroy(self.TplDir+"NLOX_seed.tpl",DICT)
-            WriteFile(self.SrcDir+'/'+subproc+'.in',SubProcSeed)          
+            SubProcSeed = seek_and_destroy(self.seed_tpl,DICT)
+            WriteFile(self.SrcDir+'/'+subproc+'.in',SubProcSeed)
+
+        for born in self.Borns:
+            DICT = {'Initial State'   : '' ,\
+                    'Final State'     : '' ,\
+                    'Tree CP'         : 'bornAlphaQCD = ' ,\
+                    'Loop CP'         : 'virtAlphaQCD = ' ,\
+                    'Path'            : '' }
+            Ini = [ s.nam for s in self.Borns[born][:self.RadiProc.lni]]
+            Fin = [ s.nam for s in self.Borns[born][self.RadiProc.lni:]]
+
+            EWKc = 0
+            QCDc = 0
+            for particle in self.Borns[born]:
+                if particle in self.Model.EWKPars:
+                    EWKc += 1
+                if particle in self.Model.QCDPars:
+                    QCDc += 1
+            MaxQCD = QCDc - 2
+            MinQCD = len(self.Borns[born]) - EWKc
+
+            count = 1
+            for parname in Ini:
+                DICT['Initial State'] += parname
+                if count != len(Ini):
+                    DICT['Initial State'] += ','
+                count += 1
+            count = 1
+            for parname in Fin:
+                DICT['Final State'] += parname
+                if count != len(Fin):
+                    DICT['Final State'] += ','
+                count += 1
+            
+            DICT['Tree CP'] += CSS(MaxQCD,MinQCD)
+            DICT['Loop CP'] += CSS(MaxQCD+1,MinQCD)
+            DICT['Path'] +=  self.MatDir
+            SubProcSeed = seek_and_destroy(self.seed_tpl,DICT)
+            WriteFile(self.SrcDir+'/'+born+'.in',SubProcSeed)
+
 
     def BuildNLOXProcess(self):
         RadiDict = { 'Include Born'   : '' ,\
