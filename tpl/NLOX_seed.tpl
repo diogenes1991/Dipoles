@@ -1,4 +1,4 @@
-
+    
 ## Process
 initialState = ####Initial State####
 finalState   = ####Final State####
@@ -25,6 +25,7 @@ alphaMode = new
 
 ####Tree CP####
 ####Loop CP####
+enableTerms = ####enableTerms####
 
 ## Or, specify the desired coupling-power orders at the level of the
 ## amplitude. All possible interference terms will be generated that
