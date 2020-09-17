@@ -1,5 +1,9 @@
 import sys,os
 
+#
+# String Manipulation
+#
+
 def CSS(n,m=0):
             out = ''
             for number in range(n-m+1):
@@ -15,6 +19,10 @@ def find_substring(string, substring):
         else:
             return locations_found
     return recurse([], 0)
+
+#
+# Template Handleling 
+#
 
 def seek_and_destroy(template,data,permissive=False):
     tmp_arg_mrk = '####'
@@ -34,7 +42,7 @@ def seek_and_destroy(template,data,permissive=False):
         line = template_line
         if len(template_args)%2 != 0:
             print '\33[31mError\33[0m: Template key marker error in:',template_line,'\n'
-            print 'The correct usage is: ////Some Template Argument//// '
+            print 'The correct usage is:'+tmp_arg_mrk+'Some Template Argument'+tmp_arg_mrk
             sys.exit()
         for index in range(len(template_args)/2):
             template_key = template_line[(template_args[2*index]+len(tmp_arg_mrk)):template_args[2*index+1]]
@@ -71,3 +79,7 @@ def WriteFile(Path,Content):
     F = open(Path,"w+")
     F.write(Content)
     F.close()
+
+def CopyFile(Orig,Dest):
+    cmd = 'cp '+Orig+' '+Dest
+    os.system(cmd)
