@@ -10,7 +10,9 @@ class Amplitude:
         self.VetoProcs()
         self.Build()
 
+    #
     # Configfile reading and loading into the amplitude class
+    #
 
     def ReadConfig(self,CONFIGFILE):
         CONFIG = {'INITIAL STATE': [0],\
@@ -118,9 +120,10 @@ class Amplitude:
     def Build(self):
 
         self.TplDir = 'tpl/'
+        self.IntDir = 'src/'
         self.SrcDir = self.path
         self.MatDir = self.SrcDir+'/Matrix_Elements'
-        
+
         if self.stage:
             MakeDir(self.SrcDir)
             self.BuildDipoleTree()
@@ -130,10 +133,13 @@ class Amplitude:
         if self.stage: 
             self.BuildMatrixElements()
             self.BuildProcess()
+
             self.stage -= 1
 
+    #
     # Dipole Tree creation from the Radiative process
-    
+    #
+
     def WriteDipoles(self):
         for subproc in self.RadiProc.subproc:
             DICT={'SubProcHeader'    : '' ,\
@@ -314,8 +320,10 @@ class Amplitude:
                             if len(CC)==1:
                                 LINKED[SUBPROCESS].append({'BORNTAG':self.RadiProc.BuildString(SAUX),'UNSORTEDPARS':AUX,'SORTEDPARS':SAUX,'DIPTYP':TYP,'IJ':[id1,id2],'SUBTYP':SUBTYP})
     
-    # Source code writting
-    
+    #
+    #  NLOX: Seeeds, Matrix elements and Process class
+    #
+
     def BuildSeeds(self):
 
         for subproc in self.RadiProc.subproc:
@@ -422,6 +430,8 @@ class Amplitude:
         
         ProcessHeader = seek_and_destroy(self.TplDir+"nlox_process.tpl",DICT)
         WriteFile(self.MatDir+"/code/nlox_process.h",ProcessHeader)
+        CopyFile(self.IntDir+'/nlox_olp.cc',self.MatDir+'/code/nlox_olp.cc')
+        CopyFile(self.IntDir+'/nlox_olp.h',self.MatDir+'/code/nlox_olp.h')
 
     def BuildMatrixElements(self):
         Here = os.getcwd()
@@ -451,9 +461,21 @@ class Amplitude:
 
         os.chdir(Here)
     
+    #
+    #  Dipoles: Overhead Interface, Integrands and CUBA Targets 
+    #
+    
+
 def main(CONFIGFILE):
     
     AMPLITUDE = Amplitude(CONFIGFILE)
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    if len(sys.argv)<2:
+        print "\33[31mError\33[0m: No input file specified"
+    elif len(sys.argv)==2:
+        main(sys.argv[1])
+    else:
+        print "\33[31mError\33[0m: Too many arguments"  
+        
+    
