@@ -1,18 +1,14 @@
 CXX=g++
-FC=gfortran
 
-#PROCPATH=./
-PROCPATH=$(shell pwd)/
+PROCPATH=$(shell pwd)/Matrix_Elements
 
 CFLAGS= -O3 -Wall -Wno-reorder -DNLOXPROCPATH=\"$(PROCPATH)\"
-FFLAGS= -O3
 
-####TREDDIR
-
-####ONELOOPDIR
-####QCDLOOPDIR
-####QCDLOOP2DIR
-####LOOPTOOLSDIR
+TREDDIR=/home/diogenes1991/NLOX/src/tred
+ONELOOPDIR=/home/diogenes1991/NLOX_util/built
+QCDLOOPDIR=/home/diogenes1991/NLOX_util/built
+QCDLOOP2DIR=/home/diogenes1991/NLOX_util/built
+LOOPTOOLSDIR=/home/diogenes1991/NLOX_util/built
 
 COMMON_INC=-I$(TREDDIR) \
     -I$(PROCPATH)/code
@@ -73,51 +69,12 @@ ifdef fortran_needed
 COMMON_LIBS+=-lgfortran
 endif
 
-TEST_INC=$(COMMON_INC)
-TEST_LIB_DIRS=$(COMMON_LIB_DIRS)
-TEST_LIBS=$(COMMON_LIBS)
-
-BORN_OBJS=$(patsubst %.cc,%.o,$(wildcard $(PROCPATH)/*/*born*/C/*.cc))
-VIRT_OBJS=$(patsubst %.cc,%.o,$(wildcard $(PROCPATH)/*/*virt*/C/*.cc))
-CT_OBJS=$(patsubst %.cc,%.o,$(wildcard $(PROCPATH)/*/*CT*/C/*.cc))
-
-SUBPROC_CODE_OBJS=$(patsubst %.cc,%.o,$(wildcard $(PROCPATH)/*/code/*.cc))
-PROC_CODE_OBJS=$(patsubst %.cc,%.o,$(wildcard $(PROCPATH)/code/*.cc))
-
-ALL_OBJECTS=$(patsubst %.cc,%.o,$(wildcard *.cc)) $(BORN_OBJS) $(VIRT_OBJS) $(CT_OBJS) $(SUBPROC_CODE_OBJS) $(PROC_CODE_OBJS)
-
-LIB_OBJ=$(filter-out $(PROCPATH)/code/ftest_process.o $(PROCPATH)/code/test_process.o $(PROCPATH)/code/nlox_olp_fortran.o, $(ALL_OBJECTS))
-FLIB_OBJ=$(filter-out $(PROCPATH)/code/ftest_process.o $(PROCPATH)/code/test_process.o $(PROCPATH)/code/nlox_olp.o, $(ALL_OBJECTS))
+COMMON_INC += -I$(PROCPATH)/code
+COMMON_INC += -I$(PROCPATH)
+COMMON_LIB_DIRS += -L$(PROCPATH)
 
 all: test
 
-test: library examples/test_process.cc
-	$(shell cp examples/test_process.cc .)
-	$(shell cp examples/nlox_parameters.par .)
-	$(CXX) $(CFLAGS) $(TEST_INC) -c test_process.cc -o test_process.o
-	$(CXX) $(CFLAGS) -o test_process $(TEST_INC) $(TEST_LIB_DIRS) -L. test_process.o -lprocess $(TEST_LIBS)
-
-ftest: flibrary examples/ftest_process.f90
-	$(shell cp examples/ftest_process.f90 .)
-	$(shell cp examples/nlox_parameters.par .)
-	$(FC) $(FFLAGS) $(TEST_INC) -c ftest_process.f90 -o ftest_process.o
-	$(FC) $(FFLAGS) -o ftest_process $(TEST_INC) $(TEST_LIB_DIRS) -L. ftest_process.o -lfprocess $(TEST_LIBS) 
-
-library: $(LIB_OBJ)
-	ar rvs libprocess.a $(LIB_OBJ)
-
-flibrary: $(FLIB_OBJ)
-	ar rvs libfprocess.a $(FLIB_OBJ)
-
-%.o: %.cc
-	$(CXX) $(CFLAGS) $(TEST_INC) -c $< -o $@
-
-clean:
-	rm -f *# *.tmp *~
-	rm -f $(ALL_OBJECTS)
-	rm -f test_process.o test_process.cc test_process nlox_parameters.par libprocess.a
-	rm -f ftest_process.o ftest_process.f90 ftest_process nlox_parameters.par libfprocess.a
-
-print-%  : ; @echo $* = $($*)
-
-
+test:
+	$(CXX) -c $(CFLAGS) Test_Code.cpp $(COMMON_INC) $(COMMON_LIB_DIRS) $(COMMON_LIBS)
+	$(CXX) $(CFLAGS) -o Test_Code $(COMMON_INC) $(COMMON_LIB_DIRS) -L. Test_Code.o -lprocess $(COMMON_LIBS)
