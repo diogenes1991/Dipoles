@@ -1,22 +1,25 @@
 import sys,os,copy
 
 class Particle:    
-    def __init__(self,Name,Sym,PID,Type):
-        self.nam = Name
+    def __init__(self,Nam,Sym,PID,Mas):
+        self.nam = Nam
         self.pid = PID
-        self.typ = Type
+        self.mas = Mas
         self.sym = Sym
+        self.qnb = {}
         
     def __str__(self):
         return self.nam
 
+    def QuantumNumber(self,QN):
+        for QuantumNumber in QN:
+            self.qnb[QuantumNumber] = QN[QuantumNumber]
+
 class Boson(Particle):
-    def Carries(Symmetry):
-        self.carrier = Symmetry
+    pass
 
 class Fermion(Particle):
-    def Dummy(self):
-        return 1
+    pass
 
 class CompositeParticle:
     def __init__(self,Name,Subparticles,Mother=None,Degree=2):
@@ -181,7 +184,7 @@ class Process:
             for tent in self.scatters:
                 par = 0
                 for p in tent:
-                    if(p.typ=='Fermion'):
+                    if isinstance(p,Fermion):
                         par += 1
                 par = par%2
                 if(par==0):
@@ -263,7 +266,7 @@ class Process:
             def SortFunction(Proc):
                 n = 0
                 for i in Proc:
-                    if i.typ == "Boson":
+                    if isinstance(i,Boson):
                         n += len(Proc)
                     if i.pid > 0:
                         n += -1
