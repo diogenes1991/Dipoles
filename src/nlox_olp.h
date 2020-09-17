@@ -8,9 +8,9 @@ extern "C" {
 #endif
 
 void NLOX_OLP_Start(char* fname, int* ierr);
-void NLOX_OLP_EvalSubProcess_All(std::string SubProc, double* pp, int* next,double* mu, double* rval, double* acc);
-void NLOX_OLP_EvalSubProcess(std::string SubProc, char* type, char* cp, double* pp, int* next, double* mu, double* rval2, double* acc);
-void NLOX_OLP_EvalSubProcess_CC(std::string SubProc, char* type, char* cp, double* pp, int* next, double* mu, double* rvalcc, double* acc);
+void NLOX_OLP_EvalSubProcess_All(std::string SubProc, std::vector<FourVector> pp, int* next, double* mu, double* rval, double* acc);
+void NLOX_OLP_EvalSubProcess(std::string SubProc, char* type, char* cp,  std::vector<FourVector> pp, int* next, double* mu, double* rval2, double* acc);
+void NLOX_OLP_EvalSubProcess_CC(std::string SubProc, char* type, char* cp, std::vector<FourVector> pp, int* next, double* mu, double* rvalcc, double* acc);
 void NLOX_OLP_SetMass(char* name, double* mass, double* width, int* ierr);
 void NLOX_OLP_SetParameter(char* para, double* re, double* im, int* ierr);
 

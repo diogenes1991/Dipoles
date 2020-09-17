@@ -9,14 +9,14 @@ void NLOX_OLP_Start(char* fname, int* ierr) {
   proc = new Process();
 }
 
-void NLOX_OLP_EvalSubProcess_All(std::string SubProc, double* pp, int* next, double* mu, double* rval, double* acc) {
+void NLOX_OLP_EvalSubProcess_All(std::string SubProc, std::vector<FourVector> pp, int* next, double* mu, double* rval, double* acc) {
   int iv = *i;
   int nextv = *next;
   double muv = *mu;
   proc->evaluate_all(iv, pp, nextv, muv, rval, acc);
 }
 
-void NLOX_OLP_EvalSubProcess(std::string SubProc, char* type, char* cp, double* pp, int* next, double* mu, double* rval2, double* acc) {
+void NLOX_OLP_EvalSubProcess(std::string SubProc, char* type, char* cp,  std::vector<FourVector> pp, int* next, double* mu, double* rval2, double* acc) {
   int iv = proc->AmpMap.at(SubProc);
   std::string types = type;
   std::string cps = cp;
@@ -31,8 +31,8 @@ void NLOX_OLP_EvalSubProcess(std::string SubProc, char* type, char* cp, double* 
   else proc->evaluate(iv, types, cps, pp, nextv, muv, rval2, acc);
 }
 
-void NLOX_OLP_EvalSubProcess_CC(std::string SubProc, char* type, char* cp, double* pp, int* next, double* mu, double* rvalcc, double* acc) {
-  int iv = *i;
+void NLOX_OLP_EvalSubProcess_CC(std::string SubProc, char* type, char* cp,  std::vector<FourVector> pp, int* next, double* mu, double* rvalcc, double* acc) {
+  int iv = int iv = proc->AmpMap.at(SubProc);
   std::string types = type;
   std::string cps = cp;
   int nextv = *next;
