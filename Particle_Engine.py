@@ -296,7 +296,7 @@ class Process:
             key += particle.nam
             if count == len(self.ini):
                 key += "_"
-        return key
+        return key    
 
 class Model:
     def __str__(self):
@@ -327,7 +327,6 @@ class Model:
         self.Composites = {n:p for (n,p) in self.ParticleContent.items() if isinstance(p,CompositeParticle)}
         self.Fundamentals = {n:p for (n,p) in self.ParticleContent.items() if isinstance(p,Particle)}
 
-    
     def CanMakeVertex(self,PAR1,PAR2):
             out = False
             for Set in self.Couplings:
@@ -369,3 +368,19 @@ class Model:
                 PARSNew.append(Par)
             
             self.ConnectedComponents(PARSNew,C)
+
+    def GetCPS(self,PARS):
+        CPS = {}
+        EWKc = 0
+        QCDc = 0
+        for particle in PARS:
+            if particle in self.EWKPars:
+                EWKc += 1
+            if particle in self.QCDPars:
+                QCDc += 1
+        MaxQCD = QCDc - 2
+        MinQCD = len(PARS) - EWKc         
+        
+        for n in range(MinQCD,MaxQCD+1):
+            CPS['as'+str(n)+'ae'+str(len(PARS)-2-n)] = {'as':n,'ae':len(PARS)-2-n}
+        return CPS
