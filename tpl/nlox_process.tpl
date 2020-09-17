@@ -7,10 +7,10 @@
 class Process {
   Subprocess** subproc;
   int numSubprocesses;
-  std::unordered_map<std::string,int> AmpMap;
 
   public:
     ProcessConst pc;
+    std::unordered_map<std::string,int> AmpMap;
     
     Process() {
       numSubprocesses = ####NSubProcesses####;
