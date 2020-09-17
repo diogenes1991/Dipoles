@@ -30,7 +30,7 @@ class Process {
       delete [] subproc;
     }
     
-    void evaluate_all(int i, double* pp, int next, double mu, double* rval, double* acc) {
+    void evaluate_all(int i, std::vector<FourVector> psp, int next, double mu, double* rval, double* acc) {
       const double virtfac = -1., CTfac = 1.,IRfac = 1.;
       double virtc2, virtc1, virtc0;
       double CTc2, CTc1, CTc0;
@@ -42,11 +42,6 @@ class Process {
       // const double PI  = 3.14159265358979323846264338327950;
       const double nlofac = 1./8./M_PI/M_PI;
 
-      std::vector<FourVector> psp;
-      for ( int l = 0; l < (next - 1)*5; l+=5 ) {
-        FourVector p(pp[l],pp[l+1],pp[l+2],pp[l+3]);
-        psp.push_back(p);
-      }
       subproc[i]->setPSP2(psp);
 
       evalOK = subproc[i]->virt(mu, &virtc2, &virtc1, &virtc0, virtfac);
@@ -58,10 +53,10 @@ class Process {
       rval[2] = nlofac*(virtc0 + CTc0); // Finite
       rval[3] = subproc[i]->born();     // |Born|^2
 
-      *acc = ( evalOK ? ( (IRP[1] == 0.) ? 0 : std::abs((rval[1]/IRP[1])-1. )) : -1. );
+      *acc = ( evalOK ? ( (IRP[1] == 0.) ? 0 : std::abs((rval[1]/IRP[1])+1. )) : -1. );
     }
 
-    void evaluate(int i, std::string type, std::string cp, double* pp, int next, double mu, double* rval2, double* acc) {
+    void evaluate(int i, std::string type, std::string cp, std::vector<FourVector> psp, int next, double mu, double* rval2, double* acc) {
       const double virtfac = -1., CTfac = 1.;
       double virtc2, virtc1, virtc0;
       double CTc2, CTc1, CTc0;
@@ -72,11 +67,6 @@ class Process {
       // const double PI  = 3.14159265358979323846264338327950;
       const double nlofac = 1./8./M_PI/M_PI;
 
-      std::vector<FourVector> psp;
-      for ( int l = 0; l < (next - 1)*5; l+=5 ) {
-        FourVector p(pp[l],pp[l+1],pp[l+2],pp[l+3]);
-        psp.push_back(p);
-      }
       subproc[i]->setPSP2(psp);
 
       if ( type == "tree_tree" ) {
@@ -101,7 +91,7 @@ class Process {
       *acc = ( evalOK ? 0 : -1. );
     }
     
-    void evaluate_alpha(int i, std::string type, std::string cp, double* pp, int next, double mu, double* rval2, double* acc) {
+    void evaluate_alpha(int i, std::string type, std::string cp, std::vector<FourVector> psp, int next, double mu, double* rval2, double* acc) {
       const double virtfac = -1., CTfac = 1., IRfac = 1.;
       double virtc2, virtc1, virtc0;
       double CTc2, CTc1, CTc0;
@@ -113,11 +103,6 @@ class Process {
       // const double PI  = 3.14159265358979323846264338327950;
       const double nlofac = 1./8./M_PI/M_PI;
 
-      std::vector<FourVector> psp;
-      for ( int l = 0; l < (next - 1)*5; l+=5 ) {
-        FourVector p(pp[l],pp[l+1],pp[l+2],pp[l+3]);
-        psp.push_back(p);
-      }
       subproc[i]->setPSP2(psp);
 
       if ( type == "tree_tree" ) {
@@ -143,7 +128,7 @@ class Process {
         abort();
       }
       
-      *acc = ( evalOK ? ( (IRP[1] == 0.) ? 0 : std::abs((rval2[1]/IRP[1])-1. )) : -1. );
+      *acc = ( evalOK ? ( (IRP[1] == 0.) ? 0 : std::abs((rval2[1]/IRP[1])+1. )) : -1. );
     }
 
     void update_mass(const std::string & name) {
