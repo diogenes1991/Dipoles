@@ -11,30 +11,30 @@ class StandardModel(Model):
         ## Bosons
         ## 
 
-        g  = Particle("g", {},0,'Boson')
-        A  = Particle("A", {},22,'Boson')
-        Z  = Particle("Z", {},23,'Boson')
-        Wp = Particle("Wp",{'Charge': 3},24,'Boson')
-        Wm = Particle("Wm",{'Charge':-3},-24,'Boson')
-        h  = Particle("h", {},25,'Boson')
-        
+        g  = Boson('g', {},0,False)
+        A  = Boson("A", {},22,False)
+        Z  = Boson("Z", {},23,True)
+        Wp = Boson("Wp",{'Charge': 3},24,True)
+        Wm = Boson("Wm",{'Charge':-3},-24,True)
+        h  = Boson("h", {},25,True)
+
         ##
         ## Fermions: Quarks
         ## 
 
-        d = Particle("d",{'udness':1,'Charge':-1},1,'Fermion')
-        u = Particle("u",{'udness':1,'Charge': 2},2,'Fermion')
-        s = Particle("s",{'scness':1,'Charge':-1},3,'Fermion')
-        c = Particle("c",{'scness':1,'Charge': 2},4,'Fermion')
-        b = Particle("b",{'btness':1,'Charge':-1},5,'Fermion')
-        t = Particle("t",{'btness':1,'Charge': 2},6,'Fermion')
+        d = Fermion("d",{'udness':1,'Charge':-1},1,False)
+        u = Fermion("u",{'udness':1,'Charge': 2},2,False)
+        s = Fermion("s",{'scness':1,'Charge':-1},3,False)
+        c = Fermion("c",{'scness':1,'Charge': 2},4,False)
+        b = Fermion("b",{'btness':1,'Charge':-1},5,True)
+        t = Fermion("t",{'btness':1,'Charge': 2},6,True)
 
-        dbar = Particle("dbar",{'udness':-1,'Charge': 1},-1,'Fermion')
-        ubar = Particle("ubar",{'udness':-1,'Charge':-2},-2,'Fermion')
-        sbar = Particle("sbar",{'scness':-1,'Charge': 1},-3,'Fermion')
-        cbar = Particle("cbar",{'scness':-1,'Charge':-2},-4,'Fermion')
-        bbar = Particle("bbar",{'btness':-1,'Charge': 1},-5,'Fermion')
-        tbar = Particle("tbar",{'btness':-1,'Charge':-2},-6,'Fermion')
+        dbar = Fermion("dbar",{'udness':-1,'Charge': 1},-1,False)
+        ubar = Fermion("ubar",{'udness':-1,'Charge':-2},-2,False)
+        sbar = Fermion("sbar",{'scness':-1,'Charge': 1},-3,False)
+        cbar = Fermion("cbar",{'scness':-1,'Charge':-2},-4,False)
+        bbar = Fermion("bbar",{'btness':-1,'Charge': 1},-5,True)
+        tbar = Fermion("tbar",{'btness':-1,'Charge':-2},-6,True)
 
         self.quarks = set([u,d,c,s,b,t,ubar,dbar,cbar,sbar,bbar,tbar])
 
@@ -42,19 +42,19 @@ class StandardModel(Model):
         ## Fermoions: Leptons
         ##
         
-        em   = Particle("em",  {'eness':1,'Charge':-3},11,'Fermion')
-        ne   = Particle("ne",  {'eness':1,'Charge': 0},12,'Fermion')
-        mum  = Particle("mum", {'mness':1,'Charge':-3},13,'Fermion')
-        nm   = Particle("nm",  {'mness':1,'Charge': 0},14,'Fermion')
-        taum = Particle("taum",{'tness':1,'Charge':-3},15,'Fermion')
-        nt   = Particle("nt",  {'tness':1,'Charge': 0},16,'Fermion')
+        em   = Fermion("em",  {'eness':1,'Charge':-3},11,False)
+        ne   = Fermion("ne",  {'eness':1,'Charge': 0},12,False)
+        mum  = Fermion("mum", {'mness':1,'Charge':-3},13,False)
+        nm   = Fermion("nm",  {'mness':1,'Charge': 0},14,False)
+        taum = Fermion("taum",{'tness':1,'Charge':-3},15,False)
+        nt   = Fermion("nt",  {'tness':1,'Charge': 0},16,False)
 
-        ep    = Particle("ep",   {'eness':-1,'Charge':3},-11,'Fermion')
-        nebar = Particle("nebar",{'eness':-1,'Charge':0},-12,'Fermion')
-        mup   = Particle("mup",  {'mness':-1,'Charge':3},-13,'Fermion')
-        nmbar = Particle("nmbar",{'mness':-1,'Charge':0},-14,'Fermion')
-        taup  = Particle("taup", {'tness':-1,'Charge':3},-15,'Fermion')
-        ntbar = Particle("ntbar",{'tness':-1,'Charge':0},-16,'Fermion')
+        ep    = Fermion("ep",   {'eness':-1,'Charge':3},-11,False)
+        nebar = Fermion("nebar",{'eness':-1,'Charge':0},-12,False)
+        mup   = Fermion("mup",  {'mness':-1,'Charge':3},-13,False)
+        nmbar = Fermion("nmbar",{'mness':-1,'Charge':0},-14,False)
+        taup  = Fermion("taup", {'tness':-1,'Charge':3},-15,False)
+        ntbar = Fermion("ntbar",{'tness':-1,'Charge':0},-16,False)
 
         self.leptons = set([ep,em,mup,mum,taup,taum,ne,nebar,nm,nmbar,nt,ntbar])
 
@@ -75,7 +75,7 @@ class StandardModel(Model):
         ## Composite particles are declared with a name and a list of fundmental 
         ## particles
 
-        p = CompositeParticle("p",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,g,A])
+        p = CompositeParticle("p",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,g])
 
         j = CompositeParticle("j",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,g,A])
         
@@ -84,10 +84,8 @@ class StandardModel(Model):
         lm = CompositeParticle("lm",[em,mum,taum])
         
         Zj = CompositeParticle("Zj",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,ep,em,mup,mum,taup,taum,ne,nm,nt,nebar,nmbar,ntbar])
-        # Zj.DaughterOf(Z)
         
         Wj = CompositeParticle("Wj",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,ep,em,mup,mum,taup,taum,ne,nm,nt,nebar,nmbar,ntbar])
-        # Wj.DaughterOf(Wp)
         
         jb = CompositeParticle("jb",[b,bbar])
 
