@@ -12,7 +12,7 @@ class DipoleStructure {
 
         virtual ~DipoleStructure() {};
 
-        virtual void Subtracted(double*,double*) = 0;
+        virtual void Subtracted(std::string cp, std::vector<FourVector> p, double mu, double* rval, double* acc) = 0;
         virtual void PlusDistribution(double*,double*) = 0;
         virtual void Endpoint(double*,double*) = 0;
     
