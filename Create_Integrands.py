@@ -131,92 +131,141 @@ class Amplitude:
             self.stage -= 1
 
         if self.stage: 
-            self.BuildMatrixElements()
-            self.BuildProcess()
-
+            # self.BuildMatrixElements()
+            # self.BuildProcess()
             self.stage -= 1
+
+        if self.stage:
+            self.WriteDipoles()
 
     #
     # Dipole Tree creation from the Radiative process
     #
 
     def WriteDipoles(self):
-        for subproc in self.RadiProc.subproc:
+        for Radiative in self.RadiProc.subproc:
+
+            MakeDir(self.SrcDir+'/'+Radiative)
+
+            TAB3 = '    '
+            TAB6 = TAB3+TAB3
+
             DICT={'SubProcHeader'    : '' ,\
+                  'SubProcConst'     : '' ,\
+                  'NCC'              : '' ,\
                   'SubProcName'      : '' ,\
                   'SubProcMat'       : '' ,\
                   'SubProcSub'       : '' ,\
                   'SubProcPlu'       : '//empty for now' ,\
                   'SubProcEnd'       : '//empty for now'}
-            DICT['SubProcHeader'] = subproc.upper()
-            DICT['SubProcName'] = subproc+'_Dipoles'
-            DICT['SubProcMat'] = '#include "Matrix_Elements/'+subproc+'/code/Sub_'+subproc+'.h" \n'
             
-            # Include the necesary Borns
-            for linked in self.link[subproc]:
-                DICT['SubProcMat'] += '#include "Matrix_Elements/'+linked+'/code/Sub_'+linked+'.h"\n'
-
-            # Construction of the EWK Subtracted Function
-            # This uses auto coupling-power detection
+            DICT['SubProcHeader'] = Radiative.upper()
+            DICT['SubProcName'] = Radiative+'_Dipoles'
+            DICT['SubProcConst'] += TAB3+'std::unordered_map<std::string,int> CPMap;\n'
+            DICT['SubProcConst'] += TAB3+'Proc = new Process();\n' 
             
-            EWKc = 0
-            QCDc = 0
+            RadiCPS = self.Model.GetCPS(self.RadiProc.subproc[Radiative])
+            Next = self.RadiProc.nex
+        
+            ##
+            ##   Split all dipoles into EWK and QCD
+            ## 
 
-            for particle in self.RadiProc.subproc[subproc]:
-                if particle in self.Model.EWKPars:
-                    EWKc += 1
-                if particle in self.Model.QCDPars:
-                    QCDc += 1
-            # print QCDc,'QCD particles and',EWKc,'EWK particles'
+            EWKDipoles = []
+            QCDDipoles = []
+            for dipole in self.DipoleTree[Radiative]:
+                if dipole['DIPTYP']=='EWK':
+                    EWKDipoles.append(dipole)
+                elif dipole['DIPTYP']=='QCD':
+                    QCDDipoles.append(dipole)
 
-            MaxQCD = QCDc - 2
-            MinQCD = self.RadiProc.nex - EWKc   
+            DIPDIC = {'II':'ab','IF':'ai','FI':'ia','FF':'ij'}
 
-            MaxEWK = EWKc - 2
-            MinEWK = self.RadiProc.nex - QCDc
+            for CP in RadiCPS:
 
-            # print 'QCD range = [',MinQCD,',',MaxQCD,']'
-            # print 'EWK range = [',MinEWK,',',MaxEWK,']'
+                DICT['SubProcSub'] += TAB3+'if (cp =="'+CP+'"){\n'
+                DICT['SubProcSub'] += TAB6+'double born[3];\n'
+                DICT['SubProcSub'] += TAB6+'double aux = 0.;\n'
+                DICT['SubProcSub'] += TAB6+'double DipFac = 1;\n'
+                DICT['SubProcSub'] += TAB6+'i = Proc->AmpMap.at("'+Radiative+'");\n'
+                DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CP+'",p,'+str(Next)+',mu,radiative,acc);\n'
+                
+                ##
+                ##   EWK Dipoles 
+                ##
 
-            CPSQCD = []
-            for val in range(MinQCD,MaxQCD+1):
-                CPSQCD.append('as'+str(val)+'ae'+str(self.RadiProc.nex-val-2))
+                for Emitter in EWKDipoles:
+                    for Spectator in EWKDipoles:
+                        if Emitter == Spectator:
+                            continue
+                        CPB = 'as'+str(RadiCPS[CP]['as'])+'ae'+str(RadiCPS[CP]['ae']-1)
+                        try:
+                            K = [ i for i in Emitter['IJ'] if i in Spectator['IJ']][0]
+                            I = [ i for i in Emitter['IJ'] if i != K ][0]
+                            J = [ i for i in Spectator['IJ'] if i != K ][0]
 
-            CPSEWK = []
-            for val in range(MinEWK,MaxEWK+1):
-                CPSEWK.append('as'+str(self.RadiProc.nex-val-2)+'ae'+str(val))
-            # print CPSQCD
-            # print CPSEWK
+                            SigmaI = ( 1 if (( I<self.RadiProc.lni and self.RadiProc.subproc[Radiative][I].pid>0)\
+                                             or  ( I>self.RadiProc.lni and self.RadiProc.subproc[Radiative][I].pid<0)) else -1 )
+                            SigmaJ = ( 1 if (( J<self.RadiProc.lni and self.RadiProc.subproc[Radiative][J].pid>0)\
+                                             or  ( J>self.RadiProc.lni and self.RadiProc.subproc[Radiative][J].pid<0)) else -1 )
+                            
+                            QI = self.RadiProc.subproc[Radiative][I].sym['Charge']
+                            QJ = self.RadiProc.subproc[Radiative][J].sym['Charge']
 
-            for CP in CPSQCD:
-                DICT['SubProcSub'] += 'Subprocess* Radiative = proc->call(RadiProc('+CP+'));\n'
+                            ##
+                            ## There is a factor of 3 between each charge in StandardModel.py vs RealWorld!
+                            ## Hence the (1/9) for squared charges. 
+                            ## StandardModel uses Charges*3 to enforce charge conservation using integers.
+                            ##
 
+                            ## 
+                            ##  Subtracted Function 
+                            ## 
 
+                            PREFIX = Emitter['SUBTYP']+Spectator['SUBTYP']
+                            DIPFUN = DIPDIC[PREFIX]
 
+                            DICT['SubProcSub'] += TAB6+'DipFac *= '+str(SigmaI*SigmaJ*QI*QJ)+'./9;\n'
+                            DICT['SubProcSub'] += TAB6+'i = Proc->AmpMap.at("'+Emitter['BORNTAG']+'");\n'
+                            DICT['SubProcSub'] += TAB6+'Build_'+PREFIX+'_Momenta('+str(Next-1)+\
+                                                       ',p,p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
+                            DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p_tilde,'+str(Next-1)+',mu,born,acc);\n'
+                            DICT['SubProcSub'] += TAB6+'aux -= ((Proc->pc.alpha_e)/2*M_PI)*g_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'])*born[2];\n'
+                        except:
+                            DICT['SubProcSub'] += str(Emitter)+'\n'+str(Spectator)+'\n'
+                
+                ##
+                ##  QCD Dipoles
+                ##
+
+                for Emitter in QCDDipoles:
+                    for Spectator in QCDDipoles:
+                        if Emitter == Spectator:
+                            continue
+                        CPB = 'as'+str(RadiCPS[CP]['as']-1)+'ae'+str(RadiCPS[CP]['ae'])
+                        try:
+                            K = [ i for i in Emitter['IJ'] if i in Spectator['IJ']][0]
+                            I = [ i for i in Emitter['IJ'] if i != K ][0]
+                            J = [ i for i in Spectator['IJ'] if i != K ][0]
+                            
+                            ## 
+                            ##  Subtracted Function 
+                            ## 
+
+                            DICT['SubProcSub'] += TAB6+'i = Proc->AmpMap.at("'+Emitter['BORNTAG']+'");\n'
+                            DICT['SubProcSub'] += TAB6+'QCD_Build_'+Emitter['SUBTYP']+Spectator['SUBTYP']+'_Momenta('+str(Next-1)+\
+                                                       ',p,p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
+                            DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p_tilde,'+str(Next-1)+',mu,born,acc);\n'
+                            DICT['SubProcSub'] += TAB6+'aux -= ((Proc->pc.alpha_e)/2*M_PI)*born[2];\n\n'
+                        except:
+                            DICT['SubProcSub'] += str(Emitter)+'\n'+str(Spectator)+'\n'
+
+                DICT['SubProcSub'] += TAB3+'}\n\n'
             
-            ce = 1
-            for emitter in self.RadiProc.subproc[subproc]:
-                cs = 1
-                for spectator in self.RadiProc.subproc[subproc]:
-                    if 'Charge' in emitter.sym and 'Charge' in spectator.sym and cs!=ce:
-                        CONF = ('I' if (ce<len(self.RadiProc.ini)) else 'F' ) + ('I' if (cs<len(self.RadiProc.ini)) else 'F' )
-                        DICT['SubProcSub'] += 'Add '+emitter.nam+'('+str(ce)+') as emitter and '+spectator.nam+'('+str(cs)+') as spectator '+CONF+' Dipole\n'
-                    cs += 1
-                ce += 1
-
-
-            
-
-
-            
-                # PlusDistrb += subproc+'(p)-'+linked+'(Maptype(p));\n'
-                # Endpoint   += subproc+'()'
-
-
             SubFunctionH = seek_and_destroy(self.TplDir+'/Dipole_FunctionsH.tpl',DICT)
             SubFunctionC = seek_and_destroy(self.TplDir+'/Dipole_FunctionsC.tpl',DICT)
-            WriteFile(self.SrcDir+'/'+subproc+'_Function.cpp',SubFunctionC)
-            WriteFile(self.SrcDir+'/'+subproc+'_Function.h',SubFunctionH)
+            WriteFile(self.SrcDir+'/'+Radiative+'_Function.cpp',SubFunctionC)
+            WriteFile(self.SrcDir+'/'+Radiative+'_Function.h',SubFunctionH)
     
     def BuildDipoleTree(self):
         # This method is in charged of fetching all 
@@ -405,13 +454,13 @@ class Amplitude:
             WriteFile(self.SrcDir+'/'+born+'.in',SubProcSeed)
 
     def BuildProcess(self):
-        DICT = { 'Include Born'   : '' ,\
+        DICT = {    'Include Born'    : '' ,\
                      'Include Radi'   : '' ,\
                      'NSubProcesses'  : str(len(self.Borns)+len(self.RadiProc.subproc)) ,\
                      'Construct Born' : '\n' ,\
                      'Construct Radi' : '\n' ,\
                      'Amplitude Map'  : '\n'}
-        TAB3 = '   '
+        TAB3 = '    '
         TAB6 = TAB3+TAB3
         TAB9 = TAB6+TAB3
         
@@ -446,6 +495,8 @@ class Amplitude:
             os.system(cmd)
             cmd = 'mv '+subproc+'.log '+self.MatDir+'/'+subproc
             os.system(cmd)
+            cmd = 'rm '+subproc+'.in '
+            os.system(cmd)
             count += 1
         
         count = 1
@@ -456,6 +507,8 @@ class Amplitude:
             cmd = self.nlox+' '+subproc +'.in > '+subproc+'.log'
             os.system(cmd)
             cmd = 'mv '+subproc+'.log '+self.MatDir+'/'+subproc
+            os.system(cmd)
+            cmd = 'rm '+subproc+'.in '
             os.system(cmd)
             count += 1
 
