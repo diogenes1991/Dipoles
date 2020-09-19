@@ -71,7 +71,7 @@ def seek_and_destroy(template,data,permissive=False):
 def MakeDir(Path):
         line = 'mkdir -p '+Path
         if os.path.exists(Path):
-            print "\33[31mError\33[0m: Directory",Path,"already exists, please remove it first"
+            print "\33[31mError\33[0m: MakeDir:",Path,"already exists"
             sys.exit()
         os.system(line)
     
