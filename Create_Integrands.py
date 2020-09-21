@@ -60,7 +60,6 @@ class Amplitude:
     def LoadConfig(self):
         
         self.verbose = int(self.config['VERBOSE'][0])
-        self.nlox = self.config['NLOX PATH'][0]+'/nlox.py'
 
         try:
             LoadedModel = __import__(self.config['MODEL FILE'][0])
@@ -100,6 +99,15 @@ class Amplitude:
         self.path = self.config['PATH'][0]+"/"+str(self.RadiProc)
 
         self.seed_tpl = self.config['SEED TEMP'][0]
+        if not os.path.exists(self.seed_tpl):
+            print '\33[31mError\33[0m: NLOX input seed',self.seed_tpl,'not found'
+            sys.exit()
+        
+        self.nlox = self.config['NLOX PATH'][0]+'/nlox.py'
+        if not os.path.exists(self.nlox):
+            print '\33[31mError\33[0m: NLOX executable',self.nlox,'not found'
+            sys.exit()
+
         self.stage = int(self.config['STAGE'][0])
 
         if self.verbose:
@@ -132,12 +140,12 @@ class Amplitude:
 
         if self.stage: 
             # self.BuildMatrixElements()
-            # self.BuildProcess()
+            self.BuildProcess()
             self.stage -= 1
 
         if self.stage:
             self.WriteDipoles()
-
+            
     #
     # Dipole Tree creation from the Radiative process
     #
@@ -230,7 +238,7 @@ class Amplitude:
                             DICT['SubProcSub'] += TAB6+'Build_'+PREFIX+'_Momenta('+str(Next-1)+\
                                                        ',p,p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
                             DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p_tilde,'+str(Next-1)+',mu,born,acc);\n'
-                            DICT['SubProcSub'] += TAB6+'aux -= ((Proc->pc.alpha_e)/2*M_PI)*g_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'])*born[2];\n'
+                            DICT['SubProcSub'] += TAB6+'aux -= EWKFac*DipFac*g_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'])*born[2];\n'
                         except:
                             DICT['SubProcSub'] += str(Emitter)+'\n'+str(Spectator)+'\n'
                 
@@ -256,7 +264,7 @@ class Amplitude:
                             DICT['SubProcSub'] += TAB6+'QCD_Build_'+Emitter['SUBTYP']+Spectator['SUBTYP']+'_Momenta('+str(Next-1)+\
                                                        ',p,p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
                             DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p_tilde,'+str(Next-1)+',mu,born,acc);\n'
-                            DICT['SubProcSub'] += TAB6+'aux -= ((Proc->pc.alpha_e)/2*M_PI)*born[2];\n\n'
+                            DICT['SubProcSub'] += TAB6+'aux -= QCDFac*borncc['++','++'];\n\n'
                         except:
                             DICT['SubProcSub'] += str(Emitter)+'\n'+str(Spectator)+'\n'
 
@@ -454,7 +462,7 @@ class Amplitude:
             WriteFile(self.SrcDir+'/'+born+'.in',SubProcSeed)
 
     def BuildProcess(self):
-        DICT = {    'Include Born'    : '' ,\
+        DICT = {     'Include Born'    : '' ,\
                      'Include Radi'   : '' ,\
                      'NSubProcesses'  : str(len(self.Borns)+len(self.RadiProc.subproc)) ,\
                      'Construct Born' : '\n' ,\
@@ -477,10 +485,24 @@ class Amplitude:
             DICT['Amplitude Map'] += TAB9+'AmpMap.insert({"'+subproc+'",'+str(count)+'});\n'
             count += 1
         
-        ProcessHeader = seek_and_destroy(self.TplDir+"nlox_process.tpl",DICT)
-        WriteFile(self.MatDir+"/code/nlox_process.h",ProcessHeader)
-        CopyFile(self.IntDir+'/nlox_olp.cc',self.MatDir+'/code/nlox_olp.cc')
+        ## 
+        ##  Interface  
+        ##
+        
+        NLOX_PROCESS_H = seek_and_destroy(self.TplDir+"nlox_process.tpl",DICT)
+        WriteFile(self.MatDir+"/code/nlox_process.h",NLOX_PROCESS_H)
         CopyFile(self.IntDir+'/nlox_olp.h',self.MatDir+'/code/nlox_olp.h')
+        CopyFile(self.IntDir+'/nlox_olp.cc',self.MatDir+'/code/nlox_olp.cc')
+        CopyFile(self.IntDir+'/nlox_olp_fortran.h',self.MatDir+'/code/nlox_olp_fortran.h')
+        CopyFile(self.IntDir+'/nlox_olp_fortran.cc',self.MatDir+'/code/nlox_olp_fortran.cc')
+        CopyFile(self.IntDir+'/nlox_fortran_interface.f90',self.MatDir+'/code/nlox_fortran_interface.f90')
+
+        ##
+        ##  Test Code
+        ## 
+
+        CopyFile(self.IntDir+'/ftest_process.f90',self.MatDir+'/test_process.f90')
+        CopyFile(self.IntDir+'/test_process.cc',self.MatDir+'/test_process.cc')
 
     def BuildMatrixElements(self):
         Here = os.getcwd()
