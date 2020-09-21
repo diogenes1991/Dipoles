@@ -18,9 +18,9 @@ extern "C" {
 #endif
 
 void nlox_olp_start_(char* fname, int* ierr);
-void nlox_olp_evalsubprocess_all_(int* i, double* pp, int* next, double* mu, double* rval, double* acc);
-void nlox_olp_evalsubprocess_(int* i, char* typ, int* ltyp, char* cp, int* lcp, double* pp, int* next, double* mu, double* rval2, double* acc);
-void nlox_olp_evalsubprocess_cc_(int* i, char* typ, int* ltyp, char* cp, int* lcp, double* pp, int* next, double* mu, double* rvalcc, double* acc);
+void nlox_olp_evalsubprocess_all_(char* sub, int* lsub, double* pp, int* next, double* mu, double* rval, double* acc);
+void nlox_olp_evalsubprocess_(char* sub, int* lsub, char* typ, int* ltyp, char* cp, int* lcp, double* pp, int* next, double* mu, double* rval2, double* acc);
+void nlox_olp_evalsubprocess_cc_(char* sub, int* lsub, char* typ, int* ltyp, char* cp, int* lcp, double* pp, int* next, double* mu, double* rvalcc, double* acc);
 void nlox_olp_setmass_(char* name, int* lname, double* mass, double* width, int* ierr );
 void nlox_olp_setparameter_(char* para, int* lpar, double* re, double* im, int* ierr);
 

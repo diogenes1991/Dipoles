@@ -6,8 +6,9 @@
       end interface
       
       interface
-         subroutine NLOX_OLP_EvalSubProcess_All(i, pp, next, mu, rval, acc)
-           integer :: i, next
+         subroutine NLOX_OLP_EvalSubProcess_All(sub, lsub, pp, next, mu, rval, acc)
+           integer :: lsub, next
+           character(len=*) :: sub
            double precision, dimension(next) :: pp
            double precision :: mu
            double precision, dimension(4) :: rval
@@ -16,9 +17,9 @@
       end interface
       
       interface
-         subroutine NLOX_OLP_EvalSubProcess(i, typ, ltyp, cp, lcp, pp, next, mu, rval2, acc)
-           integer :: i, next, ltyp, lcp
-           character(len=*) :: typ, cp
+         subroutine NLOX_OLP_EvalSubProcess(sub, lsub, typ, ltyp, cp, lcp, pp, next, mu, rval2, acc)
+           integer :: next, lsub, ltyp, lcp
+           character(len=*) :: sub,typ, cp
            double precision, dimension(next) :: pp
            double precision :: mu
            double precision, dimension(3) :: rval2
@@ -27,10 +28,9 @@
       end interface
       
       interface
-         subroutine NLOX_OLP_EvalSubProcess_CC(i, typ, ltyp, cp, lcp, pp, next, mu, rval2, acc)
-           integer :: i, next, ltyp, lcp
-           character(len=*) :: typ
-           character(len=*) :: cp
+         subroutine NLOX_OLP_EvalSubProcess_CC(sub, lsub, typ, ltyp, cp, lcp, pp, next, mu, rval2, acc)
+           integer :: next, lsub, ltyp, lcp
+           character(len=*) :: sub, typ, cp
            double precision, dimension(next) :: pp
            double precision :: mu
            double precision, dimension(3) :: rval2
