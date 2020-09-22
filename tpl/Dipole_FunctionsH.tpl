@@ -3,18 +3,15 @@
 
 #include "Dipole_Structure.h"
 
-class ####SubProcName#### : pubic DipoleStructure{
+class ####SubProcName#### : public DipoleStructure{
 
     public:
-        ####SubProcName#### :: ####SubProcName####();
+        ####SubProcName####();
 
-        void Subtracted(std::string cp, std::vector<FourVector> p, double mu, double* rval, double* acc);
-        void PlusDistribution(double* p, double* rval);
-        void Endpoint(double* p, double* rval);
+        void Subtracted(std::string cp, double* p, double mu, double* rval, double* acc);
+        void PlusDistribution(std::string cp, double* p, double mu, double* rval, double* acc);
+        void Endpoint(std::string cp, double* p, double mu, double* rval, double* acc);
 
-    
     };
 
 #endif
-
-

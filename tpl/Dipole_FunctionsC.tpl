@@ -1,11 +1,15 @@
+#include "####SubProcName####.h"
 
-####SubProcName####::####SubProcName####(){
+####SubProcName####::####SubProcName####(Process& process){
+
+    
+   Proc = &process;
 
 ####SubProcConst####
 
 }
 
-void Subtracted(std::string cp, std::vector<FourVector> p, double mu, double* rval, double* acc){
+void ####SubProcName####::Subtracted(std::string cp, double* p, double mu, double* rval, double* acc){
 
     int i;
     double radiative[3];
@@ -15,21 +19,20 @@ void Subtracted(std::string cp, std::vector<FourVector> p, double mu, double* rv
 
 ####SubProcSub####
 
-    else{
+   else{
         std::cout << "Error: Coupling power"<<cp<<"not found in process"<<std::endl;
         abort();
-    }
-
+   }
 
 }
 
-void PlusDistribution(std::string cp, double* p, double mu, double* rval, double* acc){
+void ####SubProcName####::PlusDistribution(std::string cp, double* p, double mu, double* rval, double* acc){
 
 ####SubProcPlu####
 
 }
 
-void Endpoint(std::string cp, double* p, double mu, double* rval, double* acc){
+void ####SubProcName####::Endpoint(std::string cp, double* p, double mu, double* rval, double* acc){
 
 ####SubProcEnd####
 
