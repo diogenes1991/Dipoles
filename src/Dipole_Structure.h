@@ -2,20 +2,23 @@
 #define __DIPOLE_STRUCTURE_H_
 
 #include "nlox_process.h"
+#include <string>
+#include <unordered_map>
+#include <iostream>
 #include "Dipole_Definitions.h"
 
 class DipoleStructure {
 
-    Process* Proc;
-    
     public:
+
+        Process* Proc;
 
         virtual ~DipoleStructure() {};
 
-        virtual void Subtracted(std::string cp, std::vector<FourVector> p, double mu, double* rval, double* acc) = 0;
-        virtual void PlusDistribution(double*,double*) = 0;
-        virtual void Endpoint(double*,double*) = 0;
-    
+        virtual void Subtracted(std::string cp, double* p, double mu, double* rval, double* acc) = 0;
+        virtual void PlusDistribution(std::string cp, double* p, double mu, double* rval, double* acc) = 0;
+        virtual void Endpoint(std::string cp, double* p, double mu, double* rval, double* acc) = 0;
+
     };
 
 #endif
