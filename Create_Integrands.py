@@ -130,7 +130,7 @@ class Amplitude:
         self.TplDir = 'tpl/'
         self.IntDir = 'src/'
         self.SrcDir = self.path
-        self.MatDir = self.SrcDir+'/Matrix_Elements'
+        self.MatDir = self.SrcDir+'/NLOX_Process'
 
         if self.stage:
             MakeDir(self.SrcDir)
@@ -139,11 +139,12 @@ class Amplitude:
             self.stage -= 1
 
         if self.stage: 
-            # self.BuildMatrixElements()
-            # self.BuildProcess()
+            self.BuildMatrixElements()
+            self.BuildDipoleTreerocess()
             self.stage -= 1
 
         if self.stage:
+            self.CopyInterface()
             self.BuildDipoleStructures()
             
     ##
@@ -415,6 +416,19 @@ class Amplitude:
     ##  Dipoles: Overhead Interface, Integrands and CUBA Targets 
     ##
     
+    def CopyInterface(self):
+        INTEGRANDFILES = ['Plus_Distribution.cpp','Plus_Distribution.h',\
+                          'Dipole_Structure.h','Dipole_Definitions.h']
+        TOPLAYERFILES  = ['makefile','Test_Process.cpp','Test_Integrands.cpp']
+
+        MakeDir(self.SrcDir+'/Integrands')
+
+        for file in INTEGRANDFILES:
+            CopyFile(self.IntDir+file,self.SrcDir+'/Integrands/'+file)
+        
+        for file in TOPLAYERFILES:
+            CopyFile(self.IntDir+file,self.SrcDir+'/'+file)
+
     def BuildDipoleStructures(self):
 
         TAB3 = '    '
@@ -428,14 +442,14 @@ class Amplitude:
         Count = 0
         for Radiative in self.RadiProc.subproc:
 
-            ClassName = Radiative+'_Dipoles'
+            ClassName = Radiative+'_Integrands'
 
-            INTDICT['Include Integrands'] += '#include "'+ClassName+'.h"\n'
-            INTDICT['Integrand Catalogue'] += TAB9+'Channel['+str(Count)+'] = new '+ClassName+'(Proc);\n'
+            INTDICT['Include Integrands'] += '#include "Integrands/'+Radiative+'/'+ClassName+'.h"\n'
+            INTDICT['Integrand Catalogue'] += TAB9+'Channels['+str(Count)+'] = new '+ClassName+'(Proc);\n'
             INTDICT['Integrand Catalogue'] += TAB9+'ChannelMap.insert({"'+Radiative+'",'+str(Count)+'});\n'
 
             Count += 1
-            ChlDir = self.SrcDir+'/'+Radiative
+            ChlDir = self.SrcDir+'/Integrands/'+Radiative
             MakeDir(ChlDir)
 
             
@@ -452,7 +466,8 @@ class Amplitude:
             DICT['SubProcHeader'] = Radiative.upper()
             DICT['SubProcName'] = ClassName
             DICT['SubProcConst'] += TAB3+'std::unordered_map<std::string,int> CPMap;\n'
-            
+            DICT['SubProcConst'] += TAB3+'int Next = '+str(self.RadiProc.nex)+';\n'
+
             RadiCPS = self.Model.GetCPS(self.RadiProc.subproc[Radiative])
             Next = self.RadiProc.nex
         
@@ -474,11 +489,11 @@ class Amplitude:
 
                 DICT['SubProcSub'] += TAB3+'if (cp =="'+CP+'"){\n'
                 DICT['SubProcSub'] += TAB6+'double born[3];\n'
-                DICT['SubProcSub'] += TAB6+'double aux = 0.;\n'
-                DICT['SubProcSub'] += TAB6+'double DipFac = 1;\n'
+                DICT['SubProcSub'] += TAB6+'double DipFac = 1.;\n'
                 DICT['SubProcSub'] += TAB6+'i = Proc->AmpMap.at("'+Radiative+'");\n'
                 DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CP+'",p,'+str(Next)+',mu,radiative,acc);\n'
-                
+                DICT['SubProcSub'] += TAB6+'rval[2] += radiative[2];\n'
+
                 ##
                 ##   EWK Dipoles 
                 ##
@@ -519,9 +534,9 @@ class Amplitude:
                             DICT['SubProcSub'] += TAB6+'Build_'+PREFIX+'_Momenta('+str(Next-1)+\
                                                        ',p,p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
                             DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p_tilde,'+str(Next-1)+',mu,born,acc);\n'
-                            DICT['SubProcSub'] += TAB6+'aux -= EWKFac*DipFac*g_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'])*born[2];\n'
+                            DICT['SubProcSub'] += TAB6+'rval[2] -= EWKFac*DipFac*g_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'])*born[2];\n'
                         except:
-                            DICT['SubProcSub'] += str(Emitter)+'\n'+str(Spectator)+'\n'
+                            print 'Dipole not found'+str(Emitter)+'\n'+str(Spectator)+'\n'
                 
                 ##
                 ##  QCD Dipoles
@@ -547,20 +562,19 @@ class Amplitude:
                             DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p_tilde,'+str(Next-1)+',mu,born,acc);\n'
                             DICT['SubProcSub'] += TAB6+'aux -= QCDFac*borncc['++','++'];\n\n'
                         except:
-                            DICT['SubProcSub'] += str(Emitter)+'\n'+str(Spectator)+'\n'
-
+                            print 'Dipole not found'+str(Emitter)+'\n'+str(Spectator)+'\n'
+                
                 DICT['SubProcSub'] += TAB3+'}\n\n'
             
             SubFunctionH = seek_and_destroy(self.TplDir+'/Dipole_FunctionsH.tpl',DICT)
             SubFunctionC = seek_and_destroy(self.TplDir+'/Dipole_FunctionsC.tpl',DICT)
             WriteFile(ChlDir+'/'+Radiative+'_Integrands.cpp',SubFunctionC)
             WriteFile(ChlDir+'/'+Radiative+'_Integrands.h',SubFunctionH)
+            CopyFile(self.IntDir+'/Dipole_Structure.h',ChlDir+'/Dipole_Structure.h')
         
         IntegrandClass = seek_and_destroy(self.TplDir+'/Integrands.tpl',INTDICT)
         WriteFile(self.SrcDir+'/Integrands.h',IntegrandClass)
         
-
-
 def main(CONFIGFILE):
     
     AMPLITUDE = Amplitude(CONFIGFILE)
