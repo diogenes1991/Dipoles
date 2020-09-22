@@ -2,39 +2,63 @@
 #define __INTEGRANDS_H_
 
 #include "nlox_process.h"
+####Include Integrands####
 
 class Integrands{
     
-    Process* Proc = NULL;
-    std::unordered_map<std::string,std::vector<std::string>> AmpMap;
-
+    Process Proc;
+    int nChannels;
+    DipoleStructure** Channels;
+    std::unordered_map<std::string,int> ChannelMap;     
+            
     public:
         
-        Integrands Integrands(){
+        Integrands(){
 
-            Proc = new Process();
-            // ####AmpMap####
+            nChannels = ####nRadiative####;
+            Channels = new DipoleStructure* [nChannels];
+                        
+####Integrand Catalogue####
 
         }
 
-        Integrands ~Integrands(){
-            delete Proc;
+        ~Integrands(){
+            for (int i=0; i<nChannels; i++) delete Channels[i];
+            delete [] Channels;
         }
 
-        // Now that all the subprocess have been initialized we can 
-        // build the integrands. These are the naming convetions:
-        //     - The SubProcesses are called by born tag 
-        //     - The CP is the radiative CP
-        //     - We will build the dependency tree here at construction
-        //       it will have an array of names of the radiative processes 
-        //       that need to be included. 
+        void Call(std::string IG, std::string CH, std::string CP, double* RV, double* ACC, double* P, double MU,  double x = 1.){
 
-        void Subtracted(std::string SP, std::string CP, std::vector<FourVector> P, double* rval){
+            int Channel = ChannelMap.at(CH);
 
-            
+            if(IG=="Sub"){
+
+                std::cout << "Subtracted function called!" <<std::endl;
+                Channels[Channel]->Subtracted(CP,P,MU,RV,ACC);
+
+            }
+
+            else if (IG=="Plu"){
+
+                std::cout << "Plus Distribution function called!" <<std::endl;
+
+
+            }
+
+            else if (IG=="End"){
+
+                std::cout << "Endpoint function called!" <<std::endl;
+
+            }
+
+            else{
+                std::cout<<"Integrand type: "<<IG<<" not supported, the suported types are: "<<std::endl;
+                std::cout<<" - Sub for the Subtracted Integrand"<<std::endl;
+                std::cout<<" - Plu for the Plus Distribution Integrand"<<std::endl;
+                std::cout<<" - End for the Endpoint Integrand"<<std::endl;
+
+            }
         }
-
-  }
 
 };
 
