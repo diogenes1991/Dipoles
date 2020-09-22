@@ -48,10 +48,10 @@ FourVectorT<T> Boost_II(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k, 
 
 template <class T>
 void Build_II_Momenta(int NEXT_BORN, std::vector<FourVectorT<T>> P_DAT, std::vector<FourVectorT<T>> P_TIL, int EMIT, int SPEC, int RADI){
-    P_TIL[EMIT-1] = pa_II(P_DAT[EMIT-1],P_DAT[SPEC-1],P_DAT[NEXT_BORN]);
-    P_TIL[SPEC-1] = P_DAT[SPEC-1];
+    P_TIL.at(EMIT) = pa_II(P_DAT.at(EMIT),P_DAT.at(SPEC),P_DAT.at(RADI));
+    P_TIL.at(SPEC) = P_DAT.at(SPEC);
     for(int II=2;II<NEXT_BORN;II++){
-        P_TIL[II] = Boost_II(P_DAT[EMIT-1],P_DAT[SPEC-1],P_DAT[NEXT_BORN],P_DAT[II]);
+        P_TIL.at(II) = Boost_II(P_DAT.at(EMIT),P_DAT.at(SPEC),P_DAT.at(RADI),P_DAT.at(II));
     }
 }
 
@@ -78,7 +78,7 @@ template <class T>
 Plus_Distribution CurlyG_ab_fermion();
 
 template <class T>
-void Endpoint_ab_fermion(std::vector<FourVectorT<T>> P_DAT, T Pab, T* rval, T* acc);
+void Endpoint_ab_fermion(FourVectorT<T> P_DAT, T Pab, T* rval, T* acc);
 
 // IF & FI Functions and Maps //
 
@@ -167,22 +167,14 @@ FourVectorT<T> pa_IFFI(FourVectorT<T> pa, FourVectorT<T> pi, FourVectorT<T> k){
 
 template <class T>
 void Build_IF_Momenta(int NEXT_BORN, std::vector<FourVectorT<T>> P_DAT, std::vector<FourVectorT<T>> P_TIL, int EMIT, int SPEC, int RADI){
-    P_TIL[EMIT-1] = pa_IFFI(P_DAT[EMIT-1],P_DAT[SPEC-1],P_DAT[NEXT_BORN]);
-    P_TIL[SPEC-1] = pi_IFFI(P_DAT[EMIT-1],P_DAT[SPEC-1],P_DAT[NEXT_BORN]);
-    for(int II=0;II<NEXT_BORN;II++){
-        P_TIL[II] = P_DAT[II];
-    }
+    P_TIL.at(EMIT) = pa_IFFI(P_DAT.at(EMIT),P_DAT.at(SPEC),P_DAT.at(RADI));
+    P_TIL.at(SPEC) = pi_IFFI(P_DAT.at(EMIT),P_DAT.at(SPEC),P_DAT.at(RADI));
 }
 
 template <class T>
 void Build_FI_Momenta(int NEXT_BORN, std::vector<FourVectorT<T>> P_DAT, std::vector<FourVectorT<T>> P_TIL, int EMIT, int SPEC, int RADI){
-    P_TIL[EMIT-1] = pi_IFFI(P_DAT[EMIT-1],P_DAT[SPEC-1],P_DAT[NEXT_BORN]);
-    P_TIL[SPEC-1] = pa_IFFI(P_DAT[EMIT-1],P_DAT[SPEC-1],P_DAT[NEXT_BORN]);
-    for(int II=0;II<NEXT_BORN;II++){
-        if ( II!=(EMIT-1) && II!=(SPEC-1) ){
-            P_TIL[II] = P_DAT[II];
-        }
-    }
+    P_TIL.at(EMIT) = pi_IFFI(P_DAT.at(EMIT),P_DAT.at(SPEC),P_DAT.at(RADI));
+    P_TIL.at(SPEC) = pa_IFFI(P_DAT.at(EMIT),P_DAT.at(SPEC),P_DAT.at(RADI));
 }
 
 // FF Functions and Maps //
@@ -248,11 +240,11 @@ FourVectorT<T> pi_FF(FourVectorT<T> pi, FourVectorT<T> pj, FourVectorT<T> k){
 
 template <class T>
 void Build_FF_Momenta(int NEXT_BORN, std::vector<FourVectorT<T>> P_DAT, std::vector<FourVectorT<T>> P_TIL, int EMIT, int SPEC, int RADI){
-    P_TIL[EMIT-1] = pi_FF(P_DAT[EMIT-1],P_DAT[SPEC-1],P_DAT[NEXT_BORN]);
-    P_TIL[SPEC-1] = pj_FF(P_DAT[EMIT-1],P_DAT[SPEC-1],P_DAT[NEXT_BORN]);
+    P_TIL.at(EMIT) = pi_FF(P_DAT.at(EMIT),P_DAT.at(SPEC),P_DAT.at(RADI));
+    P_TIL.at(SPEC) = pj_FF(P_DAT.at(EMIT),P_DAT.at(SPEC),P_DAT.at(RADI));
     for(int II=0;II<NEXT_BORN;II++){
-        if ( II!=(EMIT-1) && II!=(SPEC-1) ){
-            P_TIL[II] = P_DAT[II];
+        if ( II!=EMIT && II!=SPEC ){
+            P_TIL.at(II) = P_DAT.at(II);
         }
     }
 }

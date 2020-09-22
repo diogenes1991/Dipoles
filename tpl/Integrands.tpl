@@ -27,7 +27,7 @@ class Integrands{
             delete [] Channels;
         }
 
-        void Call(std::string IG, std::string CH, std::string CP, double* RV, double* ACC, double* P, double MU,  double x = 1.){
+        void Call(std::string IG, std::string CH, std::string CP, double* RV, double* ACC, std::vector<FourVector> P, double MU,  double x = 1.){
 
             int Channel = ChannelMap.at(CH);
 

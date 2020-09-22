@@ -3,19 +3,22 @@
 ####SubProcName####::####SubProcName####(Process& process){
 
     
-   Proc = &process;
+    Proc = &process; 
 
 ####SubProcConst####
 
 }
 
-void ####SubProcName####::Subtracted(std::string cp, double* p, double mu, double* rval, double* acc){
+void ####SubProcName####::Subtracted(std::string cp, std::vector<FourVector> p, double mu, double* rval, double* acc){
 
     int i;
     double radiative[3];
-    std::vector<FourVector> p_tilde;
+    std::vector<FourVector> p_tilde = p;
     double EWKFac = 4*M_PI*(Proc->pc.alpha_e);
     double QCDFac = 4*M_PI*(Proc->pc.alpha_s);
+    rval[0] = 0.;
+    rval[1] = 0.;
+    *acc = 0.;
 
 ####SubProcSub####
 
@@ -24,15 +27,16 @@ void ####SubProcName####::Subtracted(std::string cp, double* p, double mu, doubl
         abort();
    }
 
+
 }
 
-void ####SubProcName####::PlusDistribution(std::string cp, double* p, double mu, double* rval, double* acc){
+void ####SubProcName####::PlusDistribution(std::string cp, std::vector<FourVector> p, double mu, double* rval, double* acc){
 
 ####SubProcPlu####
 
 }
 
-void ####SubProcName####::Endpoint(std::string cp, double* p, double mu, double* rval, double* acc){
+void ####SubProcName####::Endpoint(std::string cp, std::vector<FourVector> p, double mu, double* rval, double* acc){
 
 ####SubProcEnd####
 
