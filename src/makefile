@@ -1,6 +1,12 @@
+
 CXX=g++
 
-PROCPATH=$(shell pwd)/Matrix_Elements
+##########################################################
+## 
+## NLOX
+
+
+PROCPATH=$(shell pwd)/NLOX_Process
 
 CFLAGS= -O3 -Wall -Wno-reorder -DNLOXPROCPATH=\"$(PROCPATH)\"
 
@@ -73,8 +79,39 @@ COMMON_INC += -I$(PROCPATH)/code
 COMMON_INC += -I$(PROCPATH)
 COMMON_LIB_DIRS += -L$(PROCPATH)
 
-all: test
+##
+## End of NLOX
+## 
+##########################################################
 
-test:
-	$(CXX) -c $(CFLAGS) Test_Code.cpp $(COMMON_INC) $(COMMON_LIB_DIRS) $(COMMON_LIBS)
-	$(CXX) $(CFLAGS) -o Test_Code $(COMMON_INC) $(COMMON_LIB_DIRS) -L. Test_Code.o -lprocess $(COMMON_LIBS)
+##########################################################
+##
+## Dipoles
+
+INTEGRAND_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/Integrands/*/*.cpp))
+DIPOLE_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/Integrands/*.cpp))
+
+##
+## End of Dipoles 
+##
+##########################################################
+
+
+all: Test_Process Test_Integrands
+
+Test_Process:
+	$(CXX) -c $(CFLAGS) Test_Process.cpp $(COMMON_INC) $(COMMON_LIB_DIRS) $(COMMON_LIBS)
+	$(CXX) $(CFLAGS) -o Test_Process $(COMMON_INC) $(COMMON_LIB_DIRS) -L. Test_Process.o -lprocess $(COMMON_LIBS)
+
+Integrands: $(INTEGRAND_OBJ) $(DIPOLE_OBJ)
+
+%.o:%.cpp
+	$(CXX) -c $(CFLAGS) $< -o $@ $(COMMON_INC) $(COMMON_LIB_DIRS) $(COMMON_LIBS)
+
+Test_Integrands: Integrands
+	$(CXX) -c $(CFLAGS) Test_Integrands.cpp $(COMMON_INC) $(COMMON_LIB_DIRS) $(COMMON_LIBS)
+	$(CXX) $(CFLAGS) -o Test_Integrands $(COMMON_INC) $(COMMON_LIB_DIRS) -L. $(INTEGRAND_OBJ) Test_Integrands.o -lprocess $(COMMON_LIBS)
+
+clean:
+	rm $(INTEGRAND_OBJ) $(DIPOLE_OBJ)
+	rm *.o

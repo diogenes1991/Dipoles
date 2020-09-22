@@ -3,8 +3,6 @@
 #include "Phase_Space_Tools.h"
 #include "processconst.h"
 
-
-
 int main(){
     
     NLOX_OLP_Start(NULL,NULL);
@@ -25,25 +23,24 @@ int main(){
     
     FourVector p1 = PIn[0];
     FourVector p2 = PIn[1];
-    
     FourVector p3 = POut[0];
     FourVector p4 = POut[1];
     
-    // Convert PSP to BLHA format.
-    double p[5*4] = { p1.p0, p1.p1, p1.p2, p1.p3, 0,
-    p2.p0, p2.p1, p2.p2, p2.p3, 0,
-    p3.p0, p3.p1, p3.p2, p3.p3, pc.mZ.real(),
-    p4.p0, p4.p1, p4.p2, p4.p3, pc.mt.real()};
+    std::vector<FourVector> p;
+    p.push_back(p1);
+    p.push_back(p2);
+    p.push_back(p3);
+    p.push_back(p4);
 
     double rval[2];
     double acc;
 
+    char sub[] = "bg_Zb";
     char typ[] = "tree_tree";
     char cp[] = "as1ae1";
     double mu = 500.;
 
-    NLOX_OLP_EvalSubProcess("bg_Zb",typ,cp,p,next,mu,rval,&acc);
-
+    NLOX_OLP_EvalSubProcess(sub,typ,cp,p,&next,&mu,rval,&acc);
 
     return 0;
 }
