@@ -2,6 +2,7 @@
 #define _Dipoles_Definitions_H
 
 #include "Phase_Space_Tools.h"
+#include "Plus_Distribution.h"
 
 // II Functions and Maps ///
 template <class T>
@@ -22,8 +23,7 @@ T Rab(FourVectorT<T> pa, FourVectorT<T> pb, T x){
 
 template <class T>
 T Rab(T s, T ma, T mb, T x){
-    return sqrt(((s-ma*ma-mb*mb)*(s-ma*ma-mb*mb)*x*x-4*ma*ma*mb*mb)/lambda(s,ma*ma,mb*mb));
-    
+    return sqrt(((s-ma*ma-mb*mb)*(s-ma*ma-mb*mb)*x*x-4*ma*ma*mb*mb)/lambda(s,ma*ma,mb*mb)); 
 }
 
 template <class T>
@@ -44,7 +44,6 @@ FourVectorT<T> Boost_II(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k, 
     FourVectorT<T> aux = Pab+Pab_tilde;
            aux = ((Pab*ki+Pab_tilde*ki)/(Pab*Pab+Pab_tilde*Pab))*aux;
            return out + aux;
-
 }
 
 template <class T>
@@ -54,8 +53,6 @@ void Build_II_Momenta(int NEXT_BORN, std::vector<FourVectorT<T>> P_DAT, std::vec
     for(int II=2;II<NEXT_BORN;II++){
         P_TIL[II] = Boost_II(P_DAT[EMIT-1],P_DAT[SPEC-1],P_DAT[NEXT_BORN],P_DAT[II]);
     }
-    
-    
 }
 
 template <class T>
@@ -74,21 +71,26 @@ T g_ab_fermion(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k){
 template <class T>
 T g_ab_boson(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k){
     
-    return g_ab_fermion(pa,pb,k);
-    
+    return g_ab_fermion(pa,pb,k);    
 }
 
+template <class T>
 Plus_Distribution CurlyG_ab_fermion();
+
+template <class T>
+void Endpoint_ab_fermion(std::vector<FourVectorT<T>> P_DAT, T Pab, T* rval, T* acc);
 
 // IF & FI Functions and Maps //
 
 template <class T>
 T x_ia(FourVectorT<T> pa, FourVectorT<T> pi, FourVectorT<T> k){
+    
     return ((pa*pi) + (pa*k) - (pi*k)) / ( (pa*pi) + (pa*k) );
 }
 
 template <class T>
 T z_ia(FourVectorT<T> pa, FourVectorT<T> pi, FourVectorT<T> k){
+    
     return (pa*pi) / ( (pa*pi) + (pa*k) );
 }
 
@@ -101,8 +103,7 @@ T R_ia(FourVectorT<T> pa, FourVectorT<T> pi, FourVectorT<T> k, T x){
     out = out - 4*(pa*pa)*(P_ai*P_ai)*x*x;
     out = out / (lambda((P_ai*P_ai),(pa*pa),(pi*pi)));
     out = sqrt(out);
-    return out;
-    
+    return out;  
 }
 
 template <class T>
@@ -120,8 +121,6 @@ T g_ai_fermion(FourVectorT<T> pa, FourVectorT<T> pi, FourVectorT<T> k){
     T out = aux1 - aux2 - aux3;
     out = out / ((pa*k)*xai);
     return out;
-  
-  
 }
 
 template <class T>
@@ -140,11 +139,13 @@ T g_ia_fermion(FourVectorT<T> pi, FourVectorT<T> pa, FourVectorT<T> k){
 // NOTE: Currently g_ia(ai)_boson are a placeholders and are overloaded to g_ia(ai)_fermion temporarily //
 template <class T>
 T g_ai_boson(FourVectorT<T> pa, FourVectorT<T> pi, FourVectorT<T> k){
+    
     return g_ai_fermion(pa,pi,k);    
 }
 
 template <class T>
 T g_ia_boson(FourVectorT<T> pi, FourVectorT<T> pa, FourVectorT<T> k){
+    
     return g_ia_fermion(pi,pa,k);
 }
 
@@ -160,6 +161,7 @@ FourVectorT<T> pi_IFFI(FourVectorT<T> pa, FourVectorT<T> pi, FourVectorT<T> k){
 
 template <class T>
 FourVectorT<T> pa_IFFI(FourVectorT<T> pa, FourVectorT<T> pi, FourVectorT<T> k){
+  
   return pi_IFFI(pa,pi,k)- pi - k + pa ;  
 }
 
