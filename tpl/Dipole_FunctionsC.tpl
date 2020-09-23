@@ -18,12 +18,13 @@ void ####SubProcName####::Subtracted(std::string cp, std::vector<FourVector> p, 
     double QCDFac = 4*M_PI*(Proc->pc.alpha_s);
     rval[0] = 0.;
     rval[1] = 0.;
+    rval[2] = 0.;
     *acc = 0.;
 
 ####SubProcSub####
 
    else{
-        std::cout << "Error: Coupling power"<<cp<<"not found in process"<<std::endl;
+        std::cout << "Error: Coupling power: "<<cp<<" not found in process"<<std::endl;
         abort();
    }
 
