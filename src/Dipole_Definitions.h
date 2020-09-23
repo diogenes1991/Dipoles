@@ -4,21 +4,22 @@
 #include "Phase_Space_Tools.h"
 #include "Plus_Distribution.h"
 
-// II Functions and Maps ///
+// 
+//   II Functions and Maps 
+// 
+
 template <class T>
 T x_ab(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k){
-    T out = pa*k;
-           out = out + pb*k;
-           out = out / (pa*pb);
-           out = 1.-out;
-           return out;
+    T out = pa*pb - pa*k - pb*k;
+    out = out / (pa*pb);
+    return out;
 }
 
 template <class T>
 T Rab(FourVectorT<T> pa, FourVectorT<T> pb, T x){
-    T aux = pow(2,(pa*pb)*x)-((pa*pa)*(pb*pb));
-           aux = aux / (pow(2,(pa*pb))-((pa*pa)*(pb*pb)));
-           return sqrt(aux);
+    T aux = pow(2*(pa*pb)*x,2)-((pa*pa)*(pb*pb));
+    aux = aux / (pow(2*(pa*pb),2)-((pa*pa)*(pb*pb)));
+    return sqrt(aux);
 }
 
 template <class T>
@@ -29,27 +30,27 @@ T Rab(T s, T ma, T mb, T x){
 template <class T>
 FourVectorT<T> pa_II(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k){
     T sbar = 2*(pa*pb);
-    FourVectorT<T> aux = pa - (sbar/(2*(pb*pb)))*pb;
-           aux = Rab(pa,pb,x_ab(pa,pb,k))*aux;
-           aux = aux - (sbar*x_ab(pa,pb,k)/(2*(pb*pb)))*pb;
-           return aux;
+    T xab = x_ab(pa,pb,k);
+    FourVectorT<T> aux = (2*sbar*(pa*pa)*(1.0-xab*xab))*pb;
+    aux = 1.0/((Rab(pa,pb,xab)+xab)*(sbar*sbar-4*(pa*pa)*(pb*pb)))*aux;
+    aux = Rab(pa,pb,xab)*pa + aux;
+    return aux;
 }
 
 template <class T>
 FourVectorT<T> Boost_II(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k, FourVectorT<T> ki){
-    FourVectorT<T> Pab = pa + pb -k;
+    FourVectorT<T> Pab = pa + pb - k;
     FourVectorT<T> Pab_tilde = pa_II(pa,pb,k) + pb;
     FourVectorT<T> out = Pab_tilde;
-           out = out * (2*(Pab*ki)/(Pab*Pab));
+    out = out * (2*(Pab*ki)/(Pab*Pab));
     FourVectorT<T> aux = Pab+Pab_tilde;
-           aux = ((Pab*ki+Pab_tilde*ki)/(Pab*Pab+Pab_tilde*Pab))*aux;
-           return out + aux;
+    aux = ((aux*ki)/(aux*Pab))*aux;
+    return ki - aux + out;
 }
 
 template <class T>
 void Build_II_Momenta(int NEXT_BORN, std::vector<FourVectorT<T>> P_DAT, std::vector<FourVectorT<T>> P_TIL, int EMIT, int SPEC, int RADI){
     P_TIL.at(EMIT) = pa_II(P_DAT.at(EMIT),P_DAT.at(SPEC),P_DAT.at(RADI));
-    P_TIL.at(SPEC) = P_DAT.at(SPEC);
     for(int II=2;II<NEXT_BORN;II++){
         P_TIL.at(II) = Boost_II(P_DAT.at(EMIT),P_DAT.at(SPEC),P_DAT.at(RADI),P_DAT.at(II));
     }
@@ -57,14 +58,12 @@ void Build_II_Momenta(int NEXT_BORN, std::vector<FourVectorT<T>> P_DAT, std::vec
 
 template <class T>
 T g_ab_fermion(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k){
-    
     T xab = x_ab(pa,pb,k);
-    T out = 2./(1-xab);
-           out  = out - (1.+xab);
-           out  = out - (xab*(pa*pa)/(pa*k));
-           out  = out / (xab*(pa*k));
-    return out;
-    
+    T out = 2.0/(1.0-xab);
+    out  = out - (1.0+xab);
+    out  = out - (xab*(pa*pa)/(pa*k));
+    out  = out / (xab*(pa*k));
+    return out;   
 }
 
 // NOTE: Currently g_ab_boson is a placeholder and its overloaded to g_ab_fermion temporarily //
