@@ -90,6 +90,7 @@ COMMON_LIB_DIRS += -L$(PROCPATH)
 
 INTEGRAND_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/Integrands/*/*.cpp))
 DIPOLE_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/Integrands/*.cpp))
+TEST_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/*.cpp))
 
 ##
 ## End of Dipoles 
@@ -97,21 +98,20 @@ DIPOLE_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/Integrands/*.cpp))
 ##########################################################
 
 
-all: Test_Process Test_Integrands
+all: Test
 
-Test_Process:
-	$(CXX) -c $(CFLAGS) Test_Process.cpp $(COMMON_INC) $(COMMON_LIB_DIRS) $(COMMON_LIBS)
-	$(CXX) $(CFLAGS) -o Test_Process $(COMMON_INC) $(COMMON_LIB_DIRS) -L. Test_Process.o -lprocess $(COMMON_LIBS)
+Test: Integrands $(TEST_OBJ)
+	@echo $(CXX) Test_Integrands  
+	@$(CXX) $(CFLAGS) -o Test_Integrands $(COMMON_INC) $(COMMON_LIB_DIRS) -L. $(INTEGRAND_OBJ) Test_Integrands.o -lprocess $(COMMON_LIBS)
+	@echo $(CXX) Test_Process
+	@$(CXX) $(CFLAGS) -o Test_Process $(COMMON_INC) $(COMMON_LIB_DIRS) -L. Test_Process.o -lprocess $(COMMON_LIBS)
 
 Integrands: $(INTEGRAND_OBJ) $(DIPOLE_OBJ)
 
 %.o:%.cpp
-	$(CXX) -c $(CFLAGS) $< -o $@ $(COMMON_INC) $(COMMON_LIB_DIRS) $(COMMON_LIBS)
-
-Test_Integrands: Integrands
-	$(CXX) -c $(CFLAGS) Test_Integrands.cpp $(COMMON_INC) $(COMMON_LIB_DIRS) $(COMMON_LIBS)
-	$(CXX) $(CFLAGS) -o Test_Integrands $(COMMON_INC) $(COMMON_LIB_DIRS) -L. $(INTEGRAND_OBJ) Test_Integrands.o -lprocess $(COMMON_LIBS)
+	@echo $(CXX) -c $< 
+	@$(CXX) -c $(CFLAGS) $< -o $@ $(COMMON_INC) $(COMMON_LIB_DIRS) $(COMMON_LIBS)
 
 clean:
-	rm $(INTEGRAND_OBJ) $(DIPOLE_OBJ)
-	rm *.o
+	@rm $(INTEGRAND_OBJ) $(DIPOLE_OBJ)
+	@rm *.o
