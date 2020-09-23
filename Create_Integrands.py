@@ -140,7 +140,8 @@ class Amplitude:
 
         if self.stage: 
             self.BuildMatrixElements()
-            self.BuildDipoleTreerocess()
+            self.BuildProcess()
+            self.BuildDipoleTree()
             self.stage -= 1
 
         if self.stage:
@@ -251,7 +252,9 @@ class Amplitude:
                                 sys.exit()
 
                             if len(CC)==1:
-                                LINKED[SUBPROCESS].append({'BORNTAG':self.RadiProc.BuildString(SAUX),'UNSORTEDPARS':AUX,'SORTEDPARS':SAUX,'DIPTYP':TYP,'IJ':[id1,id2],'SUBTYP':SUBTYP})
+                                LINKED[SUBPROCESS].append({'BORNTAG':self.RadiProc.BuildString(SAUX),'UNSORTEDPARS':AUX,\
+                                                           'SORTEDPARS':SAUX,'DIPTYP':TYP,'IJ':[id1,id2],'SUBTYP':SUBTYP,\
+                                                           'NAME':dipole_nam})
     
     ##
     ##  NLOX: Seeeds, Matrix elements and Process class
@@ -362,7 +365,7 @@ class Amplitude:
             count += 1
         
         ## 
-        ##  Interface  
+        ##  NLOX Interface  
         ##
         
         NLOX_PROCESS_H = seek_and_destroy(self.TplDir+"nlox_process.tpl",DICT)
@@ -374,11 +377,11 @@ class Amplitude:
         CopyFile(self.IntDir+'/nlox_fortran_interface.f90',self.MatDir+'/code/nlox_fortran_interface.f90')
 
         ##
-        ##  Test Code
+        ##  NLOX Test Code
         ## 
 
-        CopyFile(self.IntDir+'/ftest_process.f90',self.MatDir+'/test_process.f90')
-        CopyFile(self.IntDir+'/test_process.cc',self.MatDir+'/test_process.cc')
+        # CopyFile(self.IntDir+'/ftest_process.f90',self.MatDir+'/test_process.f90')
+        # CopyFile(self.IntDir+'/test_process.cc',self.MatDir+'/test_process.cc')
 
     def BuildMatrixElements(self):
         Here = os.getcwd()
@@ -503,41 +506,51 @@ class Amplitude:
                         if Emitter == Spectator:
                             continue
                         CPB = 'as'+str(RadiCPS[CP]['as'])+'ae'+str(RadiCPS[CP]['ae']-1)
+                        
+                        K = []
+
                         try:
                             K = [ i for i in Emitter['IJ'] if i in Spectator['IJ']][0]
-                            I = [ i for i in Emitter['IJ'] if i != K ][0]
-                            J = [ i for i in Spectator['IJ'] if i != K ][0]
+                        except:
+                            continue 
+                        
+                        I = [ i for i in Emitter['IJ'] if i != K ][0]
+                        J = [ i for i in Spectator['IJ'] if i != K ][0]
 
-                            SigmaI = ( 1 if (( I<self.RadiProc.lni and self.RadiProc.subproc[Radiative][I].pid>0)\
-                                             or  ( I>self.RadiProc.lni and self.RadiProc.subproc[Radiative][I].pid<0)) else -1 )
-                            SigmaJ = ( 1 if (( J<self.RadiProc.lni and self.RadiProc.subproc[Radiative][J].pid>0)\
-                                             or  ( J>self.RadiProc.lni and self.RadiProc.subproc[Radiative][J].pid<0)) else -1 )
-                            
+                        SigmaI = ( 1 if (( I<self.RadiProc.lni and self.RadiProc.subproc[Radiative][I].pid>0)\
+                                         or  ( I>self.RadiProc.lni and self.RadiProc.subproc[Radiative][I].pid<0)) else -1 )
+                        SigmaJ = ( 1 if (( J<self.RadiProc.lni and self.RadiProc.subproc[Radiative][J].pid>0)\
+                                         or  ( J>self.RadiProc.lni and self.RadiProc.subproc[Radiative][J].pid<0)) else -1 )
+                        
+                        QI=0
+                        QJ=0
+
+                        try:                            
                             QI = self.RadiProc.subproc[Radiative][I].sym['Charge']
                             QJ = self.RadiProc.subproc[Radiative][J].sym['Charge']
-
-                            ##
-                            ## There is a factor of 3 between each charge in StandardModel.py vs RealWorld!
-                            ## Hence the (1/9) for squared charges. 
-                            ## StandardModel uses Charges*3 to enforce charge conservation using integers.
-                            ##
-
-                            ## 
-                            ##  Subtracted Function 
-                            ## 
-
-                            PREFIX = Emitter['SUBTYP']+Spectator['SUBTYP']
-                            DIPFUN = DIPDIC[PREFIX]
-
-                            DICT['SubProcSub'] += TAB6+'DipFac *= '+str(SigmaI*SigmaJ*QI*QJ)+'./9;\n'
-                            DICT['SubProcSub'] += TAB6+'i = Proc->AmpMap.at("'+Emitter['BORNTAG']+'");\n'
-                            DICT['SubProcSub'] += TAB6+'Build_'+PREFIX+'_Momenta('+str(Next-1)+\
-                                                       ',p,p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
-                            DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p_tilde,'+str(Next-1)+',mu,born,acc);\n'
-                            DICT['SubProcSub'] += TAB6+'rval[2] -= EWKFac*DipFac*g_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'])*born[2];\n'
                         except:
-                            print 'Dipole not found'+str(Emitter)+'\n'+str(Spectator)+'\n'
-                
+                            continue
+
+                        ##
+                        ## There is a factor of 3 between each charge in StandardModel.py vs RealWorld!
+                        ## Hence the (1/9) for squared charges. 
+                        ## StandardModel uses Charges*3 to enforce charge conservation using integers.
+                        ##
+
+                        ## 
+                        ##  Subtracted Function 
+                        ## 
+
+                        PREFIX = Emitter['SUBTYP']+Spectator['SUBTYP']
+                        DIPFUN = DIPDIC[PREFIX]
+
+                        DICT['SubProcSub'] += TAB6+'DipFac = '+str(SigmaI*SigmaJ*QI*QJ)+'.0/9*EWKFac;\n'
+                        DICT['SubProcSub'] += TAB6+'i = Proc->AmpMap.at("'+Emitter['BORNTAG']+'");\n'
+                        DICT['SubProcSub'] += TAB6+'Build_'+PREFIX+'_Momenta('+str(Next-1)+\
+                                                   ',p,p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
+                        DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p_tilde,'+str(Next-1)+',mu,born,acc);\n'
+                        DICT['SubProcSub'] += TAB6+'rval[2] -= DipFac*g_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'])*born[2];\n'
+                        
                 ##
                 ##  QCD Dipoles
                 ##
@@ -549,21 +562,20 @@ class Amplitude:
                         CPB = 'as'+str(RadiCPS[CP]['as']-1)+'ae'+str(RadiCPS[CP]['ae'])
                         try:
                             K = [ i for i in Emitter['IJ'] if i in Spectator['IJ']][0]
+                        except:
                             I = [ i for i in Emitter['IJ'] if i != K ][0]
                             J = [ i for i in Spectator['IJ'] if i != K ][0]
                             
-                            ## 
-                            ##  Subtracted Function 
-                            ## 
+                        ## 
+                        ##  Subtracted Function 
+                        ## 
 
-                            DICT['SubProcSub'] += TAB6+'i = Proc->AmpMap.at("'+Emitter['BORNTAG']+'");\n'
-                            DICT['SubProcSub'] += TAB6+'QCD_Build_'+Emitter['SUBTYP']+Spectator['SUBTYP']+'_Momenta('+str(Next-1)+\
-                                                       ',p,p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
-                            DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p_tilde,'+str(Next-1)+',mu,born,acc);\n'
-                            DICT['SubProcSub'] += TAB6+'aux -= QCDFac*borncc['++','++'];\n\n'
-                        except:
-                            print 'Dipole not found'+str(Emitter)+'\n'+str(Spectator)+'\n'
-                
+                        DICT['SubProcSub'] += TAB6+'i = Proc->AmpMap.at("'+Emitter['BORNTAG']+'");\n'
+                        DICT['SubProcSub'] += TAB6+'QCD_Build_'+Emitter['SUBTYP']+Spectator['SUBTYP']+'_Momenta('+str(Next-1)+\
+                                                   ',p,p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
+                        DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p_tilde,'+str(Next-1)+',mu,born,acc);\n'
+                        DICT['SubProcSub'] += TAB6+'aux -= QCDFac*borncc['++','++'];\n\n'
+                        
                 DICT['SubProcSub'] += TAB3+'}\n\n'
             
             SubFunctionH = seek_and_destroy(self.TplDir+'/Dipole_FunctionsH.tpl',DICT)
