@@ -2,16 +2,18 @@
 #define __INTEGRANDS_H_
 
 #include "nlox_process.h"
+#define DEBUG 0
 ####Include Integrands####
 
 class Integrands{
     
-    Process Proc;
     int nChannels;
     DipoleStructure** Channels;
     std::unordered_map<std::string,int> ChannelMap;     
             
     public:
+
+        Process Proc;
         
         Integrands(){
 
@@ -33,21 +35,19 @@ class Integrands{
 
             if(IG=="Sub"){
 
-                std::cout << "Subtracted function called!" <<std::endl;
                 Channels[Channel]->Subtracted(CP,P,MU,RV,ACC);
 
             }
 
             else if (IG=="Plu"){
 
-                std::cout << "Plus Distribution function called!" <<std::endl;
-
+                Channels[Channel]->PlusDistribution(CP,P,MU,RV,ACC);                
 
             }
 
             else if (IG=="End"){
 
-                std::cout << "Endpoint function called!" <<std::endl;
+                Channels[Channel]->Endpoint(CP,P,MU,RV,ACC);
 
             }
 
