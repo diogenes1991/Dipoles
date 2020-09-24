@@ -469,7 +469,7 @@ class Amplitude:
             DICT['SubProcHeader'] = Radiative.upper()
             DICT['SubProcName'] = ClassName
             DICT['SubProcConst'] += TAB3+'std::unordered_map<std::string,int> CPMap;\n'
-            DICT['SubProcConst'] += TAB3+'int Next = '+str(self.RadiProc.nex)+';\n'
+            DICT['SubProcConst'] += TAB3+'//int Next = '+str(self.RadiProc.nex)+';\n'
 
             RadiCPS = self.Model.GetCPS(self.RadiProc.subproc[Radiative])
             Next = self.RadiProc.nex
@@ -492,10 +492,11 @@ class Amplitude:
 
                 DICT['SubProcSub'] += TAB3+'if (cp =="'+CP+'"){\n'
                 DICT['SubProcSub'] += TAB6+'double born[3];\n'
+                DICT['SubProcSub'] += TAB6+'double borncc['+str(1+(self.RadiProc.nex-1)*(self.RadiProc.nex-2)/2)+'];\n'
                 DICT['SubProcSub'] += TAB6+'double DipFac = 1.;\n'
                 DICT['SubProcSub'] += TAB6+'i = Proc->AmpMap.at("'+Radiative+'");\n'
                 DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CP+'",p,'+str(Next)+',mu,radiative,acc);\n'
-                DICT['SubProcSub'] += TAB6+'rval[2] += radiative[2];\n'
+                DICT['SubProcSub'] += TAB6+'rval[2] += radiative[2];\n\n'
 
                 ##
                 ##   EWK Dipoles 
@@ -549,7 +550,7 @@ class Amplitude:
                         DICT['SubProcSub'] += TAB6+'Build_'+PREFIX+'_Momenta('+str(Next-1)+\
                                                    ',p,p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
                         DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p_tilde,'+str(Next-1)+',mu,born,acc);\n'
-                        DICT['SubProcSub'] += TAB6+'rval[2] -= DipFac*g_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'])*born[2];\n'
+                        DICT['SubProcSub'] += TAB6+'rval[2] -= DipFac*g_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'])*born[2];\n\n'
                         
                 ##
                 ##  QCD Dipoles
@@ -560,21 +561,32 @@ class Amplitude:
                         if Emitter == Spectator:
                             continue
                         CPB = 'as'+str(RadiCPS[CP]['as']-1)+'ae'+str(RadiCPS[CP]['ae'])
+
+                        K = []
                         try:
                             K = [ i for i in Emitter['IJ'] if i in Spectator['IJ']][0]
                         except:
-                            I = [ i for i in Emitter['IJ'] if i != K ][0]
-                            J = [ i for i in Spectator['IJ'] if i != K ][0]
+                            continue 
+
+                        I = [ i for i in Emitter['IJ'] if i != K ][0]
+                        J = [ i for i in Spectator['IJ'] if i != K ][0]
+
+                        FIRST = min(I,J)
+                        SECON = max(I,J)
+                        WHICHCC = (self.RadiProc.nex-1)*FIRST + SECON - FIRST - FIRST*(FIRST-1)/2
+
+                        PREFIX = Emitter['SUBTYP']+Spectator['SUBTYP']
+                        DIPFUN = DIPDIC[PREFIX]
                             
                         ## 
                         ##  Subtracted Function 
                         ## 
 
                         DICT['SubProcSub'] += TAB6+'i = Proc->AmpMap.at("'+Emitter['BORNTAG']+'");\n'
-                        DICT['SubProcSub'] += TAB6+'QCD_Build_'+Emitter['SUBTYP']+Spectator['SUBTYP']+'_Momenta('+str(Next-1)+\
+                        DICT['SubProcSub'] += TAB6+'Build_'+PREFIX+'_Momenta('+str(Next-1)+\
                                                    ',p,p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
-                        DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p_tilde,'+str(Next-1)+',mu,born,acc);\n'
-                        DICT['SubProcSub'] += TAB6+'aux -= QCDFac*borncc['++','++'];\n\n'
+                        DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha_cc(i,"tree_tree","'+CPB+'",p_tilde,'+str(Next-1)+',borncc,acc);\n'
+                        DICT['SubProcSub'] += TAB6+'rval[2] += QCDFac*g_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'])*borncc['+str(WHICHCC)+'];\n\n'
                         
                 DICT['SubProcSub'] += TAB3+'}\n\n'
             
