@@ -131,6 +131,24 @@ class Process {
       *acc = ( evalOK ? ( (IRP[1] == 0.) ? 0 : std::abs((rval2[1]/IRP[1])+1. )) : -1. );
     }
 
+    void evaluate_alpha_cc(int i, std::string type, std::string cp, std::vector<FourVector> psp, int next, double* rval2, double* acc){
+
+      subproc[i]->setPSP2(psp);
+
+      if ( type == "tree_tree" ) {
+        subproc[i]->born2Alpha_cc(cp,rval2);
+      } 
+
+      else{
+        std::cout << "Error:" << std::endl;
+        std::cout << "The specified intereference type \"" << type << "\" has probably been mistyped for subprocess " << i << "." << std::endl;
+        std::cout << "For Color-Correlated amplitudes only \"tree_tree\" interference types are built." <<std::endl;
+        abort();
+      }
+
+      *acc = 0.;
+    }
+
     void update_mass(const std::string & name) {
       for (int i = 0; i < numSubprocesses; ++i) {
         subproc[i]->set_mass(name, pc.get_mass(name));
