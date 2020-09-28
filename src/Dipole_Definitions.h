@@ -2,7 +2,12 @@
 #define _Dipoles_Definitions_H
 
 #include "Phase_Space_Tools.h"
-#include "Plus_Distribution.h"
+// #include "Plus_Distribution.h"
+#include <gsl/gsl_sf_dilog.h>
+
+#define log_4pi 2.5310242469692907929778915942694118477
+#define pi2 9.869604401089358618834490999876151135
+
 
 // 
 //   II Functions and Maps 
@@ -73,11 +78,37 @@ T g_ab_boson(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k){
     return g_ab_fermion(pa,pb,k);    
 }
 
-template <class T>
-Plus_Distribution CurlyG_ab_fermion();
+// template <class T>
+// Plus_Distribution CurlyG_ab_fermion();
 
 template <class T>
-void Endpoint_ab_fermion(FourVectorT<T> P_DAT, T Pab, T* rval, T* acc);
+void G_ab_fermion(FourVectorT<T> pa, FourVectorT<T> pb, T ma, T mb, T mu, T x0, T* RVAL){
+
+    T sab = pa*pa + pb*pb + 2*(pa*pb);
+    T sab_bar = 2*(pa*pb);
+    T LOG_DR = /*log_4pi + */log(mu*mu*sab/(sab_bar*sab_bar)) - 2*log(1.0-x0);
+
+    if (ma==0.0){
+
+        RVAL[0] = 1;
+        RVAL[1] = - 3.0/2.0 - LOG_DR - x0*(1.0+x0)/2.0;
+        RVAL[2] = LOG_DR*LOG_DR - pi2 / 4;
+    }
+
+    else{
+
+        T BETA = sab_bar + 2*ma*ma - sqrt(lambda(sab,ma*ma,mb*mb));
+          BETA = BETA / (sab_bar + 2*ma*ma + sqrt(lambda(sab,ma*ma,mb*mb)));
+        T  LOG = log(BETA);
+        
+        RVAL[0] = 0;
+        RVAL[1] = - 1 - sab_bar/lambda(sab,ma*ma,mb*mb)*LOG;
+        RVAL[2] = (2*gsl_sf_dilog(1-BETA) + (1.0/2.0)*LOG*LOG + ((sab_bar+2*ma*ma)/(sab_bar))*LOG);
+        RVAL[2] = LOG_DR*RVAL[1]-(sab_bar/lambda(sab,ma*ma,mb*mb))*RVAL[2];
+
+    }
+
+}
 
 // IF & FI Functions and Maps //
 
