@@ -5,6 +5,33 @@
 #define DEBUG 0
 ####Include Integrands####
 
+struct SubArg{
+
+    std::vector<FourVector> psp;
+    std::string cp;
+    double* rval;
+};
+
+struct PluArg{
+
+    std::string cp;
+    std::vector<FourVector> psp;
+    double J;
+    std::vector<FourVector> psp_1;
+    double J_1;
+    std::vector<double> mlist;
+    double x;
+    double* rval;
+};
+
+struct EndArg{
+
+    std::string cp;
+    std::vector<FourVector> psp;
+    double mu;
+    double* rval;
+};
+
 class Integrands{
     
     int nChannels;
@@ -29,25 +56,34 @@ class Integrands{
             delete [] Channels;
         }
 
-        void Call(std::string IG, std::string CH, std::string CP, double* RV, double* ACC, std::vector<FourVector> P, double MU,  double x = 1.){
+        void Call(std::string CH, std::string IG, void* Arg){
 
-            int Channel = ChannelMap.at(CH);
+            int Channel;
+            try {Channel = ChannelMap.at(CH);}
+            catch (const std::out_of_range& oor) {
+                std::cerr<<"Error: Channel "<<CH<<" not found in Process"<<std::endl;
+                std::cout<<"The available Radiative processes are:"<<std::endl;
+                for ( auto& x : ChannelMap ) std::cout<<x.first<<" => "<<x.second<<std::endl;
+                abort();
+            }
 
             if(IG=="Sub"){
 
-                Channels[Channel]->Subtracted(CP,P,MU,RV,ACC);
+                SubArg* SubArgPtr = static_cast<SubArg*>(Arg);
+                Channels[Channel]->Subtracted(SubArgPtr->cp,SubArgPtr->psp,SubArgPtr->rval);
 
             }
 
             else if (IG=="Plu"){
 
-                Channels[Channel]->PlusDistribution(CP,P,MU,RV,ACC);                
+                // Channels[Channel]->PlusDistribution(CP,P,MU,RV,ACC);                
 
             }
 
             else if (IG=="End"){
 
-                Channels[Channel]->Endpoint(CP,P,MU,RV,ACC);
+                EndArg* EndArgPtr = static_cast<EndArg*>(Arg);
+                Channels[Channel]->Endpoint(EndArgPtr->cp,EndArgPtr->psp,EndArgPtr->mu,EndArgPtr->rval);
 
             }
 
@@ -56,6 +92,7 @@ class Integrands{
                 std::cout<<" - Sub for the Subtracted Integrand"<<std::endl;
                 std::cout<<" - Plu for the Plus Distribution Integrand"<<std::endl;
                 std::cout<<" - End for the Endpoint Integrand"<<std::endl;
+                abort();
 
             }
         }

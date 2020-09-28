@@ -5,12 +5,14 @@
 
 class ####SubProcName#### : public DipoleStructure{
 
+    double x0;
+
     public:
         ####SubProcName####(Process& process);
 
-        void Subtracted(std::string cp, std::vector<FourVector> p, double mu, double* rval, double* acc);
+        void Subtracted(std::string cp, std::vector<FourVector> p, double* rval);
         void PlusDistribution(std::string cp, std::vector<FourVector> p, double mu, double* rval, double* acc);
-        void Endpoint(std::string cp, std::vector<FourVector> p, double mu, double* rval, double* acc);
+        void Endpoint(std::string cp, std::vector<FourVector> p, double mu, double* rval);
 
     };
 
