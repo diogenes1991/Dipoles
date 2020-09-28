@@ -88,6 +88,15 @@ COMMON_LIB_DIRS += -L$(PROCPATH)
 ##
 ## Dipoles
 
+GSLDIR=/home/diogenes1991/gsl-2.6
+
+ifdef GSLDIR
+CFLGAS+=-static
+COMMON_INC+=-I$(GSLDIR)
+COMMON_LIB_DIRS+=-L$(GSLDIR)
+COMMON_LIBS+=-lgsl -lgslcblas
+endif
+
 INTEGRAND_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/Integrands/*/*.cpp))
 DIPOLE_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/Integrands/*.cpp))
 TEST_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/*.cpp))
