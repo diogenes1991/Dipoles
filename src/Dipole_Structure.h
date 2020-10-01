@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <iostream>
 
+#define DEBUG 0
+
 class DipoleStructure {
 
     public:
@@ -15,9 +17,11 @@ class DipoleStructure {
 
         virtual ~DipoleStructure() {};
 
-        virtual void Subtracted(std::string cp, std::vector<FourVector> p, double* rval) = 0;
-        virtual void PlusDistribution(std::string cp, std::vector<FourVector> p, double mu, double* rval, double* acc) = 0;
-        virtual void Endpoint(std::string cp, std::vector<FourVector> p, double mu, double* rval) = 0;
+        virtual void setECM(double sqrts) = 0;
+
+        virtual void Subtracted(std::string cp, double* rand, double* rval) = 0;
+        virtual void PlusDistribution(std::string cp, double* rand, double mu, double* rval) = 0;
+        virtual void Endpoint(std::string cp, double* rand, double mu, double* rval) = 0;
 
     };
 
