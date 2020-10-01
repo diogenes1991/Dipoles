@@ -3,11 +3,18 @@
 
 #include "Phase_Space_Tools.h"
 // #include "Plus_Distribution.h"
+
 #include <gsl/gsl_sf_dilog.h>
+#define PolyLog2 gsl_sf_dilog
+
+// 
+//  The log_4pi definition is needed if the NLO Cross-Sections
+//  are defined not to have (4pi)^epsilon/Gamma(1-epsilon) upfront
+//  Otherwise this log is never used.
+//
 
 #define log_4pi 2.5310242469692907929778915942694118477
 #define pi2 9.869604401089358618834490999876151135
-
 
 // 
 //   II Functions and Maps 
@@ -21,6 +28,11 @@ T x_ab(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k){
 }
 
 template <class T>
+T xab_cut(FourVectorT<T> pa, FourVectorT<T> pb, T ma, T mb){ 
+    return ((ma*mb)/(pa*pb));
+}
+
+template <class T>
 T Rab(FourVectorT<T> pa, FourVectorT<T> pb, T x){
     T aux = pow(2*(pa*pb)*x,2)-((pa*pa)*(pb*pb));
     aux = aux / (pow(2*(pa*pb),2)-((pa*pa)*(pb*pb)));
@@ -28,18 +40,17 @@ T Rab(FourVectorT<T> pa, FourVectorT<T> pb, T x){
 }
 
 template <class T>
-T Rab(T s, T ma, T mb, T x){
-    return sqrt(((s-ma*ma-mb*mb)*(s-ma*ma-mb*mb)*x*x-4*ma*ma*mb*mb)/lambda(s,ma*ma,mb*mb)); 
-}
-
-template <class T>
-FourVectorT<T> pa_II(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k){
+FourVectorT<T> pa_II(FourVectorT<T> pa, FourVectorT<T> pb, T xab){
     T sbar = 2*(pa*pb);
-    T xab = x_ab(pa,pb,k);
     FourVectorT<T> aux = (2*sbar*(pa*pa)*(1.0-xab*xab))*pb;
     aux = 1.0/((Rab(pa,pb,xab)+xab)*(sbar*sbar-4*(pa*pa)*(pb*pb)))*aux;
     aux = Rab(pa,pb,xab)*pa + aux;
     return aux;
+}
+
+template <class T>
+FourVectorT<T> pa_II(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k){
+    return pa_II(pa,pb,x_ab(pa,pb,k));
 }
 
 template <class T>
@@ -62,8 +73,9 @@ void Build_II_Momenta(int NEXT_BORN, std::vector<FourVectorT<T>> P_DAT, std::vec
 }
 
 template <class T>
-T g_ab_fermion(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k){
+T g_ab_fermion(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k, T ma, T mb){
     T xab = x_ab(pa,pb,k);
+    if (xab<xab_cut(pa,pb,ma,mb)) return 0;
     T out = 2.0/(1.0-xab);
     out  = out - (1.0+xab);
     out  = out - (xab*(pa*pa)/(pa*k));
@@ -79,13 +91,24 @@ T g_ab_boson(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k){
 }
 
 // template <class T>
-// Plus_Distribution CurlyG_ab_fermion();
+// T CurlyG_ab_fermion(FourVectorT<T> pa, FourVectorT<T> pb, T ma, T mb, T x, T Ix, T I1){
+    
+//     T sab = ma*ma + mb*mb + 2*(pa*pb);
+//     T sab_bar = 2*(pa*pb);
+//     T LOG_DR = /*log_4pi + */log(mu*mu*sab/(sab_bar*sab_bar));
+
+
+
+// };
 
 template <class T>
-void G_ab_fermion(FourVectorT<T> pa, FourVectorT<T> pb, T ma, T mb, T mu, T x0, T* RVAL){
+void G_ab_fermion(FourVectorT<T> pa, FourVectorT<T> pb, T ma, T mb, T mu, T* RVAL){
 
-    T sab = pa*pa + pb*pb + 2*(pa*pb);
+    // TODO: This template only works for T=double due to the gsl_sf_dilog call
+ 
+    T sab = ma*ma + mb*mb + 2*(pa*pb);
     T sab_bar = 2*(pa*pb);
+    T x0 = xab_cut(pa,pb,ma,mb);
     T LOG_DR = /*log_4pi + */log(mu*mu*sab/(sab_bar*sab_bar)) - 2*log(1.0-x0);
 
     if (ma==0.0){
@@ -103,14 +126,16 @@ void G_ab_fermion(FourVectorT<T> pa, FourVectorT<T> pb, T ma, T mb, T mu, T x0, 
         
         RVAL[0] = 0;
         RVAL[1] = - 1 - sab_bar/lambda(sab,ma*ma,mb*mb)*LOG;
-        RVAL[2] = (2*gsl_sf_dilog(1-BETA) + (1.0/2.0)*LOG*LOG + ((sab_bar+2*ma*ma)/(sab_bar))*LOG);
+        RVAL[2] = (2*PolyLog2(1-BETA) + (1.0/2.0)*LOG*LOG + ((sab_bar+2*ma*ma)/(sab_bar))*LOG);
         RVAL[2] = LOG_DR*RVAL[1]-(sab_bar/lambda(sab,ma*ma,mb*mb))*RVAL[2];
 
     }
 
 }
 
-// IF & FI Functions and Maps //
+//
+//  IF & FI Functions and Maps 
+//
 
 template <class T>
 T x_ia(FourVectorT<T> pa, FourVectorT<T> pi, FourVectorT<T> k){
@@ -207,7 +232,10 @@ void Build_FI_Momenta(int NEXT_BORN, std::vector<FourVectorT<T>> P_DAT, std::vec
     P_TIL.at(SPEC) = pa_IFFI(P_DAT.at(EMIT),P_DAT.at(SPEC),P_DAT.at(RADI));
 }
 
-// FF Functions and Maps //
+// 
+//  FF Functions and Maps
+//
+
 template <class T>
 T y_ij(FourVectorT<T> pi,FourVectorT<T> pj, FourVectorT<T> k){
     T aux = pi*k;
