@@ -1,8 +1,8 @@
 import sys,os
 
-#
-# String Manipulation
-#
+##
+##  String Manipulation
+##
 
 def CSS(n,m=0):
             out = ''
@@ -20,9 +20,9 @@ def find_substring(string, substring):
             return locations_found
     return recurse([], 0)
 
-#
-# Template Handleling 
-#
+##
+## Template Handleling 
+##
 
 def seek_and_destroy(template,data,permissive=False):
     tmp_arg_mrk = '####'
@@ -50,7 +50,7 @@ def seek_and_destroy(template,data,permissive=False):
             try:
                 line = line.replace(template_pattern,data[template_key])
             except:
-                print '\33[31mError\33[0m: Template key:',template_key,'was not found in dictionary'
+                print '\33[31mError\33[0m: Template key:',template_key,'requested by',template,'was not found in dictionary'
                 sys.exit()        
             has_empty = (data[template_key] == '')
         for char in special_chars:
