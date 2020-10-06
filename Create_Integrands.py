@@ -11,7 +11,9 @@ class Amplitude:
         self.Build()
 
     ##
-    ## Configfile reading and loading into the amplitude class
+    ##  Configfile reading and loading into the amplitude class
+    ##  We need to get rid of the extra wrapping the configs get,
+    ##  all real configs are at self.config['Key'][0]
     ##
 
     def ReadConfig(self,CONFIGFILE):
@@ -21,7 +23,7 @@ class Amplitude:
                   'MODEL FILE'    : ['StandardModel'],\
                   'PATH'         : [os.getcwd()],\
                   'NLOX PATH'    : [0] ,\
-                  'SEED TEMP'    : ['tpl/NLOX_seed.tpl'] ,\
+                  'SEED TEMP'    : ['tpl/NLOX_seed_tpl.in'] ,\
                   'VERBOSE'      : [0] ,\
                   'STAGE'        : [0] }
         
@@ -139,8 +141,8 @@ class Amplitude:
             self.stage -= 1
 
         if self.stage: 
-            self.BuildMatrixElements()
-            self.BuildProcess()
+            # self.BuildMatrixElements()
+            # self.BuildProcess()
             self.stage -= 1
 
         if self.stage:
@@ -163,7 +165,7 @@ class Amplitude:
             self.GetDipoles(radi,aux)
             self.DipoleTree[radi] = aux[radi]
             for born in self.DipoleTree[radi]:
-                self.Borns[born['BORNTAG']] = born['SORTEDPARS']
+                self.Borns[born['SBORNTAG']] = born['SPARS']
 
     def GetDipoles(self,SUBPROCESS,LINKED):
         # The rules to build the allowed dipoles are hard-coded Standard Model
@@ -252,8 +254,9 @@ class Amplitude:
                                 sys.exit()
 
                             if len(CC)==1:
-                                LINKED[SUBPROCESS].append({'BORNTAG':self.RadiProc.BuildString(SAUX),'UNSORTEDPARS':AUX,\
-                                                           'SORTEDPARS':SAUX,'DIPTYP':TYP,'IJ':[id1,id2],'SUBTYP':SUBTYP,\
+                                LINKED[SUBPROCESS].append({'SPARS':SAUX,'SBORNTAG':self.RadiProc.BuildString(SAUX),\
+                                                           'UPARS':AUX,'UBORNTAG':self.RadiProc.BuildString(AUX),\
+                                                           'DIPTYP':TYP,'IJ':[id1,id2],'SUBTYP':SUBTYP,\
                                                            'NAME':dipole_nam})
     
     ##
@@ -368,7 +371,7 @@ class Amplitude:
         ##  NLOX Interface  
         ##
         
-        NLOX_PROCESS_H = seek_and_destroy(self.TplDir+"nlox_process.tpl",DICT)
+        NLOX_PROCESS_H = seek_and_destroy(self.TplDir+"nlox_process_tpl.h",DICT)
         WriteFile(self.MatDir+"/code/nlox_process.h",NLOX_PROCESS_H)
         CopyFile(self.IntDir+'/nlox_olp.h',self.MatDir+'/code/nlox_olp.h')
         CopyFile(self.IntDir+'/nlox_olp.cc',self.MatDir+'/code/nlox_olp.cc')
@@ -420,10 +423,8 @@ class Amplitude:
     ##
     
     def CopyInterface(self):
-        # INTEGRANDFILES = ['Plus_Distribution.cpp','Plus_Distribution.h',\
-        INTEGRANDFILES = [\
-                          'Dipole_Structure.h','Dipole_Definitions.h','PSP_Generator.h']
-        TOPLAYERFILES  = ['makefile','Test_Process.cpp','Test_Integrands.cpp']
+        INTEGRANDFILES = ['Dipole_Structure.h','Dipole_Definitions.h','PSP_Generator.h']
+        TOPLAYERFILES  = ['Test_Process.cpp','Test_Integrands.cpp']
 
         MakeDir(self.SrcDir+'/Integrands')
 
@@ -433,6 +434,11 @@ class Amplitude:
         for file in TOPLAYERFILES:
             CopyFile(self.IntDir+'/'+file,self.SrcDir+'/'+file)
 
+        MAKEFILEDICT = {'NLOX PATH':self.config['NLOX PATH'][0],'GSL PATH':self.config['GSL PATH'][0]}
+        MAKEFILE = seek_and_destroy(self.TplDir+'/makefile',MAKEFILEDICT)
+        WriteFile(self.SrcDir+'/makefile',MAKEFILE)
+
+        
     def BuildDipoleStructures(self):
 
         TAB3 = '    '
@@ -456,12 +462,10 @@ class Amplitude:
             ChlDir = self.SrcDir+'/Integrands/'+Radiative
             MakeDir(ChlDir)
 
-            
-
             DICT={'SubProcHeader'    : '' ,\
                   'SubProcConst'     : '' ,\
-                  'NCC'              : '' ,\
                   'SubProcName'      : '' ,\
+                  'Next'             : str(self.RadiProc.nex) ,\
                   'SubProcMat'       : '' ,\
                   'SubProcSub'       : '' ,\
                   'SubProcPlu'       : '',\
@@ -469,11 +473,11 @@ class Amplitude:
             
             DICT['SubProcHeader'] = Radiative.upper()
             DICT['SubProcName'] = ClassName
-            DICT['SubProcConst'] += TAB3+'Next = '+str(self.RadiProc.nex)+';\n'
                 
             ##  This is a NLOX-specific function, it translates the names from StandardModel.py
             ##  into the ones in the NLOX's Processconst class
 
+            count = 0 
             for particle in self.RadiProc.subproc[Radiative]:
                 massvalue = 'Proc->pc.m'
                 if (particle in self.Model.quarks):
@@ -491,7 +495,8 @@ class Amplitude:
                         massvalue = '0.0'
                     else:
                         massvalue = 'sqrt(Proc->pc.m'+particle.nam[0]+'2.real())'
-                DICT['SubProcConst'] += TAB3+'masses.push_back('+massvalue+');\n'
+                DICT['SubProcConst'] += TAB3+'masses['+str(count)+'] = '+massvalue+';\n'
+                count += 1
             
             RadiCPS = self.Model.GetCPS(self.RadiProc.subproc[Radiative])
             Next = self.RadiProc.nex
@@ -508,24 +513,32 @@ class Amplitude:
                 elif dipole['DIPTYP']=='QCD':
                     QCDDipoles.append(dipole)
 
+
+            ##  Sort the Dipoles by underlying Born
+            def BORNTAG(Dipole):
+                return Dipole['SBORNTAG']
+            EWKDipoles.sort(key=BORNTAG)
+            QCDDipoles.sort(key=BORNTAG)
+
             DIPDIC = {'II':'ab','IF':'ai','FI':'ia','FF':'ij'}
 
             ## 
-            ##  We should start splitting this function 
-            ##  There is a lot of processing invloved here
-            ##  Maybe a good idea is to preprocess the dipole tree 
-            ##  and split it into two subtrees an EWK and a QDC one
-            ##  because at preprocessing the tree we should build the momenta map 
-            ##
+            ##  The DipoleTree has in it all the information we require:
+            ##  The postprocessing of the Dipole tree is as follows:
+            ##   - Fisrt we split the tree in two: QCD and EWK, mainly beca 
+            ##  
+            ##  
 
             for CP in RadiCPS:
 
                 CPHEAD = TAB3+'if (cp =="'+CP+'"){\n'
+                CACHEDTAG = ''
+
                 if len(EWKDipoles):
                     CPHEAD += TAB6+'double born[3];\n'
                 if len(QCDDipoles):
-                    CPHEAD += TAB6+'double borncc['+str(1+(self.RadiProc.nex-1)*(self.RadiProc.nex-2)/2)+'];\n'    
-                
+                    CPHEAD += TAB6+'double borncc['+str(1+(self.RadiProc.nex-1)*(self.RadiProc.nex-2)/2)+'];\n'
+                    
                 DICT['SubProcSub'] += CPHEAD
                 DICT['SubProcSub'] += TAB6+'i = Proc->AmpMap.at("'+Radiative+'");\n'
                 DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CP+'",p,'+str(Next)+',mu,radiative,&acc);\n'
@@ -544,6 +557,10 @@ class Amplitude:
                     for Spectator in EWKDipoles:
                         if Emitter == Spectator:
                             continue
+                        
+                        ## This throws away any CP combination that has no Born counterpart
+                        if RadiCPS[CP]['ae'] <= 0:
+                            continue
                         CPB = 'as'+str(RadiCPS[CP]['as'])+'ae'+str(RadiCPS[CP]['ae']-1)
                         
                         K = []
@@ -551,6 +568,7 @@ class Amplitude:
                         try:
                             K = [ i for i in Emitter['IJ'] if i in Spectator['IJ']][0]
                         except:
+                            # print Emitter['NAME'],Spectator['NAME'],'-> Skipped: Different Radiation'
                             continue 
                         
                         I = [ i for i in Emitter['IJ'] if i != K ][0]
@@ -568,7 +586,10 @@ class Amplitude:
                             QI = self.RadiProc.subproc[Radiative][I].sym['Charge']
                             QJ = self.RadiProc.subproc[Radiative][J].sym['Charge']
                         except:
+                            # print Emitter['NAME'],Spectator['NAME'],'-> Skipped: Neutral I or J (',K,')'
                             continue
+
+                        # print Emitter['NAME'],Spectator['NAME'],'(',K,')',Emitter['UBORNTAG']
 
                         ##
                         ## There is a factor of 3 between each charge in StandardModel.py vs RealWorld!
@@ -577,7 +598,10 @@ class Amplitude:
                         ##
 
                         DIPTAG  = TAB6+'DipFac = '+str(SigmaI*SigmaJ*QI*QJ)+'.0/9*EWKFac;\n'
-                        DIPTAG += TAB6+'i = Proc->AmpMap.at("'+Emitter['BORNTAG']+'");\n'
+                        
+                        if CACHEDTAG != Emitter['SBORNTAG']:
+                            DIPTAG += TAB6+'i = Proc->AmpMap.at("'+Emitter['SBORNTAG']+'");\n'
+                            CACHEDTAG = Emitter['SBORNTAG']
                         
                         ## 
                         ##  Subtracted Function 
@@ -632,6 +656,10 @@ class Amplitude:
                     for Spectator in QCDDipoles:
                         if Emitter == Spectator:
                             continue
+
+                        ## This throws away any CP combination that has no Born counterpart
+                        if RadiCPS[CP]['as'] <= 0:
+                            continue
                         CPB = 'as'+str(RadiCPS[CP]['as']-1)+'ae'+str(RadiCPS[CP]['ae'])
 
                         K = []
@@ -646,11 +674,14 @@ class Amplitude:
                         FIRST = min(I,J)
                         SECON = max(I,J)
 
+                        if CACHEDTAG != Emitter['SBORNTAG']:
+                            DIPTAG = TAB6+'i = Proc->AmpMap.at("'+Emitter['SBORNTAG']+'");\n'
+                            CACHEDTAG = Emitter['SBORNTAG']
+                        
                         ## This unflattens a symmetric (non-repeating) matrix, which borncc is
 
-                        DIPTAG = TAB6+'i = Proc->AmpMap.at("'+Emitter['BORNTAG']+'");\n'
-
                         WHICHCC = (self.RadiProc.nex-1)*FIRST + SECON - FIRST - FIRST*(FIRST-1)/2
+
                         PREFIX = Emitter['SUBTYP']+Spectator['SUBTYP']
                         DIPFUN = DIPDIC[PREFIX]
 
@@ -680,16 +711,16 @@ class Amplitude:
                         DICT['SubProcEnd'] += TAB6+'for(int k=0;k<=2;k++) rval[k] += QCDFac*aux[k]*borncc['+str(WHICHCC)+'];\n\n'
                         
 
-                DICT['SubProcSub'] += TAB3+'}'
-                DICT['SubProcPlu'] += TAB3+'}'
-                DICT['SubProcEnd'] += TAB3+'}'
+                DICT['SubProcSub'] += TAB3+'}\n'
+                DICT['SubProcPlu'] += TAB3+'}\n'
+                DICT['SubProcEnd'] += TAB3+'}\n'
             
-            SubFunctionH = seek_and_destroy(self.TplDir+'/Dipole_FunctionsH.tpl',DICT)
-            SubFunctionC = seek_and_destroy(self.TplDir+'/Dipole_FunctionsC.tpl',DICT)
+            SubFunctionH = seek_and_destroy(self.TplDir+'/Dipole_Functions_tpl.h',DICT)
+            SubFunctionC = seek_and_destroy(self.TplDir+'/Dipole_Functions_tpl.cpp',DICT)
             WriteFile(ChlDir+'/'+Radiative+'_Integrands.cpp',SubFunctionC)
             WriteFile(ChlDir+'/'+Radiative+'_Integrands.h',SubFunctionH)
         
-        IntegrandClass = seek_and_destroy(self.TplDir+'/Integrands.tpl',INTDICT)
+        IntegrandClass = seek_and_destroy(self.TplDir+'/Integrands_tpl.h',INTDICT)
         WriteFile(self.SrcDir+'/Integrands.h',IntegrandClass)
         
 def main(CONFIGFILE):
