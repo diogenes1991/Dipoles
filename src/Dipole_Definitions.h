@@ -28,8 +28,8 @@ T x_ab(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k){
 }
 
 template <class T>
-T xab_cut(FourVectorT<T> pa, FourVectorT<T> pb, T ma, T mb){ 
-    return ((ma*mb)/(pa*pb));
+T xab_cut(T sab, T ma, T mb){ 
+    return ((2*ma*mb)/(sab-ma*ma-mb*mb));
 }
 
 template <class T>
@@ -75,7 +75,8 @@ void Build_II_Momenta(int NEXT_BORN, std::vector<FourVectorT<T>> P_DAT, std::vec
 template <class T>
 T g_ab_fermion(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k, T ma, T mb){
     T xab = x_ab(pa,pb,k);
-    if (xab<xab_cut(pa,pb,ma,mb)) return 0;
+    T sab = ma*ma+mb*mb+2*(pa*pb);
+    if (xab<xab_cut(sab,ma,mb)) return 0;
     T out = 2.0/(1.0-xab);
     out  = out - (1.0+xab);
     out  = out - (xab*(pa*pa)/(pa*k));
@@ -102,13 +103,12 @@ T g_ab_boson(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k){
 // };
 
 template <class T>
-void G_ab_fermion(FourVectorT<T> pa, FourVectorT<T> pb, T ma, T mb, T mu, T* RVAL){
+void G_ab_fermion(T sab, T ma, T mb, T mu, T* RVAL){
 
     // TODO: This template only works for T=double due to the gsl_sf_dilog call
  
-    T sab = ma*ma + mb*mb + 2*(pa*pb);
-    T sab_bar = 2*(pa*pb);
-    T x0 = xab_cut(pa,pb,ma,mb);
+    T sab_bar = sab - ma*ma - mb*mb;
+    T x0 = xab_cut(sab,ma,mb);
     T LOG_DR = /*log_4pi + */log(mu*mu*sab/(sab_bar*sab_bar)) - 2*log(1.0-x0);
 
     if (ma==0.0){
