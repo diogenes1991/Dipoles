@@ -141,8 +141,8 @@ class Amplitude:
             self.stage -= 1
 
         if self.stage: 
-            # self.BuildMatrixElements()
-            # self.BuildProcess()
+            self.BuildMatrixElements()
+            self.BuildProcess()
             self.stage -= 1
 
         if self.stage:
@@ -160,12 +160,15 @@ class Amplitude:
         # borns needed.
         self.DipoleTree = {}
         self.Borns = {}
+        self.Linked = {}
         for radi in self.RadiProc.subproc:
+            self.Linked[radi] = {}
             aux = {}
             self.GetDipoles(radi,aux)
             self.DipoleTree[radi] = aux[radi]
             for born in self.DipoleTree[radi]:
                 self.Borns[born['SBORNTAG']] = born['SPARS']
+                self.Linked[radi][born['SBORNTAG']] = born['SPARS']
 
     def GetDipoles(self,SUBPROCESS,LINKED):
         # The rules to build the allowed dipoles are hard-coded Standard Model
@@ -437,9 +440,35 @@ class Amplitude:
         MAKEFILEDICT = {'NLOX PATH':self.config['NLOX PATH'][0],'GSL PATH':self.config['GSL PATH'][0]}
         MAKEFILE = seek_and_destroy(self.TplDir+'/makefile',MAKEFILEDICT)
         WriteFile(self.SrcDir+'/makefile',MAKEFILE)
-
         
     def BuildDipoleStructures(self):
+
+        def ProcessConstMassName(particle):
+
+            ##  This is a NLOX-specific function, it translates the names from StandardModel.py
+            ##  into the ones in the NLOX's Processconst class
+            
+            massvalue = 'Proc->pc.m'
+            if (particle in self.Model.quarks):
+                if abs(particle.pid) == 2:
+                    massvalue += particle.nam[0]+'p.real()'
+                else:
+                    massvalue += particle.nam[0]+'.real()'
+            elif (particle in self.Model.leptons):
+                if particle.sym['Charge']!=0:
+                    massvalue = '0.0'
+                else:
+                    massvalue += particle.nam[:1]+'.real()'
+            elif isinstance(particle,Boson):
+                if (particle.nam=='g' or particle.nam == 'A'):
+                    massvalue = '0.0'
+                else:
+                    massvalue = 'sqrt(Proc->pc.m'+particle.nam[0]+'2.real())'
+            return massvalue
+
+        ## 
+        ##  This function has waaaay too many reponsabilities.... 
+        ##
 
         TAB3 = '    '
         TAB6 = TAB3+TAB3
@@ -473,30 +502,30 @@ class Amplitude:
             
             DICT['SubProcHeader'] = Radiative.upper()
             DICT['SubProcName'] = ClassName
-                
-            ##  This is a NLOX-specific function, it translates the names from StandardModel.py
-            ##  into the ones in the NLOX's Processconst class
+
+            ## 
+            ##  Integrands constructor 
+            ##
 
             count = 0 
             for particle in self.RadiProc.subproc[Radiative]:
-                massvalue = 'Proc->pc.m'
-                if (particle in self.Model.quarks):
-                    if abs(particle.pid) == 2:
-                        massvalue += particle.nam[0]+'p.real()'
-                    else:
-                        massvalue += particle.nam[0]+'.real()'
-                elif (particle in self.Model.leptons):
-                    if particle.sym['Charge']!=0:
-                        massvalue = '0.0'
-                    else:
-                        massvalue += particle.nam[:1]+'.real()'
-                elif isinstance(particle,Boson):
-                    if (particle.nam=='g' or particle.nam == 'A'):
-                        massvalue = '0.0'
-                    else:
-                        massvalue = 'sqrt(Proc->pc.m'+particle.nam[0]+'2.real())'
-                DICT['SubProcConst'] += TAB3+'masses['+str(count)+'] = '+massvalue+';\n'
+                massvalue = ProcessConstMassName(particle)
+                DICT['SubProcConst'] += TAB3+'Masses['+str(count)+'] = '+massvalue+';\n'
                 count += 1
+    
+            DICT['SubProcConst'] += '\n'   
+            DICT['SubProcConst'] += TAB3+'nBorn = '+str(len(self.Linked[Radiative]))+';\n'   
+            DICT['SubProcConst'] += TAB3+'BornMasses = new double* [nBorn];\n' 
+            DICT['SubProcConst'] += TAB3+'for(int i=0;i<nBorn;i++) BornMasses[i]= new double[Next-1];\n\n' 
+             
+            Bcount = 0
+            for Born in self.Linked[Radiative]:
+                count = 0
+                DICT['SubProcConst'] += TAB3+'BornMap.insert({"'+Born+'",'+str(Bcount)+'});\n'
+                for particle in self.Linked[Radiative][Born]:
+                    DICT['SubProcConst'] += TAB3+'BornMasses['+str(Bcount)+']['+str(count)+']='+ProcessConstMassName(particle)+';\n'
+                    count += 1
+                Bcount += 1
             
             RadiCPS = self.Model.GetCPS(self.RadiProc.subproc[Radiative])
             Next = self.RadiProc.nex
@@ -513,8 +542,6 @@ class Amplitude:
                 elif dipole['DIPTYP']=='QCD':
                     QCDDipoles.append(dipole)
 
-
-            ##  Sort the Dipoles by underlying Born
             def BORNTAG(Dipole):
                 return Dipole['SBORNTAG']
             EWKDipoles.sort(key=BORNTAG)
@@ -547,8 +574,8 @@ class Amplitude:
                 DICT['SubProcPlu'] += CPHEAD
 
                 DICT['SubProcEnd'] += CPHEAD
-                DICT['SubProcEnd'] += TAB6+'double aux[3];\n'                
-                
+                DICT['SubProcEnd'] += TAB6+'double aux[3];\n'
+                        
                 ##
                 ##   EWK Dipoles 
                 ##
@@ -586,10 +613,18 @@ class Amplitude:
                             QI = self.RadiProc.subproc[Radiative][I].sym['Charge']
                             QJ = self.RadiProc.subproc[Radiative][J].sym['Charge']
                         except:
-                            # print Emitter['NAME'],Spectator['NAME'],'-> Skipped: Neutral I or J (',K,')'
                             continue
-
-                        # print Emitter['NAME'],Spectator['NAME'],'(',K,')',Emitter['UBORNTAG']
+                        
+                        if CACHEDTAG != Emitter['SBORNTAG']:
+                            AMPMAPLINE = TAB6+'i = Proc->AmpMap.at("'+Emitter['SBORNTAG']+'");\n'
+                            BORNMAPLINE  = TAB6+'j = BornMap.at("'+Emitter['SBORNTAG']+'");\n'
+                            BORNMAPLINE += TAB6+'SetInMom(j);\n'
+                            BORNMAPLINE += TAB6+'SetFiMom(j,rand,&J);\n'
+                            BORNMAPLINE += TAB6+'for(int k=0;k<=2;k++) p.push_back(BornMomenta[k]);\n'
+                            CACHEDTAG = Emitter['SBORNTAG']
+                        else:
+                            AMPMAPLINE = ''
+                            BORNMAPLINE = ''
 
                         ##
                         ## There is a factor of 3 between each charge in StandardModel.py vs RealWorld!
@@ -597,11 +632,7 @@ class Amplitude:
                         ## StandardModel uses Charges*3 to enforce charge conservation using integers.
                         ##
 
-                        DIPTAG  = TAB6+'DipFac = '+str(SigmaI*SigmaJ*QI*QJ)+'.0/9*EWKFac;\n'
-                        
-                        if CACHEDTAG != Emitter['SBORNTAG']:
-                            DIPTAG += TAB6+'i = Proc->AmpMap.at("'+Emitter['SBORNTAG']+'");\n'
-                            CACHEDTAG = Emitter['SBORNTAG']
+                        AMPMAPLINE  += TAB6+'DipFac = '+str(SigmaI*SigmaJ*QI*QJ)+'.0/9*EWKFac;\n'
                         
                         ## 
                         ##  Subtracted Function 
@@ -610,42 +641,32 @@ class Amplitude:
                         PREFIX = Emitter['SUBTYP']+Spectator['SUBTYP']
                         DIPFUN = DIPDIC[PREFIX]
 
-                        DICT['SubProcSub'] += DIPTAG
+                        DICT['SubProcSub'] += AMPMAPLINE
                         DICT['SubProcSub'] += TAB6+'Build_'+PREFIX+'_Momenta('+str(Next-1)+\
                                                    ',p,p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
                         DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p_tilde,'+str(Next-1)+',mu,born,&acc);\n'
-                        DICT['SubProcSub'] += TAB6+'*rval -= DipFac*g_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'],masses['+str(I)+'],masses['+str(J)+'])*born[2];\n\n'
+                        DICT['SubProcSub'] += TAB6+'*rval -= DipFac*g_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'],Masses['+str(I)+'],Masses['+str(J)+'])*born[2];\n\n'
                         
                         ##
                         ##  Plus Distribution
                         ##
 
-                        DICT['SubProcPlu'] += DIPTAG
-
-                        ## I(x) Block
-
-                        # DICT['SubProcPlu'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p,'+str(Next-1)+',mu,born,&acc);\n'
-                        # DICT['SubProcPlu'] += TAB6+'Ix = Jx*born[2]'
-
-                        # DICT['SubProcPlu'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p,'+str(Next-1)+',mu,born,&acc);\n'
-                        # DICT['SubProcPlu'] += TAB6+'Ix = Jx*born[2]'
-
-                        # 'DipFac*Curly_G_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'],'+MEMIT+','+MSPEC+')*born[2];\n\n'
-
-                        # DICT['SubProcPlu'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p1,'+str(Next-1)+',mu,born,&acc);\n'
-                        # DICT['SubProcPlu'] += TAB6+'*rval -= DipFac*Curly_G_'+DIPFUN+'_fermion(p1['+str(I)+'],p1['+str(J)+'],p1['+str(K)+'],'+MEMIT+','+MSPEC+')*born[2];\n\n'
-
-                        ## I(1) Block
-
-
-
+                        DICT['SubProcPlu'] += AMPMAPLINE
+                        DICT['SubProcPlu'] += TAB6+';\n'
+                        DICT['SubProcPlu'] += TAB6+';\n'
+                        
                         ##
                         ##  Endpoint Function
                         ##
 
-                        DICT['SubProcEnd'] += DIPTAG
+                        DICT['SubProcEnd'] += AMPMAPLINE
+                        DICT['SubProcEnd'] += BORNMAPLINE
+                        DICT['SubProcEnd'] += TAB6+'Invariant = BornMasses[j]['+str(I)+']*BornMasses[j]['+str(I)+']'\
+                                                              '+ BornMasses[j]['+str(J)+']*BornMasses[j]['+str(J)+']'\
+                                                              +('+' if (PREFIX=='II'or PREFIX=='FF') else '-')+\
+                                                              '2*(BornMomenta['+str(I)+']*BornMomenta['+str(J)+']);\n'
                         DICT['SubProcEnd'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",p,'+str(Next-1)+',mu,born,&acc);\n'
-                        DICT['SubProcEnd'] += TAB6+'G_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],masses['+str(I)+'],masses['+str(J)+'],mu,aux);\n'
+                        DICT['SubProcEnd'] += TAB6+'G_'+DIPFUN+'_fermion(Invariant,BornMasses[j]['+str(I)+'],BornMasses[j]['+str(J)+'],mu,aux);\n'
                         DICT['SubProcEnd'] += TAB6+'for(int k=0;k<=2;k++) rval[k] += DipFac*aux[k]*born[2];\n\n'
                         
                 ##
@@ -675,9 +696,16 @@ class Amplitude:
                         SECON = max(I,J)
 
                         if CACHEDTAG != Emitter['SBORNTAG']:
-                            DIPTAG = TAB6+'i = Proc->AmpMap.at("'+Emitter['SBORNTAG']+'");\n'
+                            AMPMAPLINE = TAB6+'i = Proc->AmpMap.at("'+Emitter['SBORNTAG']+'");\n'
+                            BORNMAPLINE  = TAB6+'j = BornMap.at("'+Emitter['SBORNTAG']+'");\n'
+                            BORNMAPLINE += TAB6+'SetInMom(j);\n'
+                            BORNMAPLINE += TAB6+'SetFiMom(j,rand,&J);\n'
+                            BORNMAPLINE += TAB6+'for(int k=0;k<=2;k++) p.push_back(BornMomenta[k]);\n'
                             CACHEDTAG = Emitter['SBORNTAG']
-                        
+                        else:
+                            AMPMAPLINE = ''
+                            BORNMAPLINE = ''
+
                         ## This unflattens a symmetric (non-repeating) matrix, which borncc is
 
                         WHICHCC = (self.RadiProc.nex-1)*FIRST + SECON - FIRST - FIRST*(FIRST-1)/2
@@ -689,25 +717,30 @@ class Amplitude:
                         ##  Subtracted Function 
                         ## 
 
-                        DICT['SubProcSub'] += DIPTAG
+                        DICT['SubProcSub'] += AMPMAPLINE
                         DICT['SubProcSub'] += TAB6+'Build_'+PREFIX+'_Momenta('+str(Next-1)+\
                                                    ',p,p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
                         DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha_cc(i,"tree_tree","'+CPB+'",p_tilde,'+str(Next-1)+',borncc,&acc);\n'
-                        DICT['SubProcSub'] += TAB6+'*rval += QCDFac*g_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'],masses['+str(I)+'],masses['+str(J)+'])*borncc['+str(WHICHCC)+'];\n\n'
+                        DICT['SubProcSub'] += TAB6+'*rval += QCDFac*g_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'],Masses['+str(I)+'],Masses['+str(J)+'])*borncc['+str(WHICHCC)+'];\n\n'
                         
                         ##
                         ##  Plus Distribution
                         ##
 
-                        DICT['SubProcPlu'] += DIPTAG
+                        DICT['SubProcPlu'] += AMPMAPLINE
 
                         ## 
                         ##  Endpoint Function 
                         ##
 
-                        DICT['SubProcEnd'] += DIPTAG
+                        DICT['SubProcEnd'] += AMPMAPLINE
+                        DICT['SubProcEnd'] += BORNMAPLINE
+                        DICT['SubProcEnd'] += TAB6+'Invariant = BornMasses[j]['+str(I)+']*BornMasses[j]['+str(I)+']'\
+                                                              '+ BornMasses[j]['+str(J)+']*BornMasses[j]['+str(J)+']'\
+                                                              +('+' if (PREFIX=='II'or PREFIX=='FF') else '-')+\
+                                                              '2*(BornMomenta['+str(I)+']*BornMomenta['+str(J)+']);\n'
                         DICT['SubProcEnd'] += TAB6+'Proc->evaluate_alpha_cc(i,"tree_tree","'+CPB+'",p,'+str(Next-1)+',borncc,&acc);\n'
-                        DICT['SubProcEnd'] += TAB6+'G_'+DIPFUN+'_fermion(p['+str(I)+'],p['+str(J)+'],masses['+str(I)+'],masses['+str(J)+'],mu,aux);\n'
+                        DICT['SubProcEnd'] += TAB6+'G_'+DIPFUN+'_fermion(Invariant,BornMasses[j]['+str(I)+'],BornMasses[j]['+str(J)+'],mu,aux);\n'
                         DICT['SubProcEnd'] += TAB6+'for(int k=0;k<=2;k++) rval[k] += QCDFac*aux[k]*borncc['+str(WHICHCC)+'];\n\n'
                         
 
