@@ -2,7 +2,6 @@
 #define _Dipoles_Definitions_H
 
 #include "Phase_Space_Tools.h"
-// #include "Plus_Distribution.h"
 
 #include <gsl/gsl_sf_dilog.h>
 #define PolyLog2 gsl_sf_dilog
@@ -15,6 +14,19 @@
 
 #define log_4pi 2.5310242469692907929778915942694118477
 #define pi2 9.869604401089358618834490999876151135
+
+template<class T>
+FourMatrixT<T> TensorProduct(FourVectorT<T> a, FourVectorT<T> b){
+    FourMatrixT<T> Mat;
+    T flata[4] = {a.p0,a.p1,a.p2,a.p3};
+    T flatb[4] = {b.p0,b.p1,b.p2,b.p3};
+    for(int i=0;i<4;i++){
+        for(int j=0;j<4;j++){
+            Mat.M[i][j] = flata[i]*flatb[j];
+        }
+    }
+    return Mat;
+}
 
 // 
 //   II Functions and Maps 
@@ -84,23 +96,53 @@ T g_ab_fermion(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k, T ma, T m
     return out;   
 }
 
-// NOTE: Currently g_ab_boson is a placeholder and its overloaded to g_ab_fermion temporarily //
 template <class T>
-T g_ab_boson(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k){
-    
-    return g_ab_fermion(pa,pb,k);    
+FourMatrixT<T> g_ab_boson(FourVectorT<T> pa, FourVectorT<T> pb, FourVectorT<T> k){
+    FourMatrixT<T> Matrix;
+    T xab = x_ab(pa,pb,k);
+    FourVectorT<T> kproj = k - ((pa*k)/(pa*pb))*pb;
+    Matrix.M[0][0] = 1;
+    for (int j=1;j<=3;j++) Matrix.M[j][j] = -1;
+    Matrix  = (xab*((1/(1-xab))+(1-xab)))*Matrix;
+    FourMatrixT<T> Aux = TensorProduct(kproj,kproj);
+    Aux = (((1-xab)/xab)*((pa*pb)/((k*pa)*(k*pb))))*Aux;
+    Matrix = Matrix + Aux;
+    return Matrix;    
 }
 
-// template <class T>
-// T CurlyG_ab_fermion(FourVectorT<T> pa, FourVectorT<T> pb, T ma, T mb, T x, T Ix, T I1){
+template <class T>
+T CurlyG_ab_fermion(T sab, T ma, T mb, T x, T Ix, T I1){
     
-//     T sab = ma*ma + mb*mb + 2*(pa*pb);
-//     T sab_bar = 2*(pa*pb);
-//     T LOG_DR = /*log_4pi + */log(mu*mu*sab/(sab_bar*sab_bar));
+    T Rval = 0;
+    T Fx,F1;
+    T sab_bar = sab - ma*ma - mb*mb;
+    T lambda_ab = lambda(sab,ma*ma,mb*mb);
+    T LOG_DR = /*log_4pi + */log(mu*mu*sab/(sab_bar*sab_bar));
+
+    if (ma==0.0){
+
+        Fx = (1.0-x)*(1.0-x)-(1.0+x*x)*LOG_DR*Ix/x;
+        F1 = -2*LOG_DR*I1;
+        Rval += (1.0/(1.0-x))*(Fx-F1);
+
+        Fx = 2.0*(1.0+x*x)*LOG_DR*Ix/x;
+        F1 = 4.0*LOG_DR*I1;
+        Rval += (log(1.0-x)/(1.0-x))*(Fx-F1);
+
+    }
+
+    else{
+        T BETA = sab_bar + 2*ma*ma - sqrt(lambda_ab);
+          BETA = BETA / (sab_bar + 2*ma*ma + sqrt(lambda_ab));
+        T  LOG = log(BETA);
+
+        Fx = (2.0*x+(sab_bar/sqrt(lambda_ab))*(1.0+x*x)*LOG)*Ix/x;
+        F1 = 2.0*(1.0+sab_bar/sqrt(lambda_ab)*LOG)*I1;
+        Rval += (1.0/(1.0-x))*(Fx-F1);
+    }
 
 
-
-// };
+};
 
 template <class T>
 void G_ab_fermion(T sab, T ma, T mb, T mu, T* RVAL){
