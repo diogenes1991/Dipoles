@@ -114,8 +114,8 @@ all: Test
 Test: Integrands $(TEST_OBJ)
 	@echo $(CXX) Test_Integrands  
 	@$(CXX) $(CFLAGS) -o Test_Integrands $(COMMON_INC) $(COMMON_LIB_DIRS) -L. $(INTEGRAND_OBJ) Test_Integrands.o -lprocess $(COMMON_LIBS)
-	@echo $(CXX) Test_Process
-	@$(CXX) $(CFLAGS) -o Test_Process $(COMMON_INC) $(COMMON_LIB_DIRS) -L. Test_Process.o -lprocess $(COMMON_LIBS)
+# 	@echo $(CXX) Test_Process
+# 	@$(CXX) $(CFLAGS) -o Test_Process $(COMMON_INC) $(COMMON_LIB_DIRS) -L. Test_Process.o -lprocess $(COMMON_LIBS)
 
 Integrands: $(INTEGRAND_OBJ) $(DIPOLE_OBJ)
 
