@@ -38,9 +38,9 @@ void ####SubProcName####::SetFiMom(int BornNum, double* rFi, double* J){
     FourVector PFi[Next-3];
     double mFi[Next-3];
     double dummy = 1.0;
-    for (int i=0;i<Next-1;i++) mFi[i] = BornMasses[BornNum][i+2];
+    for (int i=0;i<Next-3;i++) mFi[i] = BornMasses[BornNum][i+2];
     Recursive_PSP(P,Next-1,PFi,mFi,rFi,dummy);
-    for (int i=0;i<Next-1;i++) BornMomenta[i+2] = PFi[i];
+    for (int i=0;i<Next-3;i++) BornMomenta[i+2] = PFi[i];
     *J = dummy;    
 }
 
@@ -68,9 +68,9 @@ void ####SubProcName####::Subtracted(std::string cp, double* rand, double* rval)
 
     SetFiMom(rand,&J);
     std::vector<FourVector> p,p_tilde;
+    double pp[5*Next],pp_tilde[5*Next];
     for(int j=0;j<Next;j++){
         p.push_back(Momenta[j]);
-        p_tilde.push_back(Momenta[j]);
     }
     
 ####SubProcSub####
@@ -109,6 +109,7 @@ void ####SubProcName####::Endpoint(std::string cp, double* rand, double mu, doub
     double J = 1.0;
     double acc,Invariant;
     std::vector<FourVector> p;
+    double pp[4*Next];
     rval[0] = 0.;
     rval[1] = 0.;
     rval[2] = 0.;
