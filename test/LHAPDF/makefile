@@ -1,7 +1,7 @@
 CXX=g++
 CFLAGS=-O3
 
-LHAPDF_DIR=/home/diogenes1991/LHAPDF-6.3.0/include/LHAPDF
+LHAPDF_DIR=$(shell pwd)/../utils/built/LHAPDF-6.3.0/built/include/LHAPDF
 
 COMMON_INC=
 COMMON_LIBS=
@@ -18,7 +18,7 @@ TEST_OBJ=PDF_Tester.o
 all: Test
 
 Test: $(TEST_OBJ)
-	@echo $(CXX) Integrator_Tester
+	@echo $(CXX) PDF_Tester
 	@$(CXX) $(CFLAGS) -o PDF_Tester $(COMMON_INC) $(COMMON_LIB_DIRS) -L. $(TEST_OBJ) $(COMMON_LIBS)
 
 %.o:%.cpp
