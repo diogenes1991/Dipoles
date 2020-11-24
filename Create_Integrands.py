@@ -16,6 +16,43 @@ class Amplitude:
     ##  all real configs are at self.config['Key'][0]
     ##
 
+    def LoadPaths(self):
+        PATHS = { 'GSL PATH'    : [''], \
+                  'CUBA PATH'   : [''], \
+                  'LHAPDF PATH' : [''], }
+
+        PATHSFILE=os.getcwd()+'/util/utils.path'
+        COMMCHAR = '#'
+        REQUIRED = set([])
+
+        f = open(PATHSFILE,'r')
+        configfile= []
+        for l in f:
+            if l.find(COMMCHAR)==0 or len(l)==0 or l=='\n':
+                continue
+            configfile.append([False,l])
+
+        for configuration in PATHS.keys():
+            warn = True
+            for line in configfile:
+                if configuration in line[1]:
+                    thisconfig = line[1].strip().split('=')
+                    PATHS[thisconfig[0].strip()] = (thisconfig[1].strip()).split(',')[0]
+                    warn = False
+                    line[0] = True
+            if warn:
+                if configuration not in REQUIRED:
+                    print "\33[95mWarning\33[0m: Configuartion",configuration,"not found in configuration file, using default:",PATHS[configuration][0]
+                else:
+                    print "\33[31mError\33[0m: Configuration",configuration,"not found in configuration, this is a required configuration."
+                    sys.exit()
+        
+        for line in configfile:
+            if not line[0]:
+                print "\33[95mWarning\33[0m: Configuartion",(((line[1].strip()).split('='))[0]).strip(),"is not a valid configuration setting, please check the syntax"
+        f.close()
+        self.paths = PATHS
+
     def ReadConfig(self,CONFIGFILE):
         CONFIG = {'INITIAL STATE': [0],\
                   'FINAL STATE'  : [0],\
@@ -137,7 +174,7 @@ class Amplitude:
         if self.stage:
             MakeDir(self.SrcDir)
             self.BuildDipoleTree()
-            self.BuildSeeds()
+            # self.BuildSeeds()
             self.stage -= 1
 
         if self.stage: 
@@ -147,8 +184,9 @@ class Amplitude:
 
         if self.stage:
             self.BuildDipoleTree()
-            self.CopyInterface()
+            self.BuildInterface()
             self.BuildDipoleStructures()
+            self.BuildVirtualStructures()
             
     ##
     ##  Dipole Tree creation from the Radiative process
@@ -347,9 +385,6 @@ class Amplitude:
                 if count != len(Fin):
                     DICT['Final State'] += ','
                 count += 1
-            
-            if self.verbose:
-                print Ini,'->',Fin,'at [',MinQCD,',',MaxQCD,'+(1)]'
 
             DICT['Tree CP'] += CSS(MaxQCD,MinQCD)
             DICT['Loop CP'] += CSS(MaxQCD+1,MinQCD)
@@ -436,21 +471,23 @@ class Amplitude:
     ##  Dipoles: Overhead Interface, Integrands and CUBA Targets 
     ##
     
-    def CopyInterface(self):
-        INTEGRANDFILES = ['Dipole_Structure.h','Dipole_Definitions.h','PSP_Generator.h','Utilities.h']
-        TOPLAYERFILES  = ['Test_Integrands.cpp']
+    def BuildInterface(self):
+        CODEFILES = ['Dipole_Structure.h','Dipole_Definitions.h', \
+                     'PSP_Generator.h','Utilities.h','Virtual_Structure.h',\
+                     'Integrators.h','PDF_Sets.h']
+        TOPLAYERFILES  = ['Main.cpp']
 
-        MakeDir(self.SrcDir+'/Integrands')
+        MakeDir(self.SrcDir+'/Code')
 
-        for file in INTEGRANDFILES:
-            CopyFile(self.IntDir+'/'+file,self.SrcDir+'/Integrands/'+file)
+        for file in CODEFILES:
+            CopyFile(self.IntDir+'/'+file,self.SrcDir+'/Code/'+file)
         
         for file in TOPLAYERFILES:
             CopyFile(self.IntDir+'/'+file,self.SrcDir+'/'+file)
 
-        MAKEFILEDICT = {'NLOX PATH':self.config['NLOX PATH'][0], 
-                        'GSL PATH':}
-        MAKEFILE = seek_and_destroy(self.TplDir+'/makefile',MAKEFILEDICT)
+        self.LoadPaths()
+        self.paths['NLOX PATH']=self.config['NLOX PATH'][0]
+        MAKEFILE = seek_and_destroy(self.TplDir+'/makefile',self.paths)
         WriteFile(self.SrcDir+'/makefile',MAKEFILE)
         
     def BuildDipoleStructures(self):
@@ -493,14 +530,14 @@ class Amplitude:
         Count = 0
         for Radiative in self.RadiProc.subproc:
 
-            ClassName = Radiative+'_Integrands'
+            ClassName = Radiative+'_Real'
 
-            INTDICT['Include Integrands'] += '#include "Integrands/'+Radiative+'/'+ClassName+'.h"\n'
-            INTDICT['Integrand Catalogue'] += TAB9+'Channels['+str(Count)+'] = new '+ClassName+'(Proc);\n'
+            INTDICT['Include Integrands'] += '#include "Real/'+Radiative+'/'+ClassName+'.h"\n'
+            INTDICT['Integrand Catalogue'] += TAB9+'Channels['+str(Count)+'] = new '+ClassName+'(*Proc);\n'
             INTDICT['Integrand Catalogue'] += TAB9+'ChannelMap.insert({"'+Radiative+'",'+str(Count)+'});\n'
 
             Count += 1
-            ChlDir = self.SrcDir+'/Integrands/'+Radiative
+            ChlDir = self.SrcDir+'/Real/'+Radiative
             MakeDir(ChlDir)
 
             DICT={'SubProcHeader'    : '' ,\
@@ -528,7 +565,7 @@ class Amplitude:
             DICT['SubProcConst'] += '\n'   
             DICT['SubProcConst'] += TAB3+'nBorn = '+str(len(self.Linked[Radiative]))+';\n'   
             DICT['SubProcConst'] += TAB3+'BornMasses = new double* [nBorn];\n' 
-            DICT['SubProcConst'] += TAB3+'for(int i=0;i<nBorn;i++) BornMasses[i]= new double[Next-1];\n\n' 
+            DICT['SubProcConst'] += TAB3+'for(int i=0;i<nBorn;i++) BornMasses[i]= new double[NextR-1];\n\n' 
              
             Bcount = 0
             for Born in self.Linked[Radiative]:
@@ -588,7 +625,7 @@ class Amplitude:
                     
                 DICT['SubProcSub'] += CPHEAD
                 DICT['SubProcSub'] += TAB6+'i = Proc->AmpMap.at("'+Radiative+'");\n'
-                DICT['SubProcSub'] += TAB6+'for(int j=0;j<Next;j++){pp[5*j]=p.at(j).p0;pp[5*j+1]=p.at(j).p1;pp[5*j+2]=p.at(j).p2;pp[5*j+3]=p.at(j).p3;pp[5*j+4]=0.0;}\n'
+                DICT['SubProcSub'] += TAB6+'for(int j=0;j<NextR;j++){pp[5*j]=p.at(j).p0;pp[5*j+1]=p.at(j).p1;pp[5*j+2]=p.at(j).p2;pp[5*j+3]=p.at(j).p3;pp[5*j+4]=0.0;}\n'
                 DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CP+'",pp,'+str(Next)+',mu,radiative,&acc);\n'
                 DICT['SubProcSub'] += TAB6+'*rval = radiative[2];\n\n'
 
@@ -643,7 +680,7 @@ class Amplitude:
                             BORNMAPLINE  = TAB6+'j = BornMap.at("'+Emitter['SBORNTAG']+'");\n'
                             BORNMAPLINE += TAB6+'SetInMom(j);\n'
                             BORNMAPLINE += TAB6+'SetFiMom(j,rand,&J);\n'
-                            BORNMAPLINE += TAB6+'for(int j=0;j<Next-1;j++){pp[5*j+0]=BornMomenta[j].p0;pp[5*j+1]=BornMomenta[j].p1;pp[5*j+2]=BornMomenta[j].p2;pp[5*j+3]=BornMomenta[j].p3;pp[5*j+4]=0.0;}\n'
+                            BORNMAPLINE += TAB6+'for(int j=0;j<NextR-1;j++){pp[5*j+0]=BornMomenta[j].p0;pp[5*j+1]=BornMomenta[j].p1;pp[5*j+2]=BornMomenta[j].p2;pp[5*j+3]=BornMomenta[j].p3;pp[5*j+4]=0.0;}\n'
                             CACHEDTAG = Emitter['SBORNTAG']
                         else:
                             AMPMAPLINE = ''
@@ -668,7 +705,7 @@ class Amplitude:
 
                         DICT['SubProcSub'] += AMPMAPLINE
                         DICT['SubProcSub'] += TAB6+'Build_'+PREFIX+'_Momenta(p,&p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
-                        DICT['SubProcSub'] += TAB6+'for(int j=0;j<Next-1;j++){pp_tilde[5*j+0]=p_tilde.at(j).p0;pp_tilde[5*j+1]=p_tilde.at(j).p1;pp_tilde[5*j+2]=p_tilde.at(j).p2;pp_tilde[5*j+3]=p_tilde.at(j).p3;pp_tilde[5*j+4]=0.0;}\n'
+                        DICT['SubProcSub'] += TAB6+'for(int j=0;j<NextR-1;j++){pp_tilde[5*j+0]=p_tilde.at(j).p0;pp_tilde[5*j+1]=p_tilde.at(j).p1;pp_tilde[5*j+2]=p_tilde.at(j).p2;pp_tilde[5*j+3]=p_tilde.at(j).p3;pp_tilde[5*j+4]=0.0;}\n'
                         DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",pp_tilde,'+str(Next-1)+',mu,born,&acc);\n'
                         DICT['SubProcSub'] += TAB6+'*rval -= DipFac*g_'+DIPFUN+'_'+TYP+'(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'],Masses['+str(I)+'],Masses['+str(J)+'])*born[2];\n\n'
                         
@@ -733,7 +770,7 @@ class Amplitude:
                             BORNMAPLINE  = TAB6+'j = BornMap.at("'+Emitter['SBORNTAG']+'");\n'
                             BORNMAPLINE += TAB6+'SetInMom(j);\n'
                             BORNMAPLINE += TAB6+'SetFiMom(j,rand,&J);\n'
-                            BORNMAPLINE += TAB6+'for(int j=0;j<Next-1;j++){pp[5*j+0]=BornMomenta[j].p0;pp[5*j+1]=BornMomenta[j].p1;pp[5*j+2]=BornMomenta[j].p2;pp[5*j+3]=BornMomenta[j].p3;pp[5*j+4]=0.0;}\n'
+                            BORNMAPLINE += TAB6+'for(int j=0;j<NextR-1;j++){pp[5*j+0]=BornMomenta[j].p0;pp[5*j+1]=BornMomenta[j].p1;pp[5*j+2]=BornMomenta[j].p2;pp[5*j+3]=BornMomenta[j].p3;pp[5*j+4]=0.0;}\n'
                             CACHEDTAG = Emitter['SBORNTAG']
                         else:
                             AMPMAPLINE = ''
@@ -759,7 +796,7 @@ class Amplitude:
 
                         DICT['SubProcSub'] += AMPMAPLINE
                         DICT['SubProcSub'] += TAB6+'Build_'+PREFIX+'_Momenta(p,&p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
-                        DICT['SubProcSub'] += TAB6+'for(int j=0;j<Next-1;j++){pp_tilde[5*j+0]=p_tilde.at(j).p0;pp_tilde[5*j+1]=p_tilde.at(j).p1;pp_tilde[5*j+2]=p_tilde.at(j).p2;pp_tilde[5*j+3]=p_tilde.at(j).p3;pp_tilde[5*j+4]=0.0;}\n'
+                        DICT['SubProcSub'] += TAB6+'for(int j=0;j<NextR-1;j++){pp_tilde[5*j+0]=p_tilde.at(j).p0;pp_tilde[5*j+1]=p_tilde.at(j).p1;pp_tilde[5*j+2]=p_tilde.at(j).p2;pp_tilde[5*j+3]=p_tilde.at(j).p3;pp_tilde[5*j+4]=0.0;}\n'
                         DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha_'+BORNTYP+'(i,"tree_tree","'+CPB+'",pp_tilde,'+str(Next-1)+','+BORNPTR+');\n'
                         DICT['SubProcSub'] += TAB6+'*rval += QCDFac*'+TR+'(g_'+DIPFUN+'_'+TYP+'(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'],Masses['+str(I)+'],Masses['+str(J)+'])*'+INI+'('+BORN+'['+str(WHICHCC)+']));\n\n'
                         
@@ -790,12 +827,124 @@ class Amplitude:
             
             SubFunctionH = seek_and_destroy(self.TplDir+'/Dipole_Functions_tpl.h',DICT)
             SubFunctionC = seek_and_destroy(self.TplDir+'/Dipole_Functions_tpl.cpp',DICT)
-            WriteFile(ChlDir+'/'+Radiative+'_Integrands.cpp',SubFunctionC)
-            WriteFile(ChlDir+'/'+Radiative+'_Integrands.h',SubFunctionH)
+            WriteFile(ChlDir+'/'+Radiative+'_Real.cpp',SubFunctionC)
+            WriteFile(ChlDir+'/'+Radiative+'_Real.h',SubFunctionH)
         
-        IntegrandClass = seek_and_destroy(self.TplDir+'/Integrands_tpl.h',INTDICT)
-        WriteFile(self.SrcDir+'/Integrands.h',IntegrandClass)
+        IntegrandClass = seek_and_destroy(self.TplDir+'/Real_tpl.h',INTDICT)
+        WriteFile(self.SrcDir+'/Real.h',IntegrandClass)
+
+    def BuildVirtualStructures(self):
         
+        def ProcessConstMassName(particle):
+
+            ##  This is a NLOX-specific function, it translates the names from StandardModel.py
+            ##  into the ones in the NLOX's Processconst class
+            
+            massvalue = 'Proc->pc.m'
+            if (particle in self.Model.quarks):
+                if abs(particle.pid) == 2:
+                    massvalue += particle.nam[0]+'p.real()'
+                else:
+                    massvalue += particle.nam[0]+'.real()'
+            elif (particle in self.Model.leptons):
+                if particle.sym['Charge']!=0:
+                    massvalue = '0.0'
+                else:
+                    massvalue += particle.nam[:1]+'.real()'
+            elif isinstance(particle,Boson):
+                if (particle.nam=='g' or particle.nam == 'A'):
+                    massvalue = '0.0'
+                else:
+                    massvalue = 'sqrt(Proc->pc.m'+particle.nam[0]+'2.real())'
+            return massvalue
+
+
+        TAB3 = '    '
+        TAB6 = TAB3+TAB3
+        TAB9 = TAB6+TAB3
+
+        VIRTDICT = {'Include Virtuals' : '' ,\
+                    'nChannels'         : str(len(self.Borns)) ,\
+                    'Virtual Catalogue': ''}
+
+        Count = 0
+        for Born in self.Borns:
+
+            ClassName = Born+'_Virtual'
+
+            VIRTDICT['Include Virtuals'] += '#include "Virtual/'+Born+'/'+ClassName+'.h"\n'
+            VIRTDICT['Virtual Catalogue'] += TAB9+'Channels['+str(Count)+'] = new '+ClassName+'(*Proc);\n'
+            VIRTDICT['Virtual Catalogue'] += TAB9+'ChannelMap.insert({"'+Born+'",'+str(Count)+'});\n'
+
+            Count += 1
+            ChlDir = self.SrcDir+'/Virtual/'+Born
+            MakeDir(ChlDir)
+
+            DICT={'SubProcHeader'    : '' ,\
+                  'SubProcConst'     : '' ,\
+                  'SubProcName'      : '' ,\
+                  'Next'             : str(self.RadiProc.nex-1) ,\
+                  'SubProcBorn'      : '',\
+                  'SubProcVirt'      : ''}
+
+            DICT['SubProcHeader'] = Born.upper()
+            DICT['SubProcName'] = ClassName
+
+            DICT['SubProcConst'] += '\n'   
+            DICT['SubProcConst'] += TAB3+'BornMasses = new double[NextV];\n' 
+             
+            count = 0
+            for particle in self.Borns[Born]:
+                DICT['SubProcConst'] += TAB3+'BornMasses['+str(count)+']='+ProcessConstMassName(particle)+';\n'
+                count += 1
+            
+            BornCPS = self.Model.GetCPS(self.Borns[Born])
+            VirtCPS = {}
+            for CP in BornCPS:
+                asp = BornCPS[CP]['as']
+                aep = BornCPS[CP]['ae']
+                asc = 'as'+str(asp+1)+'ae'+str(aep)
+                aec = 'as'+str(asp)+'ae'+str(aep+1)
+                VirtCPS[asc] = {'as':asp+1,'ae':aep}
+                VirtCPS[aec] = {'as':asp,'ae':aep+1}
+
+            CPHEAD = ''
+            for CP in BornCPS:    
+                if len(CPHEAD):
+                    CPHEAD = TAB3+'else if (cp =="'+CP+'"){\n'
+                else:
+                    CPHEAD = TAB3+'if (cp =="'+CP+'"){\n'
+
+                DICT['SubProcBorn'] += CPHEAD
+                DICT['SubProcBorn'] += TAB6+'int i = Proc->AmpMap.at("'+Born+'");\n'
+                DICT['SubProcBorn'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CP+'",pp,'+str(self.RadiProc.nex-1)+',mu,born,&acc);\n'
+                DICT['SubProcBorn'] += TAB6+'}\n'
+            
+            CPHEAD = ''  
+            for CP in VirtCPS:
+                if len(CPHEAD):
+                    CPHEAD = TAB3+'else if (cp =="'+CP+'"){\n'
+                else:
+                    CPHEAD = TAB3+'if (cp =="'+CP+'"){\n'
+
+                DICT['SubProcVirt'] += CPHEAD
+                DICT['SubProcVirt'] += TAB6+'int i = Proc->AmpMap.at("'+Born+'");\n'
+                DICT['SubProcVirt'] += TAB6+'Proc->evaluate_alpha(i,"tree_loop","'+CP+'",pp,'+str(self.RadiProc.nex-1)+',mu,virt,&acc);\n'
+                DICT['SubProcVirt'] += TAB6+'}\n'
+    
+
+
+
+            SubFunctionH = seek_and_destroy(self.TplDir+'/Virtual_Functions_tpl.h',DICT)
+            SubFunctionC = seek_and_destroy(self.TplDir+'/Virtual_Functions_tpl.cpp',DICT)
+            WriteFile(ChlDir+'/'+Born+'_Virtual.cpp',SubFunctionC)
+            WriteFile(ChlDir+'/'+Born+'_Virtual.h',SubFunctionH)
+
+        IntegrandClass = seek_and_destroy(self.TplDir+'/Virtual_tpl.h',VIRTDICT)
+        WriteFile(self.SrcDir+'/Virtual.h',IntegrandClass)
+
+
+
 def main(CONFIGFILE):
     
     AMPLITUDE = Amplitude(CONFIGFILE)
