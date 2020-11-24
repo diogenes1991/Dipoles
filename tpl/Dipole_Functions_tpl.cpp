@@ -16,12 +16,12 @@ void ####SubProcName####::SetECM(double ECM){
 }
 
 void ####SubProcName####::SetFiMom(double* rFi, double* J){
-    FourVector PFi[Next-2];
-    double mFi[Next-2];
+    FourVector PFi[NextR-2];
+    double mFi[NextR-2];
     double dummy = 1.0;
-    for (int i=0;i<Next-2;i++) mFi[i] = Masses[i+2];
-    Recursive_PSP(P,Next-2,PFi,mFi,rFi,dummy);
-    for (int i=0;i<Next-2;i++) Momenta[i+2] = PFi[i];
+    for (int i=0;i<NextR-2;i++) mFi[i] = Masses[i+2];
+    Recursive_PSP(P,NextR-2,PFi,mFi,rFi,dummy);
+    for (int i=0;i<NextR-2;i++) Momenta[i+2] = PFi[i];
     *J = dummy;    
 }
 
@@ -35,12 +35,12 @@ void ####SubProcName####::SetInMom(double* rIn){
 }
 
 void ####SubProcName####::SetFiMom(int BornNum, double* rFi, double* J){
-    FourVector PFi[Next-3];
-    double mFi[Next-3];
+    FourVector PFi[NextR-3];
+    double mFi[NextR-3];
     double dummy = 1.0;
-    for (int i=0;i<Next-3;i++) mFi[i] = BornMasses[BornNum][i+2];
-    Recursive_PSP(P,Next-1,PFi,mFi,rFi,dummy);
-    for (int i=0;i<Next-3;i++) BornMomenta[i+2] = PFi[i];
+    for (int i=0;i<NextR-3;i++) mFi[i] = BornMasses[BornNum][i+2];
+    Recursive_PSP(P,NextR-1,PFi,mFi,rFi,dummy);
+    for (int i=0;i<NextR-3;i++) BornMomenta[i+2] = PFi[i];
     *J = dummy;    
 }
 
@@ -68,8 +68,8 @@ void ####SubProcName####::Subtracted(std::string cp, double* rand, double* rval)
 
     SetFiMom(rand,&J);
     std::vector<FourVector> p,p_tilde;
-    double pp[5*Next],pp_tilde[5*Next];
-    for(int j=0;j<Next;j++){
+    double pp[5*NextR],pp_tilde[5*NextR];
+    for(int j=0;j<NextR;j++){
         p.push_back(Momenta[j]);
     }
     
@@ -109,7 +109,7 @@ void ####SubProcName####::Endpoint(std::string cp, double* rand, double mu, doub
     double J = 1.0;
     double acc,Invariant;
     std::vector<FourVector> p;
-    double pp[4*Next];
+    double pp[4*NextR];
     rval[0] = 0.;
     rval[1] = 0.;
     rval[2] = 0.;

@@ -1,22 +1,22 @@
 #ifndef __####SubProcHeader####_H_
 #define __####SubProcHeader####_H_
 
-#include "../PSP_Generator.h"
-#include "../Dipole_Structure.h"
-#include "../Utilities.h"
+#include "PSP_Generator.h"
+#include "Dipole_Structure.h"
+#include "Utilities.h"
 
-#define Next ####Next####
+#define NextR ####Next####
 
 class ####SubProcName#### : public DipoleStructure{
 
     FourVector P;
-    double Masses[Next];
-    FourVector Momenta[Next];
+    double Masses[NextR];
+    FourVector Momenta[NextR];
 
     int nBorn;
     double** BornMasses;
     std::unordered_map<std::string,int> BornMap;
-    FourVector BornMomenta[Next-1];
+    FourVector BornMomenta[NextR-1];
 
     public:
         
