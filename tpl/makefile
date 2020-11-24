@@ -21,7 +21,7 @@ LOOPTOOLSDIR=/home/diogenes1991/NLOX_util/built
 COMMON_INC=-I$(TREDDIR) \
     -I$(PROCPATH)/code
 COMMON_LIB_DIRS=-L$(TREDDIR)
-COMMON_LIBS=-Wl,-rpath,$(TREDDIR) -ltred -lquadmath -lgcc -lstdc++ -lm
+COMMON_LIBS=-lprocess -Wl,-rpath,$(TREDDIR) -ltred -lquadmath -lgcc -lstdc++ -lm
 
 ifdef QCDLOOPDIR
 CFLAGS+=-DQCDLOOP
@@ -90,8 +90,9 @@ COMMON_LIB_DIRS += -L$(PROCPATH)
 ##
 ## Dipoles
 
-GSLDIR=####GSL PATH####
+COMMON_INC+=-I$(shell pwd)/Code
 
+GSLDIR=####GSL PATH####
 ifdef GSLDIR
 CFLGAS+=-static
 COMMON_INC+=-I$(GSLDIR)
@@ -99,8 +100,21 @@ COMMON_LIB_DIRS+=-L$(GSLDIR)
 COMMON_LIBS+=-lgsl -lgslcblas
 endif
 
-INTEGRAND_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/Integrands/*/*.cpp))
-DIPOLE_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/Integrands/*.cpp))
+LHAPDFDIR=####LHAPDF PATH####
+ifdef LHAPDFDIR
+COMMON_INC+=-I$(LHAPDFDIR)/include/LHAPDF
+COMMON_LIBS+=-lLHAPDF
+endif
+
+CUBADIR=####CUBA PATH####
+ifdef CUBADIR
+COMMON_INC+=-I$(CUBADIR)
+COMMON_LIBS+=-lcuba
+COMMON_LIB_DIRS+=-L$(CUBADIR)
+endif
+
+REAL_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/Real/*/*.cpp))
+VIRT_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/Virtual/*/*.cpp))
 TEST_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/*.cpp))
 
 ##
@@ -109,20 +123,19 @@ TEST_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/*.cpp))
 ### ### ### ### ### ### ### ### ### ##
 
 
-all: Test
+all: Main
 
-Test: Integrands $(TEST_OBJ)
-	@echo $(CXX) Test_Integrands  
-	@$(CXX) $(CFLAGS) -o Test_Integrands $(COMMON_INC) $(COMMON_LIB_DIRS) -L. $(INTEGRAND_OBJ) Test_Integrands.o -lprocess $(COMMON_LIBS)
-# 	@echo $(CXX) Test_Process
-# 	@$(CXX) $(CFLAGS) -o Test_Process $(COMMON_INC) $(COMMON_LIB_DIRS) -L. Test_Process.o -lprocess $(COMMON_LIBS)
+Main: Reals Virtuals Main.o
+	@echo $(CXX) Main
+	@$(CXX) $(CFLAGS) -o Main $(COMMON_INC) $(COMMON_LIB_DIRS) -L. $(REAL_OBJ) $(VIRT_OBJ) Main.o $(COMMON_LIBS)
 
-Integrands: $(INTEGRAND_OBJ) $(DIPOLE_OBJ)
+Reals: $(REAL_OBJ)
+
+Virtuals: $(VIRT_OBJ)
 
 %.o:%.cpp
 	@echo $(CXX) -c $< 
 	@$(CXX) -c $(CFLAGS) $< -o $@ $(COMMON_INC) $(COMMON_LIB_DIRS) $(COMMON_LIBS)
 
 clean:
-	@rm $(INTEGRAND_OBJ) $(DIPOLE_OBJ)
-	@rm *.o
+	@rm -f $(INTEGRAND_OBJ) $(DIPOLE_OBJ)
