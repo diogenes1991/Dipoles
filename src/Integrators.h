@@ -39,7 +39,7 @@ class GSL_Integrator{
             Dimension = dim;
             min = new double[Dimension];
             max = new double[Dimension];
-            for(int i =0;i<Dimension;i++){max[i]=1.0;min[i]=0.0;}
+            for(size_t i =0;i<Dimension;i++){max[i]=1.0;min[i]=0.0;}
             gsl_rng_env_setup ();
         }
 
