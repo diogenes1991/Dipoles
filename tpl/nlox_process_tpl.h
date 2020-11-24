@@ -279,8 +279,7 @@ class Process {
         #endif
         for(int mu=0;mu<4;mu++){
           for(int nu=0;nu<4;nu++){
-            // std::cout<<"Assigning B"<<mu<<nu<<cc<<std::endl;
-            Bmunuij[mu][nu][cc] = BmunuijM.M[mu][nu];
+            Bmunuij[cc][mu][nu] = BmunuijM.M[mu][nu];
           }
         }
       }
