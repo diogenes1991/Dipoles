@@ -2,10 +2,22 @@
 
 BUILDDIR="${PWD}/built"
 LOGFILE=install_utils.log
+PATHSFILE=utils.path
 
 GSL=gsl-2.6
 CUBA=Cuba-4.2
 LHAPDF=LHAPDF-6.3.0
+
+if [ -d built ]
+then
+    echo "Error: Previous installation of utilities found"
+    echo "Please remove it before running the install script"
+    exit 1
+else
+    mkdir built
+fi
+
+rm -f $LOGFILE $PATHSFILE
 
 echo "--------------------------------------------" >> $LOGFILE
 echo "------- Installing all dependancies --------" >> $LOGFILE
@@ -14,8 +26,6 @@ echo "--------------------------------------------" >> $LOGFILE
 echo "" >> $LOGFILE
 echo "" >> $LOGFILE
 echo "" >> $LOGFILE
-
-mkdir built
 
 echo "--------------------------------------------" >> $LOGFILE
 echo "------------ Now working on GSL ------------" >> $LOGFILE
@@ -34,8 +44,6 @@ make -j8 >> $LOGFILE 2>&1
 mv $LOGFILE ../
 cd ..
 
-sed 's/####GSL PATH####/${PWD}/built/${GSL}/g' "../tpl/makefile"
-
 LIBGSL=${GSL}/.libs/libgsl.a
 
 if [ ! -f "$LIBGSL" ]
@@ -52,6 +60,8 @@ else
     echo "GSL installation successful"
     mv $GSL built
 fi
+
+echo "GSL PATH=${PWD}/built/${GSL}" >> $PATHSFILE
 
 echo "" >> $LOGFILE
 echo "" >> $LOGFILE
@@ -90,6 +100,8 @@ else
     echo "CUBA installation successful"
     mv $CUBA built
 fi
+
+echo "CUBA PATH=${PWD}/built/${CUBA}" >> $PATHSFILE
 
 echo "" >> $LOGFILE
 echo "" >> $LOGFILE
@@ -130,3 +142,4 @@ else
     mv $LHAPDF built
 fi
 
+echo "LHAPDF PATH=${PWD}/built/${LHAPDF}" >> $PATHSFILE
