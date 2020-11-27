@@ -1,89 +1,67 @@
-#include "Real.h"
-#include "Virtual.h"
-#include "Integrators.h"
-#include "PDF_Sets.h"
+#include "XSection.h"
 
-#define GeV2toPB 3.89379338E+8
+void XSectionStart(std::string pdfname){
 
-class XSection{
-
-    public:
-
-        Process * Proc;
-        RealIntegrands * Reals;
-        VirtualIntegrands * Virtuals;
-        LHAPDF_Set * PDF;
-
-        XSection(){
-            PDF = new LHAPDF_Set("CT10nlo");
-            Proc = new Process();
-            Reals  = new RealIntegrands(Proc);
-            Virtuals = new VirtualIntegrands(Proc);
-        }
-
-        ~XSection(){
-            delete PDF;
-            delete Virtuals;
-            delete Reals;
-            delete Proc;
-        }
-
-};
-
-XSection * X1;
-void XSectionStart(){
-    X1 = new XSection();
+    X1 = new XSection(pdfname);
 }
 
-double Integarnd(double* x,size_t dim, void* param){
+void XSectionEnd(){
 
-    double sqrts = 13000;
+    delete X1;
+}
 
-    if(x[0]<1E-3||x[1]<1E-3)return 0;
-
-    double xa,xb;
-    // PDF Parametrization 
-    // Here x[0] always corresponds to 
-
-    double m1 = 4.2;
-    double m2 = 0.0;
-    double shatmin = (4.2+91.1876)*(4.2+91.1876);
-    double sqrtshat = sqrt(m1*m1 + m2*m2 + m1*m1*m2*m2/(sqrts*sqrts*x[0]*x[1])+sqrts*sqrts*x[0]*x[1]);
-    double Mu = X1->Proc->pc.mZ.real();
-    double pdffac = (X1->PDF->Evaluate(0,x[0],Mu)*X1->PDF->Evaluate(5,x[1],Mu)+X1->PDF->Evaluate(5,x[0],Mu)*X1->PDF->Evaluate(0,x[1],Mu));
-    
-    // Matrix Element 
-
-    double r[2] = {x[2],x[3]};
-    double rval=1;
-    if(sqrtshat<shatmin) return 0;
-    X1->Virtuals->setECM(sqrtshat);
-    X1->Virtuals->Born("bg_Zb","as1ae1",r,&rval);
-
-    if(isnan(rval)){
-        std::cout<<"NLOX has returned nan, backtracking..."<<std::endl;
-        std::cout<<"r = {"<<r[0]<<","<<r[1]<<"}"<<std::endl;
-        std::cout<<"sqrtshat = "<<sqrtshat<<std::endl;
+void LoadInput(const std::string & filename, std::unordered_map<std::string,std::string>& settings){
+  std::ifstream data;
+  std::string linebuf;
+  data.open(filename.data());
+    if (!data.fail()) {
+        while(!std::getline(data,linebuf).eof()) {
+            if(linebuf=="") continue;
+            std::istringstream ss(linebuf);
+            std::string name;
+            char equal;
+            std::string val;
+            ss >> name;
+            ss >> equal;
+            if (!ss.fail() && equal == '=') {
+                ss >> val;
+                settings.insert({name,val});
+            }
+            else{
+                std::cout<<"Warning: Malformed line at input"<<linebuf<<std::endl;
+            }
+        }
+      data.close();
     }
-
-    // Flux Factor
-
-    double flux = 1.0/(2*lambda(sqrtshat*sqrtshat,m1*m1,m2*m2));
-
-    // std::cout 
-
-    return pdffac*flux*rval*GeV2toPB;
+    else {
+        std::cout << "Error: No input file found" << std::endl;
+        abort();
+    }
 }
 
 int main(int argc, char* argv[]){
 
-    XSectionStart();
+    std::unordered_map<std::string,std::string> Settings;
 
-    GSL_Integrator GIntegrator(Integarnd,4);
-    montecarlo_specs mc;
-    GIntegrator.Integrate(&mc,"Vegas");
-
-    delete X1;
+    LoadInput(argv[1],Settings);
     
+    std::string PDFSet = Settings.at("LHAPDFSet");
+
+    std::string Integrator = Settings.at("Integrator");
+    std::string Method = Settings.at("Method");
+
+    XSecCalc::xsec_sel XSC;
+
+    std::string Integrand = Settings.at("Integrand");
+    std::string Channel = Settings.at("Channel");
+    std::string Coupling = Settings.at("Coupling");
+    
+
+    XSectionStart(PDFSet);
+    X1->SetScales(13000,91.1876,91.1876);
+    XSecCalc C1(Integrator); // Careful one can set up for seg-fault by not initializong an integrator but calling it anyways
+    C1.ComputeXSections(Integrand,Channel,Coupling,Integrator,Method);
+    XSectionEnd();
+
     return 0;
 }
