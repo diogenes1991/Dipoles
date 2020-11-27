@@ -1,0 +1,14 @@
+
+LHAPDFSet = CT14qed_inc_proton
+
+Integrand = Virtual
+Channel = bg_Zb
+Coupling = as1ae2
+
+Integrator = CUBA
+Method = Vegas
+
+
+
+
+
