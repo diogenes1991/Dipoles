@@ -34,6 +34,21 @@ void ####SubProcName####::SetInMom(){
     BornMomenta[1] = PIn[1];
 }
 
+void ####SubProcName####::GetMomenta(FourVector* p){
+
+    for(int i=0;i<NextV;i++)p[i]=BornMomenta[i];
+}
+
+void ####SubProcName####::GetMasses(double* m){
+
+    for(int i=0;i<NextV;i++)m[i]=BornMasses[i];
+}
+
+void ####SubProcName####::GetPID(int* pid){
+
+    for(int i=0;i<NextV;i++)pid[i]=BornPID[i];
+}
+
 void ####SubProcName####::Born(std::string cp, double* rand, double* rval){
 
     double J = 1.0;
@@ -44,7 +59,7 @@ void ####SubProcName####::Born(std::string cp, double* rand, double* rval){
 
     SetFiMom(rand,&J);
     double pp[5*NextV];
-    for(int i=0;i<NextV;i++){pp[5*i+0]=BornMomenta[i].p0;pp[5*i+1]=BornMomenta[i].p1;pp[5*i+2]=BornMomenta[i].p2;pp[5*i+3]=BornMomenta[i].p2;pp[5*i+4]=0.0;}
+    for(int i=0;i<NextV;i++){pp[5*i+0]=BornMomenta[i].p0;pp[5*i+1]=BornMomenta[i].p1;pp[5*i+2]=BornMomenta[i].p2;pp[5*i+3]=BornMomenta[i].p3;pp[5*i+4]=0.0;}
     
 ####SubProcBorn####
 
@@ -65,7 +80,7 @@ void ####SubProcName####::Virtual(std::string cp, double* rand, double mu, doubl
 
     SetFiMom(rand,&J);
     double pp[5*NextV];
-    for(int i=0;i<NextV;i++){pp[5*i+0]=BornMomenta[i].p0;pp[5*i+1]=BornMomenta[i].p1;pp[5*i+2]=BornMomenta[i].p2;pp[5*i+3]=BornMomenta[i].p2;pp[5*i+4]=0.0;}
+    for(int i=0;i<NextV;i++){pp[5*i+0]=BornMomenta[i].p0;pp[5*i+1]=BornMomenta[i].p1;pp[5*i+2]=BornMomenta[i].p2;pp[5*i+3]=BornMomenta[i].p3;pp[5*i+4]=0.0;}
     
 ####SubProcVirt####
 

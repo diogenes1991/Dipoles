@@ -11,6 +11,7 @@ class ####SubProcName#### : public VirtualStructure{
 
     FourVector P;
     double* BornMasses;
+    int* BornPID;
     FourVector BornMomenta[NextV];
 
     public:
@@ -18,11 +19,16 @@ class ####SubProcName#### : public VirtualStructure{
         ####SubProcName####(Process& process);
         ~####SubProcName####(){
             delete [] BornMasses;
+            delete [] BornPID;
         }
         
         void SetECM(double sqrts);
         void SetInMom();
         void SetFiMom(double* rand, double* J);
+
+        void GetMomenta(FourVector* p);
+        void GetMasses(double* m);
+        void GetPID(int* pid);
 
         void Born(std::string cp, double* rand, double* rval);
         void Virtual(std::string cp, double* rand, double mu, double* rval);
