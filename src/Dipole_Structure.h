@@ -1,5 +1,5 @@
-#ifndef __DIPOLE_STRUCTURE_H_
-#define __DIPOLE_STRUCTURE_H_
+#ifndef __DIPOLE_STRUCTURE_H__
+#define __DIPOLE_STRUCTURE_H__
 
 #include "nlox_process.h"
 #include "Dipole_Definitions.h"
