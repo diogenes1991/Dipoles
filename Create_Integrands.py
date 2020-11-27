@@ -474,8 +474,9 @@ class Amplitude:
     def BuildInterface(self):
         CODEFILES = ['Dipole_Structure.h','Dipole_Definitions.h', \
                      'PSP_Generator.h','Utilities.h','Virtual_Structure.h',\
-                     'Integrators.h','PDF_Sets.h','Kinematics.h','Analysis.h', \
-                     'Constants.h','XSection.h']
+                     'Montecarlo_Integrator.h','GSL_Integrator.h','CUBA_Integrator.h', \
+                     'PDF_Sets.h','Kinematics.h','Analysis.h', \
+                     'Constants.h','XSection.h','XSection_Integrator.h']
         TOPLAYERFILES  = ['Main.cpp','Analysis.cpp','Run_Settings.input']
 
         MakeDir(self.SrcDir+'/Code')
