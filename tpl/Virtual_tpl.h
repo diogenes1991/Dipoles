@@ -1,5 +1,5 @@
-#ifndef __VIRTUAL_H_
-#define __VIRTUAL_H_
+#ifndef __VIRTUAL_H__
+#define __VIRTUAL_H__
 
 #include "nlox_process.h"
 ####Include Virtuals####

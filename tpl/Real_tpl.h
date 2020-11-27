@@ -1,5 +1,5 @@
-#ifndef __INTEGRANDS_H_
-#define __INTEGRANDS_H_
+#ifndef __REAL_H__
+#define __REAL_H__
 
 #include "nlox_process.h"
 ####Include Integrands####
