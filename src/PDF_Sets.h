@@ -1,5 +1,5 @@
-#ifndef _PDF_SETS_H
-#define _PDF_SETS_H
+#ifndef __PDF_SETS_H__
+#define __PDF_SETS_H__
 
 #include "LHAPDF/LHAPDF.h"
 

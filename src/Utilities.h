@@ -1,5 +1,5 @@
-#ifndef _UTILITIES_H
-#define _UTILITIES_H
+#ifndef __UTILITIES_H__
+#define __UTILITIES_H__
 
 template <class T>
 class ColorAndSpinMatrixT{

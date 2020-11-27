@@ -1,5 +1,5 @@
-#ifndef _INTEGRATORS_H
-#define _INTEGRATORS_H
+#ifndef __INTEGRATORS_H__
+#define __INTEGRATORS_H__
 
 #include <iostream>
 
