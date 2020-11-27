@@ -46,6 +46,21 @@ class VirtualIntegrands{
             for ( int i=0;i<nChannels;i++) Channels[i]->SetECM(sqrts);
         }
 
+        void GetMomenta(std::string ch, FourVector* p){
+            int Channel = ChannelSelect(ch);
+            Channels[Channel]->GetMomenta(p);
+        }
+
+        void GetMasses(std::string ch, double* m){
+            int Channel = ChannelSelect(ch);
+            Channels[Channel]->GetMasses(m);
+        }
+
+        void GetPID(std::string ch, int* pid){
+            int Channel = ChannelSelect(ch);
+            Channels[Channel]->GetPID(pid);
+        }
+
         void Born(std::string ch, std::string cp, double* rand, double* rval){
             int Channel = ChannelSelect(ch);
             Channels[Channel]->Born(cp,rand,rval);
