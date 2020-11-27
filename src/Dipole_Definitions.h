@@ -1,21 +1,13 @@
-#ifndef _Dipoles_Definitions_H
-#define _Dipoles_Definitions_H
+#ifndef __DIPOLES_DEFINITIONS_H__
+#define __DIPOLES_DEFINITIONS_H__
 
 #include "Phase_Space_Tools.h"
+#include "Constants.h"
 
 #include <gsl/gsl_sf_dilog.h>
 #define PolyLog2 gsl_sf_dilog
 
 #define TESTMODE 0
-
-// 
-//  The log_4pi definition is needed if the NLO Cross-Sections
-//  are defined not to have (4pi)^epsilon/Gamma(1-epsilon) upfront
-//  Otherwise this log is never used.
-//
-
-#define log_4pi 2.5310242469692907929778915942694118477
-#define pi2 9.869604401089358618834490999876151135
 
 // 
 //   II Functions and Maps 
