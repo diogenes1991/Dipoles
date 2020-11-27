@@ -3,7 +3,6 @@
 
 #include "Real.h"
 #include "Virtual.h"
-#include "Integrators.h"
 #include "PDF_Sets.h"
 #include "Analysis.h"
 #include "Constants.h"
@@ -57,7 +56,7 @@ class XSection{
             double prefactor=1.0;
             int nfin = NextV-2;
             
-            int PID[4];
+            int PID[NextV];
             Virtuals->GetPID(Channel,PID);
 
             double mass[NextV];
@@ -101,105 +100,6 @@ class XSection{
             else *xsec = 0;
 
             *xsec *= GeVtoPB;
-        }
-};
-
-XSection * X1;
-void XSectionStart(std::string pdfname);
-void XSectionEnd();
-
-class XSecCalc{
-
-    size_t NVarB = 3*NextV-4;
-    size_t NVarP = 3*NextV-3;
-    size_t NVarS = 3*NextR-4;
-
-    bool usinggsl = false;
-    GSL_Integrator *GBIntegrator,*GSIntegrator,*GPIntegrator;
-    
-    bool usingcuba = false;
-    CUBA_Integrator *CBIntegrator,*CSIntegrator,*CPIntegrator;
-
-    public:
-
-        struct xsec_sel{
-        std::string Channel;
-        std::string Integrand;
-        std::string Coupling;
-        };
-
-        XSecCalc(std::string Integrator = "All"){
-            
-            if(X1->ispdfset()){
-                NVarB+=2;
-                NVarS+=2;
-                NVarP+=2;
-            }
-
-            if(Integrator=="GSL"||Integrator=="All"){
-                usinggsl = true;
-                GBIntegrator = new GSL_Integrator(GSL_Integrand,NVarB);
-                GSIntegrator = new GSL_Integrator(GSL_Integrand,NVarS);
-                GPIntegrator = new GSL_Integrator(GSL_Integrand,NVarP);
-            }
-            if(Integrator=="CUBA"||Integrator=="All"){
-                usingcuba = true;
-                CBIntegrator = new CUBA_Integrator(CUBA_Integrand,NVarB);
-                CSIntegrator = new CUBA_Integrator(CUBA_Integrand,NVarS);
-                CPIntegrator = new CUBA_Integrator(CUBA_Integrand,NVarP);
-            }
-        }
-
-        ~XSecCalc(){
-            if(usinggsl){
-                delete GBIntegrator;
-                delete GSIntegrator;
-                delete GPIntegrator;
-            }
-            if(usingcuba){
-                delete CBIntegrator;
-                delete CSIntegrator;
-                delete CPIntegrator;
-            }
-        }
-            
-        static double GSL_Integrand(double *x, size_t dim, void* param){
-            double rval;
-            xsec_sel xs;
-            xs = *(xsec_sel*)(param);
-            X1->SetXSection(xs.Integrand,xs.Channel,xs.Coupling,x,&rval);
-            return rval;
-        }
-
-        static int CUBA_Integrand(const int *ndim, const double x[], const int *ncomp, double f[], void* param){
-            double rval;
-            xsec_sel xs;
-            xs = *(xsec_sel*)(param);
-            size_t dim = *ndim;
-            double y[dim];
-            for(size_t i=0;i<dim;i++)y[i]=x[i];
-            X1->SetXSection(xs.Integrand,xs.Channel,xs.Coupling,y,&rval);
-            f[0] = rval;
-            return 0;
-        }
-
-        void ComputeXSections(std::string Integrand, std::string Channel, std::string Coupling, std::string Integrator, std::string Method){
-            montecarlo_specs mc;
-            xsec_sel xs;
-            xs.Channel = Channel;
-            xs.Coupling = Coupling;
-            xs.Integrand = Integrand;
-            mc.NStart = 5000;
-            mc.NIncrease = 750;
-            mc.MaxEval = 100000;
-            mc.RelErr = 1E-10;
-            mc.Params = &xs;
-            if(Integrator=="CUBA")CBIntegrator->Integrate(&mc,Method);
-            else if(Integrator=="GSL")GBIntegrator->Integrate(&mc,Method);
-            else{
-                std::cout<<"Error: Unimplemented integrator routine: "<<Integrator<<std::endl;
-                abort();
-            }
         }
 };
 
