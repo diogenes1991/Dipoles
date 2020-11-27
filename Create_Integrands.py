@@ -474,8 +474,9 @@ class Amplitude:
     def BuildInterface(self):
         CODEFILES = ['Dipole_Structure.h','Dipole_Definitions.h', \
                      'PSP_Generator.h','Utilities.h','Virtual_Structure.h',\
-                     'Integrators.h','PDF_Sets.h']
-        TOPLAYERFILES  = ['Main.cpp']
+                     'Integrators.h','PDF_Sets.h','Kinematics.h','Analysis.h', \
+                     'Constants.h','XSection.h']
+        TOPLAYERFILES  = ['Main.cpp','Analysis.cpp','Run_Settings.input']
 
         MakeDir(self.SrcDir+'/Code')
 
@@ -532,7 +533,7 @@ class Amplitude:
 
             ClassName = Radiative+'_Real'
 
-            INTDICT['Include Integrands'] += '#include "Real/'+Radiative+'/'+ClassName+'.h"\n'
+            INTDICT['Include Integrands'] += '#include "../Real/'+Radiative+'/'+ClassName+'.h"\n'
             INTDICT['Integrand Catalogue'] += TAB9+'Channels['+str(Count)+'] = new '+ClassName+'(*Proc);\n'
             INTDICT['Integrand Catalogue'] += TAB9+'ChannelMap.insert({"'+Radiative+'",'+str(Count)+'});\n'
 
@@ -831,7 +832,7 @@ class Amplitude:
             WriteFile(ChlDir+'/'+Radiative+'_Real.h',SubFunctionH)
         
         IntegrandClass = seek_and_destroy(self.TplDir+'/Real_tpl.h',INTDICT)
-        WriteFile(self.SrcDir+'/Real.h',IntegrandClass)
+        WriteFile(self.SrcDir+'/Code/Real.h',IntegrandClass)
 
     def BuildVirtualStructures(self):
         
@@ -872,7 +873,7 @@ class Amplitude:
 
             ClassName = Born+'_Virtual'
 
-            VIRTDICT['Include Virtuals'] += '#include "Virtual/'+Born+'/'+ClassName+'.h"\n'
+            VIRTDICT['Include Virtuals'] += '#include "../Virtual/'+Born+'/'+ClassName+'.h"\n'
             VIRTDICT['Virtual Catalogue'] += TAB9+'Channels['+str(Count)+'] = new '+ClassName+'(*Proc);\n'
             VIRTDICT['Virtual Catalogue'] += TAB9+'ChannelMap.insert({"'+Born+'",'+str(Count)+'});\n'
 
@@ -892,10 +893,12 @@ class Amplitude:
 
             DICT['SubProcConst'] += '\n'   
             DICT['SubProcConst'] += TAB3+'BornMasses = new double[NextV];\n' 
+            DICT['SubProcConst'] += TAB3+'BornPID = new int[NextV];\n'
              
             count = 0
             for particle in self.Borns[Born]:
                 DICT['SubProcConst'] += TAB3+'BornMasses['+str(count)+']='+ProcessConstMassName(particle)+';\n'
+                DICT['SubProcConst'] += TAB3+'BornPID['+str(count)+']='+str(particle.pid)+';\n'
                 count += 1
             
             BornCPS = self.Model.GetCPS(self.Borns[Born])
@@ -941,7 +944,7 @@ class Amplitude:
             WriteFile(ChlDir+'/'+Born+'_Virtual.h',SubFunctionH)
 
         IntegrandClass = seek_and_destroy(self.TplDir+'/Virtual_tpl.h',VIRTDICT)
-        WriteFile(self.SrcDir+'/Virtual.h',IntegrandClass)
+        WriteFile(self.SrcDir+'/Code/Virtual.h',IntegrandClass)
 
 
 
