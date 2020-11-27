@@ -115,27 +115,28 @@ endif
 
 REAL_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/Real/*/*.cpp))
 VIRT_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/Virtual/*/*.cpp))
-TEST_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/*.cpp))
+DIPO_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/*.cpp))
 
 ##
 ## End of Dipoles 
 ##
 ### ### ### ### ### ### ### ### ### ##
 
-
 all: Main
 
-Main: Reals Virtuals Main.o
+Main: Reals Virtuals Dipoles
 	@echo $(CXX) Main
-	@$(CXX) $(CFLAGS) -o Main $(COMMON_INC) $(COMMON_LIB_DIRS) -L. $(REAL_OBJ) $(VIRT_OBJ) Main.o $(COMMON_LIBS)
+	@$(CXX) $(CFLAGS) -o Main $(COMMON_INC) $(COMMON_LIB_DIRS) -L. $(REAL_OBJ) $(VIRT_OBJ) $(DIPO_OBJ) $(COMMON_LIBS)
 
 Reals: $(REAL_OBJ)
 
 Virtuals: $(VIRT_OBJ)
+
+Dipoles: $(DIPO_OBJ)
 
 %.o:%.cpp
 	@echo $(CXX) -c $< 
 	@$(CXX) -c $(CFLAGS) $< -o $@ $(COMMON_INC) $(COMMON_LIB_DIRS) $(COMMON_LIBS)
 
 clean:
-	@rm -f $(INTEGRAND_OBJ) $(DIPOLE_OBJ)
+	@rm -f $(REAL_OBJ) $(VIRT_OBJ) $(DIPO_OBJ)
