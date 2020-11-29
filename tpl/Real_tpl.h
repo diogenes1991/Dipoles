@@ -1,21 +1,24 @@
 #ifndef __REAL_H__
 #define __REAL_H__
 
-#include "nlox_process.h"
+#include "Integrand.h"
 ####Include Integrands####
 
-class RealIntegrands{
+class RealIntegrands : public Integrand{
     
-    int nChannels;
-    int nExternal;
-    DipoleStructure** Channels;
-    std::unordered_map<std::string,int> ChannelMap;     
-            
+    typedef void(RealIntegrands::*MemberFunction)(int,std::string,double*,double,double*);
+    std::unordered_map<std::string,MemberFunction> RCatalog;
+
     public:
 
-        Process * Proc;
-        
+        DipoleStructure** Channels;
+
         RealIntegrands(Process * process){
+
+            Proc = process;
+            RCatalog.insert({"Subtracted",&RealIntegrands::Subtracted});
+            RCatalog.insert({"PlusDistribution",&RealIntegrands::PlusDistribution});
+            RCatalog.insert({"Endpoint",&RealIntegrands::Endpoint});    
 
             nChannels = ####nRadiative####;
             Channels = new DipoleStructure* [nChannels];
@@ -29,35 +32,42 @@ class RealIntegrands{
             delete [] Channels;
         }
 
-        int ChannelSelect(std::string CH){
-            int Channel;
-            try {Channel = ChannelMap.at(CH);}
-            catch (const std::out_of_range& oor) {
-                std::cerr<<"Error: Channel "<<CH<<" not found in Process"<<std::endl;
-                std::cout<<"The available Radiative processes are:"<<std::endl;
-                for ( auto& x : ChannelMap ) std::cout<<x.first<<" => "<<x.second<<std::endl;
-                abort();
-            }
-            return Channel;
-        }
-
         void setECM(double sqrts){
             for ( int i=0;i<nChannels;i++) Channels[i]->SetECM(sqrts);
         }
 
-        void Subtracted(std::string ch, std::string cp, double* rand, double* rval){
+        void GetMomenta(std::string ch, FourVector* p){
             int Channel = ChannelSelect(ch);
+            Channels[Channel]->GetMomenta(p);
+        }
+
+        void GetMasses(std::string ch, double* m){
+            int Channel = ChannelSelect(ch);
+            Channels[Channel]->GetMasses(m);
+        }
+
+        void GetPID(std::string ch, int* pid){
+            int Channel = ChannelSelect(ch);
+            Channels[Channel]->GetPID(pid);
+        }
+
+        void Subtracted(int Channel, std::string cp, double* rand, double* rval){
             Channels[Channel]->Subtracted(cp,rand,rval);
         }
 
-        void PlusDistribution(std::string ch, std::string cp, double* rand, double mu, double* rval){
-
+        void PlusDistribution(int Channel, std::string cp, double* rand, double mu, double* rval){
+            Channels[Channel]->PlusDistribution(cp,rand,mu,rval)
         }      
 
-        void Endpoint(std::string ch, std::string cp, double* rand, double mu, double* rval){
-            int Channel = ChannelSelect(ch);
+        void Endpoint(int Channel, std::string cp, double* rand, double mu, double* rval){
             Channels[Channel]->Endpoint(cp,rand,mu,rval);
         }
+
+        void Call(std::string in, std::string ch, std::string cp, double* rand, double mu, double* rval){
+            int Channel = ChannelSelect(ch);
+            (this->*RCatalog.at(in))(Channel,cp,rand,mu,rval);
+        }
+
 };
 
 #endif

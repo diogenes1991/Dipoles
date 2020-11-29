@@ -1,5 +1,5 @@
-#ifndef __NLOX_PROCESS_H_
-#define __NLOX_PROCESS_H_
+#ifndef __NLOX_PROCESS_H__
+#define __NLOX_PROCESS_H__
 
 #include "Phase_Space_Tools.h"
 

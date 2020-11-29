@@ -1,5 +1,5 @@
-#ifndef __####SubProcHeader####_H_
-#define __####SubProcHeader####_H_
+#ifndef __####SubProcHeader####_H__
+#define __####SubProcHeader####_H__
 
 #include "PSP_Generator.h"
 #include "Dipole_Structure.h"
@@ -12,9 +12,11 @@ class ####SubProcName#### : public DipoleStructure{
     FourVector P;
     double Masses[NextR];
     FourVector Momenta[NextR];
+    int PID[NextR];
 
     int nBorn;
     double** BornMasses;
+    int** BornPID;
     std::unordered_map<std::string,int> BornMap;
     FourVector BornMomenta[NextR-1];
 
@@ -30,12 +32,16 @@ class ####SubProcName#### : public DipoleStructure{
         void SetInMom(double* rand);
         void SetFiMom(double* rand, double* J);
 
+        void GetMomenta(FourVector* p);
+        void GetMasses(double* m);
+        void GetPID(int* pid);
+
         void SetInMom(int BornNum);
         void SetFiMom(int BornNum, double* rand, double* J);
 
-        void Subtracted(std::string cp, double* rand, double* rval);
-        void PlusDistribution(std::string cp, double* rand, double mu, double* rval);
-        void Endpoint(std::string cp, double* rand, double mu, double* rval);
+        void Subtracted(int Channel, double* rand, double mu, double* rval);
+        void PlusDistribution(int Channel, double* rand, double mu, double* rval);
+        void Endpoint(int Channel, double* rand, double mu, double* rval);
 
     };
 

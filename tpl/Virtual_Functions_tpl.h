@@ -1,5 +1,5 @@
-#ifndef __####SubProcHeader####_H_
-#define __####SubProcHeader####_H_
+#ifndef __####SubProcHeader####_H__
+#define __####SubProcHeader####_H__
 
 #include "PSP_Generator.h"
 #include "Virtual_Structure.h"

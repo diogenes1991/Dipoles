@@ -54,6 +54,20 @@ void ####SubProcName####::SetInMom(int BornNum){
     BornMomenta[1] = PIn[1];
 }
 
+void ####SubProcName####::GetMomenta(FourVector* p){
+
+    for(int i=0;i<NextR;i++)p[i]=Momenta[i];
+}
+void ####SubProcName####::GetMasses(double* m){
+
+    for(int i=0;i<NextR;i++)m[i]=Masses[i];
+}
+
+void ####SubProcName####::GetPID(int* pid){
+
+    for(int i=0;i<NextR;i++)pid[i]=PID[i];
+}
+
 void ####SubProcName####::Subtracted(std::string cp, double* rand, double* rval){
 
     int i;
