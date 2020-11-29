@@ -1,12 +1,15 @@
 
 LHAPDFSet = CT14qed_inc_proton
 
-Integrand = Virtual
-Channel = bg_Zb
+Integrand = Subtracted
+Channel = bg_ZAb
 Coupling = as1ae2
 
 Integrator = CUBA
 Method = Vegas
+NStart = 5000
+NIncrease = 5000
+NEvaluations = 1000000
 
 
 
