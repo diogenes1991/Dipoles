@@ -476,7 +476,8 @@ class Amplitude:
                      'PSP_Generator.h','Utilities.h','Virtual_Structure.h',\
                      'Montecarlo_Integrator.h','GSL_Integrator.h','CUBA_Integrator.h', \
                      'PDF_Sets.h','Kinematics.h','Analysis.h', \
-                     'Constants.h','XSection.h','XSection_Integrator.h']
+                     'Constants.h','XSection.h','XSection_Integrator.h',\
+                     'Integrand.h']
         TOPLAYERFILES  = ['Main.cpp','Analysis.cpp','Run_Settings.input']
 
         MakeDir(self.SrcDir+'/Code')
@@ -562,11 +563,14 @@ class Amplitude:
             for particle in self.RadiProc.subproc[Radiative]:
                 massvalue = ProcessConstMassName(particle)
                 DICT['SubProcConst'] += TAB3+'Masses['+str(count)+'] = '+massvalue+';\n'
+                DICT['SubProcConst'] += TAB3+'PID['+str(count)+'] = '+str(particle.pid)+';\n'
                 count += 1
     
             DICT['SubProcConst'] += '\n'   
             DICT['SubProcConst'] += TAB3+'nBorn = '+str(len(self.Linked[Radiative]))+';\n'   
-            DICT['SubProcConst'] += TAB3+'BornMasses = new double* [nBorn];\n' 
+            DICT['SubProcConst'] += TAB3+'BornMasses = new double* [nBorn];\n'
+            DICT['SubProcConst'] += TAB3+'BornPID = new int* [nBorn];\n' 
+            DICT['SubProcConst'] += TAB3+'for(int i=0;i<nBorn;i++) BornPID[i]= new int[NextR-1];\n\n'  
             DICT['SubProcConst'] += TAB3+'for(int i=0;i<nBorn;i++) BornMasses[i]= new double[NextR-1];\n\n' 
              
             Bcount = 0
@@ -575,6 +579,7 @@ class Amplitude:
                 DICT['SubProcConst'] += TAB3+'BornMap.insert({"'+Born+'",'+str(Bcount)+'});\n'
                 for particle in self.Linked[Radiative][Born]:
                     DICT['SubProcConst'] += TAB3+'BornMasses['+str(Bcount)+']['+str(count)+']='+ProcessConstMassName(particle)+';\n'
+                    DICT['SubProcConst'] += TAB3+'BornPID['+str(Bcount)+']['+str(count)+']='+str(particle.pid)+';\n'
                     count += 1
                 Bcount += 1
             
