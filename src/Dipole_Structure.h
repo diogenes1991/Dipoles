@@ -1,3 +1,4 @@
+
 #ifndef __DIPOLE_STRUCTURE_H__
 #define __DIPOLE_STRUCTURE_H__
 
@@ -20,6 +21,10 @@ class DipoleStructure {
         virtual void SetECM(double sqrts) = 0;
         virtual void SetInMom(double* rand) = 0;
         virtual void SetFiMom(double* rand, double* J) = 0;
+
+        virtual void GetMomenta(FourVector* p) = 0;
+        virtual void GetMasses(double* m) = 0;
+        virtual void GetPID(int* pid) = 0;
 
         virtual void SetInMom(int BornNum) = 0;
         virtual void SetFiMom(int BornNum, double* rand, double* J) = 0;
