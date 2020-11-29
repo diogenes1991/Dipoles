@@ -1,22 +1,23 @@
 #ifndef __VIRTUAL_H__
 #define __VIRTUAL_H__
 
-#include "nlox_process.h"
+#include "Integrand.h"
 ####Include Virtuals####
 
-class VirtualIntegrands{
+class VirtualIntegrands : public Integrand{
     
-    int nChannels;
-    VirtualStructure** Channels;
-    std::unordered_map<std::string,int> ChannelMap;     
+    typedef void(VirtualIntegrands::*MemberFunction)(int,std::string,double*,double,double*);
+    std::unordered_map<std::string,MemberFunction> VCatalog;
             
     public:
 
-        Process * Proc;
+        VirtualStructure** Channels;
         
         VirtualIntegrands(Process * process){
 
             Proc = process;
+            VCatalog.insert({"Virtual",&VirtualIntegrands::Virtual});
+            VCatalog.insert({"Born",&VirtualIntegrands::Born});
 
             nChannels = ####nChannels####;
             Channels = new VirtualStructure* [nChannels];
@@ -28,18 +29,6 @@ class VirtualIntegrands{
         ~VirtualIntegrands(){
             for (int i=0; i<nChannels; i++) delete Channels[i];
             delete [] Channels;
-        }
-
-        int ChannelSelect(std::string CH){
-            int Channel;
-            try {Channel = ChannelMap.at(CH);}
-            catch (const std::out_of_range& oor) {
-                std::cerr<<"Error: Channel "<<CH<<" not found in Process"<<std::endl;
-                std::cout<<"The available Radiative processes are:"<<std::endl;
-                for ( auto& x : ChannelMap ) std::cout<<x.first<<" => "<<x.second<<std::endl;
-                abort();
-            }
-            return Channel;
         }
 
         void setECM(double sqrts){
@@ -61,16 +50,18 @@ class VirtualIntegrands{
             Channels[Channel]->GetPID(pid);
         }
 
-        void Born(std::string ch, std::string cp, double* rand, double* rval){
-            int Channel = ChannelSelect(ch);
+        void Born(int Channel, std::string cp, double* rand, double mu, double* rval){
             Channels[Channel]->Born(cp,rand,rval);
         }
 
-        void Virtual(std::string ch, std::string cp, double* rand, double mu, double* rval){
-            int Channel = ChannelSelect(ch);
+        void Virtual(int Channel, std::string cp, double* rand, double mu, double* rval){
             Channels[Channel]->Virtual(cp,rand,mu,rval);
         }
 
+        void Call(std::string in, std::string ch, std::string cp, double* rand, double mu, double* rval){
+            int Channel = ChannelSelect(ch);
+            (this->*VCatalog.at(in))(Channel,cp,rand,mu,rval);
+        }
 
 };
 
