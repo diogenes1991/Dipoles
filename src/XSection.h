@@ -51,8 +51,6 @@ class XSection{
             delete Proc;
         }
 
-        bool ispdfset(){return usingpdfs;}
-
         void SetScales(double sqrts0, double mu_ren0, double mu_fac0){
             sqrts = sqrts0;
             mu_ren = mu_ren0;
