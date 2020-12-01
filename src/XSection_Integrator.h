@@ -5,10 +5,6 @@
 #include "GSL_Integrator.h"
 #include "CUBA_Integrator.h"
 
-XSection * X1;
-void XSectionStart(std::string pdfname);
-void XSectionEnd();
-
 class XSection_Integrator{
 
     size_t NVarB = 3*NextV-4;
@@ -19,6 +15,8 @@ class XSection_Integrator{
 
     public:
 
+        static XSection * XSec;
+
         struct XSection_Selector{
         std::string Channel;
         std::string Integrand;
@@ -26,9 +24,11 @@ class XSection_Integrator{
         std::string Catalog;
         };
 
-        XSection_Integrator(std::string Integrator){
+        XSection_Integrator(std::string pdfname, std::string Integrator){
             
-            if(X1->ispdfset()){
+            XSec = new XSection(pdfname);
+
+            if(pdfname!=""){
                 NVarB+=2;
                 NVarS+=2;
                 NVarP+=2;
@@ -51,6 +51,7 @@ class XSection_Integrator{
         }
 
         ~XSection_Integrator(){
+            delete XSec;
             delete BIntegrator;
             delete SIntegrator;
             delete PIntegrator;
@@ -60,7 +61,7 @@ class XSection_Integrator{
             double rval;
             XSection_Selector xs;
             xs = *(XSection_Selector*)(param);
-            X1->SetXSection(xs.Catalog,xs.Integrand,xs.Channel,xs.Coupling,x,&rval);
+            XSec->SetXSection(xs.Catalog,xs.Integrand,xs.Channel,xs.Coupling,x,&rval);
             return rval;
         }
 
@@ -71,13 +72,14 @@ class XSection_Integrator{
             size_t dim = *ndim;
             double y[dim];
             for(size_t i=0;i<dim;i++)y[i]=x[i];
-            X1->SetXSection(xs.Catalog,xs.Integrand,xs.Channel,xs.Coupling,y,&rval);
+            XSec->SetXSection(xs.Catalog,xs.Integrand,xs.Channel,xs.Coupling,y,&rval);
             f[0] = rval;
             return 0;
         }
 
-        void ComputeXSection(XSection_Selector XS, Montecarlo_Integrator::Specifications MC, std::string Method){
+        void ComputeXSection(XSection_Selector XS, Montecarlo_Integrator::Specifications MC){
             Montecarlo_Integrator::Specifications mc;
+            mc.Method = MC.Method;
             mc.NStart = MC.NStart;
             mc.NIncrease = MC.NIncrease;
             mc.MaxEval = MC.MaxEval;
@@ -107,9 +109,11 @@ class XSection_Integrator{
             }
 
             mc.Params = &XS;
-            MCI->Integrate(&mc,Method);
+            MCI->Integrate(&mc);
                
         }
 };
+
+XSection * XSection_Integrator::XSec = NULL;
 
 #endif
