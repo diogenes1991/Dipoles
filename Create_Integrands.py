@@ -896,11 +896,7 @@ class Amplitude:
 
             DICT['SubProcHeader'] = Born.upper()
             DICT['SubProcName'] = ClassName
-
-            DICT['SubProcConst'] += '\n'   
-            DICT['SubProcConst'] += TAB3+'BornMasses = new double[NextV];\n' 
-            DICT['SubProcConst'] += TAB3+'BornPID = new int[NextV];\n'
-             
+ 
             count = 0
             for particle in self.Borns[Born]:
                 DICT['SubProcConst'] += TAB3+'BornMasses['+str(count)+']='+ProcessConstMassName(particle)+';\n'
