@@ -93,6 +93,8 @@ void ####SubProcName####::Subtracted(std::string cp, double* rand, double mu, do
         abort();
    }
 
+   *rval *= J;
+
 }
 
 void ####SubProcName####::PlusDistribution(std::string cp, double* rand, double mu, double* rval){
