@@ -16,10 +16,11 @@ class Montecarlo_Integrator{
             size_t NIncrease = 1000;
             double RelErr = 1E-4;
             double AbsErr = 1E-18;
+            std::string Method = "";
         };
 
         virtual ~Montecarlo_Integrator(){};
-        virtual void Integrate(Specifications * mc_specs, const std::string method) = 0;
+        virtual void Integrate(Specifications * mc_specs) = 0;
 
 };
 

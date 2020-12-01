@@ -36,10 +36,13 @@ class GSL_Integrator : public Montecarlo_Integrator{
             gsl_rng_free(R);
         }
 
-        void Integrate(Specifications * mc_specs, const std::string METHOD = "Plain"){
+        void Integrate(Specifications * mc_specs){
             
             double res,err;
             gsl_monte_function F = {Integrand,Dimension,mc_specs->Params};
+            std::string METHOD;
+            if(mc_specs->Method=="") METHOD = "Plain";
+            else METHOD = mc_specs->Method;
 
             if(METHOD=="Plain"){
                 gsl_monte_plain_state * s = gsl_monte_plain_alloc(Dimension);

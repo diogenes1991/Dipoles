@@ -61,8 +61,12 @@ class CUBA_Integrator : public Montecarlo_Integrator{
 
         ~CUBA_Integrator(){};
 
-        void Integrate(Specifications * mc_specs, const std::string METHOD = "Vegas"){
+        void Integrate(Specifications * mc_specs){
             
+            std::string METHOD;
+            if(mc_specs->Method=="")METHOD="Vegas";
+            else METHOD = mc_specs->Method;
+
             // Common Arguments 
 
             void* Params = mc_specs->Params;
