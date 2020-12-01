@@ -24,8 +24,12 @@ class ####SubProcName#### : public DipoleStructure{
         
         ####SubProcName####(Process& process);
         ~####SubProcName####(){
-            for (int i=0; i<nBorn; i++) delete BornMasses[i];
+            for (int i=0; i<nBorn; i++){
+                delete BornMasses[i];
+                delete BornPID[i];
+            }
             delete [] BornMasses;
+            delete [] BornPID;
         }
         
         void SetECM(double sqrts);
@@ -39,9 +43,9 @@ class ####SubProcName#### : public DipoleStructure{
         void SetInMom(int BornNum);
         void SetFiMom(int BornNum, double* rand, double* J);
 
-        void Subtracted(int Channel, double* rand, double mu, double* rval);
-        void PlusDistribution(int Channel, double* rand, double mu, double* rval);
-        void Endpoint(int Channel, double* rand, double mu, double* rval);
+        void Subtracted(std::string cp, double* rand, double mu, double* rval);
+        void PlusDistribution(std::string cp, double* rand, double mu, double* rval);
+        void Endpoint(std::string cp, double* rand, double mu, double* rval);
 
     };
 

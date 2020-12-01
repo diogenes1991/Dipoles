@@ -29,7 +29,7 @@ class DipoleStructure {
         virtual void SetInMom(int BornNum) = 0;
         virtual void SetFiMom(int BornNum, double* rand, double* J) = 0;
 
-        virtual void Subtracted(std::string cp, double* rand, double* rval) = 0;
+        virtual void Subtracted(std::string cp, double* rand, double mu, double* rval) = 0;
         virtual void PlusDistribution(std::string cp, double* rand, double mu, double* rval) = 0;
         virtual void Endpoint(std::string cp, double* rand, double mu, double* rval) = 0;
 

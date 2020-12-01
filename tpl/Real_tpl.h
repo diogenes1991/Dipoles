@@ -51,12 +51,12 @@ class RealIntegrands : public Integrand{
             Channels[Channel]->GetPID(pid);
         }
 
-        void Subtracted(int Channel, std::string cp, double* rand, double* rval){
-            Channels[Channel]->Subtracted(cp,rand,rval);
+        void Subtracted(int Channel, std::string cp, double* rand, double mu, double* rval){
+            Channels[Channel]->Subtracted(cp,rand,mu,rval);
         }
 
         void PlusDistribution(int Channel, std::string cp, double* rand, double mu, double* rval){
-            Channels[Channel]->PlusDistribution(cp,rand,mu,rval)
+            Channels[Channel]->PlusDistribution(cp,rand,mu,rval);
         }      
 
         void Endpoint(int Channel, std::string cp, double* rand, double mu, double* rval){

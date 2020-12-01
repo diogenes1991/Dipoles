@@ -714,7 +714,7 @@ class Amplitude:
                         DICT['SubProcSub'] += TAB6+'Build_'+PREFIX+'_Momenta(p,&p_tilde,'+str(I)+','+str(J)+','+str(K)+');\n'
                         DICT['SubProcSub'] += TAB6+'for(int j=0;j<NextR-1;j++){pp_tilde[5*j+0]=p_tilde.at(j).p0;pp_tilde[5*j+1]=p_tilde.at(j).p1;pp_tilde[5*j+2]=p_tilde.at(j).p2;pp_tilde[5*j+3]=p_tilde.at(j).p3;pp_tilde[5*j+4]=0.0;}\n'
                         DICT['SubProcSub'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",pp_tilde,'+str(Next-1)+',mu,born,&acc);\n'
-                        DICT['SubProcSub'] += TAB6+'*rval -= DipFac*g_'+DIPFUN+'_'+TYP+'(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'],Masses['+str(I)+'],Masses['+str(J)+'])*born[2];\n\n'
+                        DICT['SubProcSub'] += TAB6+'*rval += DipFac*g_'+DIPFUN+'_'+TYP+'(p['+str(I)+'],p['+str(J)+'],p['+str(K)+'],Masses['+str(I)+'],Masses['+str(J)+'])*born[2];\n\n'
                         
                         ##
                         ##  Plus Distribution
@@ -951,8 +951,6 @@ class Amplitude:
 
         IntegrandClass = seek_and_destroy(self.TplDir+'/Virtual_tpl.h',VIRTDICT)
         WriteFile(self.SrcDir+'/Code/Virtual.h',IntegrandClass)
-
-
 
 def main(CONFIGFILE):
     

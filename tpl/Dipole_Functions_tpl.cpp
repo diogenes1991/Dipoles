@@ -68,14 +68,13 @@ void ####SubProcName####::GetPID(int* pid){
     for(int i=0;i<NextR;i++)pid[i]=PID[i];
 }
 
-void ####SubProcName####::Subtracted(std::string cp, double* rand, double* rval){
+void ####SubProcName####::Subtracted(std::string cp, double* rand, double mu, double* rval){
 
     int i;
     double radiative[3];
     double EWKFac = 4*M_PI*(Proc->pc.alpha_e);
     double QCDFac = 4*M_PI*(Proc->pc.alpha_s);
     double DipFac = 1.0;
-    double mu = 0.0;
     double J = 1.0;
     double acc;
     *rval = 0.;
