@@ -1,9 +1,12 @@
 
 LHAPDFSet = CT14qed_inc_proton
+sqrts = 13000
+muRen = 91.1876
+muFac = 91.1876
 
-Integrand = Subtracted
-Channel = bg_ZAb
-Coupling = as1ae2
+Integrand = Born
+Channel = bg_Zb
+Coupling = as1ae1
 
 Integrator = CUBA
 Method = Vegas
