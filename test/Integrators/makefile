@@ -24,7 +24,7 @@ all: Test
 
 Test: Integrator_Tester.o
 	@echo $(CXX) Integrator_Tester
-	@$(CXX) $(CFLAGS) -o Integrator_Tester $(COMMON_INC) $(COMMON_LIB_DIRS) -L. $(INTEGRAND_OBJ) Integrator_Tester.o $(COMMON_LIBS)
+	@$(CXX) $(CFLAGS) -o Integrator_Tester.bin $(COMMON_INC) $(COMMON_LIB_DIRS) -L. $(INTEGRAND_OBJ) Integrator_Tester.o $(COMMON_LIBS)
 
 %.o:%.cpp
 	@echo $(CXX) -c $< 

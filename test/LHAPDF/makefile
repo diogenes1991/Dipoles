@@ -19,7 +19,7 @@ all: Test
 
 Test: $(TEST_OBJ)
 	@echo $(CXX) PDF_Tester
-	@$(CXX) $(CFLAGS) -o PDF_Tester $(COMMON_INC) $(COMMON_LIB_DIRS) -L. $(TEST_OBJ) $(COMMON_LIBS)
+	@$(CXX) $(CFLAGS) -o PDF_Tester.bin $(COMMON_INC) $(COMMON_LIB_DIRS) -L. $(TEST_OBJ) $(COMMON_LIBS)
 
 %.o:%.cpp
 	@echo $(CXX) -c $< 

@@ -1,1 +1,6 @@
 util/built/*
+util/*.log
+util/*.path
+*.pyc
+test/*/*.o
+test/*/*.bin
