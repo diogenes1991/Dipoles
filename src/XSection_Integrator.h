@@ -22,6 +22,7 @@ class XSection_Integrator{
         std::string Integrand;
         std::string Coupling;
         std::string Catalog;
+        size_t NVars;
         };
 
         XSection_Integrator(std::string pdfname, std::string Integrator){
@@ -61,7 +62,7 @@ class XSection_Integrator{
             double rval;
             XSection_Selector xs;
             xs = *(XSection_Selector*)(param);
-            XSec->SetXSection(xs.Catalog,xs.Integrand,xs.Channel,xs.Coupling,x,&rval);
+            XSec->SetXSection(xs.Catalog,xs.Integrand,xs.Channel,xs.Coupling,x,xs.NVars,&rval);
             return rval;
         }
 
@@ -72,7 +73,7 @@ class XSection_Integrator{
             size_t dim = *ndim;
             double y[dim];
             for(size_t i=0;i<dim;i++)y[i]=x[i];
-            XSec->SetXSection(xs.Catalog,xs.Integrand,xs.Channel,xs.Coupling,y,&rval);
+            XSec->SetXSection(xs.Catalog,xs.Integrand,xs.Channel,xs.Coupling,y,xs.NVars,&rval);
             f[0] = rval;
             return 0;
         }
@@ -90,18 +91,22 @@ class XSection_Integrator{
             if (XS.Integrand=="Born"||XS.Integrand=="Virtual"){
                 MCI = BIntegrator;
                 XS.Catalog = "Virtuals";
+                XS.NVars = MCI->Dimension;
             }
             else if (XS.Integrand=="Endpoint"){
                 MCI = BIntegrator;
                 XS.Catalog = "Reals";
+                XS.NVars = MCI->Dimension;
             }
             else if (XS.Integrand=="PlusDistribution"){
                 MCI = PIntegrator;
                 XS.Catalog = "Reals";
+                XS.NVars = MCI->Dimension;
             }
             else if (XS.Integrand=="Subtracted"){
                 MCI = SIntegrator;
                 XS.Catalog = "Reals";
+                XS.NVars = MCI->Dimension;
             }
             else{
                 std::cout<<"Error: Unavailable integrand "<<XS.Integrand<<" for "<<XS.Channel<<" channel"<<std::endl;
@@ -109,9 +114,9 @@ class XSection_Integrator{
             }
 
             mc.Params = &XS;
-            MCI->Integrate(&mc);
-               
+            MCI->Integrate(&mc);    
         }
+
 };
 
 XSection * XSection_Integrator::XSec = NULL;
