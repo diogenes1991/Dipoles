@@ -16,7 +16,6 @@ class GSL_Integrator : public Montecarlo_Integrator{
     double *max,*min;
     const std::string Available[3] = {"Plain","Vegas","Miser"};
     
-    size_t Dimension;
     double(*Integrand)(double*,size_t,void*);
 
     public:

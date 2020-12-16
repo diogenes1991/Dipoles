@@ -51,9 +51,9 @@ class CUBA_Integrator : public Montecarlo_Integrator{
 
     const std::string Available[4]={"Vegas","Suave","Divonne","Cuhre"};
     integrand_t Integrand;
-    size_t Dimension;
 
     public:
+        
         CUBA_Integrator(integrand_t integrand, size_t dim){
             Integrand = integrand;
             Dimension = dim;

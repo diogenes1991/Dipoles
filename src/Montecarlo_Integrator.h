@@ -7,6 +7,8 @@ class Montecarlo_Integrator{
 
     public:
 
+        size_t Dimension;
+
         struct Specifications{
             int RNGSeed = 1;
             void *Params = NULL;
