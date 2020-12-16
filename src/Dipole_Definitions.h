@@ -194,7 +194,6 @@ void G_ab_bbb(T sab, T ma, T mb, T mu, T* RVAL){
     }
 }
 
-
 //
 //  IF & FI Functions and Maps 
 //
@@ -220,6 +219,16 @@ T R_ia(FourVectorT<T> pa, FourVectorT<T> pi, FourVectorT<T> k, T x){
     out = out / (lambda((P_ai*P_ai),(pa*pa),(pi*pi)));
     out = sqrt(out);
     return out;  
+}
+
+template<class T>
+T Ria(T x, T PiaSq, T Ma, T Mi){
+    T out  = (PiaSq-Ma*Ma-Mi*Mi+2*Ma*Ma*x);
+      out  = out*out;
+      out -= 4*Ma*Ma*x*x*PiaSq;
+      out /= lambda(PiaSq,Mi*Mi,Ma*Ma);
+      out  = sqrt(out);
+      return out;
 }
 
 template <class T>
@@ -360,21 +369,103 @@ T Curly_G_ia_ffb(T  P_ia, T mi, T ma, T mu, T x, T Ix, T I1){
     
 }
 
+template <class T>
+T Curly_G_ai_ffb(T  P_ia, T mi, T ma, T mu, T x, T Ix, T I1){
+    
+    T P_ia_bar = P_ia - mi*mi - ma*ma;
+    
+    T aux1 = 1 - (2*mi*mi*x)/(P_ia_bar*(1-x)) + z(P_ia,ma,mi,x,-1)/2;
+    aux1 = aux1 * (-z(P_ia,ma,mi,x,-1));
+    aux1 = aux1 - 2*Log( 2 - x - z(P_ia,ma,mi,x,-1));
+    
+    T aux2 = 1 - (2*mi*mi*x)/(P_ia_bar*(1-x)) + z(P_ia,ma,mi,x,1)/2;
+    aux2 = aux2 * (-z(P_ia,ma,mi,x,1));
+    aux2 = aux2 - 2*Log( 2 - x - z(P_ia,ma,mi,x,1));
+    
+    aux1 = aux1 - aux2;
+    aux1 = aux1 * (-P_ia_bar)/(Sqrt(Lambda(P_ia,mi*mi,ma*ma))*R_ia(P_ia,ma,mi,x)*(1-x));
+    
+    return aux1;
+       
+    
+}
+
+template <class T>
+void Build_FI_Tilde_Momenta(T sqrts, T* rand, T Ma, T Mb, T Mi, T Mia, FourVectorT<T>& pa, FourVectorT<T>& pb, FourVectorT<T>& pi, FourVectorT<T>& Kia, T& Jac){
+
+    // The convention for rand is {x,Pia,phi} ...
+
+    T x = rand[0];
+
+    T Ei = (sqrts*sqrts+Mi*Mi-Mia*Mia)/(2*sqrts);
+    T Ea = (sqrts*sqrts+Ma*Ma-Mb*Mb)/(2*sqrts);
+    T Pa = sqrt(lambda(sqrts*sqrts,Ma*Ma,Mb*Mb))/(2*sqrts);
+    T Pi = sqrt(lambda(sqrts*sqrts,Mi*Mi,Mia*Mia))/(2*sqrts);
+    T PiaSq_min = Ma*Ma+Mi*Mi-2*Ea*Ei-2*Pi*Pa;
+
+    T PiaSq = (1-rand[1])*PiaSq_min;
+    T PiaBar = PiaSq-Mi*Mi-Ma*Ma;
+
+    T s_tilde  = x*(sqrts*sqrts-Ma*Ma-Mb*Mb)+(PiaBar+2*Ma*Ma*x)*(Mb*Mb+PiaSq-Mia*Mia)/(2*PiaSq);
+      s_tilde /= Ria(x,PiaSq,Ma,Mi);
+      s_tilde -= (PiaSq+Ma*Ma-Mi*Mi)*(Mb*Mb+PiaSq-Mia*Mia)/(2*PiaSq);
+      s_tilde += Ma*Ma+Mb*Mb;
+
+    Ei = (s_tilde+Mi*Mi-Mia*Mia)/(2*sqrt(s_tilde));
+    Ea = (s_tilde+Ma*Ma-Mb*Mb)/(2*sqrt(s_tilde));
+    Pa = sqrt(lambda(s_tilde,Ma*Ma,Mb*Mb))/(2*sqrt(s_tilde));
+    Pi = sqrt(lambda(s_tilde,Mi*Mi,Mia*Mia))/(2*sqrt(s_tilde));
+    T cos_i = (PiaSq - Ma*Ma - Mi*Mi + 2*Ei*Ea)/(2*Pa*Pi);
+
+    FourVectorT<T> P_tilde(sqrt(s_tilde),0,0,0);
+    T Mass[2] = {Mia,Mi};
+    T Rand[2] = {(cos_i+1)/2,rand[2]};
+    FourVectorT<T> Mom[2];
+    T J=1;
+
+    Recursive_PSP(P_tilde,2,Mom,Mass,Rand,J);
+    pi = Mom[1];
+    Kia = Mom[0];
+    Jac=J;
+
+    Rand[0]=0.0;
+    Rand[1]=0.0;
+    Mass[0]=Ma;
+    Mass[1]=Mb;
+    Recursive_PSP(P_tilde,2,Mom,Mass,Rand,J);
+    pa=Mom[0];
+    pb=Mom[1];
+
+}
 
 template <class T>
 void G_ia_ffb(T Pia, T mi, T ma, T mu, T* RVAL){
 
-    RVAL[0] = 0;
-    RVAL[1] = 0;
-    RVAL[2] = 0;
+    if (mi==0){
+        RVAL[0] = 0;
+        RVAL[1] = 0;
+        RVAL[2] = 0;
+    }
+
+    else{
+
+    }
+
 }
 
 template <class T>
 void G_ai_ffb(T Pia, T ma, T mi, T mu, T* RVAL){
 
-    RVAL[0] = 0;
-    RVAL[1] = 0;
-    RVAL[2] = 0;
+    if (ma==0){
+        RVAL[0] = 0;
+        RVAL[1] = 0;
+        RVAL[2] = 0;
+    }
+
+    else{
+        
+    }
+
 }
 
 template <class T>
