@@ -6,7 +6,7 @@
 
 class VirtualIntegrands : public Integrand{
     
-    typedef void(VirtualIntegrands::*MemberFunction)(int,std::string,double*,double,double*);
+    typedef void(VirtualIntegrands::*MemberFunction)(int,std::string,double,double*,double,double*);
     std::unordered_map<std::string,MemberFunction> VCatalog;
             
     public:
@@ -31,10 +31,6 @@ class VirtualIntegrands : public Integrand{
             delete [] Channels;
         }
 
-        void setECM(double sqrts){
-            for ( int i=0;i<nChannels;i++) Channels[i]->SetECM(sqrts);
-        }
-
         void GetMomenta(std::string ch, FourVector* p){
             int Channel = ChannelSelect(ch);
             Channels[Channel]->GetMomenta(p);
@@ -50,17 +46,17 @@ class VirtualIntegrands : public Integrand{
             Channels[Channel]->GetPID(pid);
         }
 
-        void Born(int Channel, std::string cp, double* rand, double mu, double* rval){
-            Channels[Channel]->Born(cp,rand,rval);
+        void Born(int Channel, std::string cp, double sqrts, double* rand, double mu, double* rval){
+            Channels[Channel]->Born(cp,sqrts,rand,mu,rval);
         }
 
-        void Virtual(int Channel, std::string cp, double* rand, double mu, double* rval){
-            Channels[Channel]->Virtual(cp,rand,mu,rval);
+        void Virtual(int Channel, std::string cp, double sqrts, double* rand, double mu, double* rval){
+            Channels[Channel]->Virtual(cp,sqrts,rand,mu,rval);
         }
 
-        void Call(std::string in, std::string ch, std::string cp, double* rand, double mu, double* rval){
+        void Call(std::string in, std::string ch, std::string cp, double sqrts, double* rand, double mu, double* rval){
             int Channel = ChannelSelect(ch);
-            (this->*VCatalog.at(in))(Channel,cp,rand,mu,rval);
+            (this->*VCatalog.at(in))(Channel,cp,sqrts,rand,mu,rval);
         }
 
 };

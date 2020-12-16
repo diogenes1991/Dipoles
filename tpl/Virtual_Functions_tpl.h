@@ -13,8 +13,8 @@ class ####SubProcName#### : public VirtualStructure{
         
         ####SubProcName####(Process& process);
         
-        void Born(std::string cp, double* rand, double* rval);
-        void Virtual(std::string cp, double* rand, double mu, double* rval);
+        void Born(std::string cp, double sqrts, double* rand, double mu, double* rval);
+        void Virtual(std::string cp, double sqrts, double* rand, double mu, double* rval);
 
     };
 
