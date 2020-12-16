@@ -13,9 +13,9 @@ class ####SubProcName#### : public DipoleStructure{
         
         ####SubProcName####(Process& process);
         
-        void Subtracted(std::string cp, double* rand, double mu, double* rval);
-        void PlusDistribution(std::string cp, double* rand, double mu, double* rval);
-        void Endpoint(std::string cp, double* rand, double mu, double* rval);
+        void Subtracted(std::string cp, double sqrts, double* rand, double mu, double* rval);
+        void PlusDistribution(std::string cp, double sqrts, double* rand, double mu, double* rval);
+        void Endpoint(std::string cp, double sqrts, double* rand, double mu, double* rval);
 
 };
 
