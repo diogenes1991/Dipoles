@@ -174,7 +174,7 @@ class Amplitude:
         if self.stage:
             MakeDir(self.SrcDir)
             self.BuildDipoleTree()
-            # self.BuildSeeds()
+            self.BuildSeeds()
             self.stage -= 1
 
         if self.stage: 
@@ -685,8 +685,9 @@ class Amplitude:
                         if CACHEDTAG != Emitter['SBORNTAG']:
                             AMPMAPLINE   = TAB6+'i = Proc->AmpMap.at("'+Emitter['SBORNTAG']+'");\n'
                             BORNMAPLINE  = TAB6+'j = BornMap.at("'+Emitter['SBORNTAG']+'");\n'
-                            BORNMAPLINE += TAB6+'SetInMom(j);\n'
-                            BORNMAPLINE += TAB6+'SetFiMom(j,rand,&J);\n'
+                            # BORNMAPLINE += TAB6+'SetInMom(j);\n'
+                            # BORNMAPLINE += TAB6+'SetFiMom(j,rand,&J);\n'
+                            BORNMAPLINE += TAB6+'BGenerate("'+Emitter['SBORNTAG']+'",sqrts,rand,&J);\n'
                             BORNMAPLINE += TAB6+'for(int j=0;j<NextR-1;j++){pp[5*j+0]=BornMomenta[j].p0;pp[5*j+1]=BornMomenta[j].p1;pp[5*j+2]=BornMomenta[j].p2;pp[5*j+3]=BornMomenta[j].p3;pp[5*j+4]=0.0;}\n'
                             CACHEDTAG = Emitter['SBORNTAG']
                         else:
@@ -707,7 +708,6 @@ class Amplitude:
 
                         PREFIX = Emitter['SUBTYP']+Spectator['SUBTYP']
                         DIPFUN = DIPDIC[PREFIX]
-                        # TYP = ('fermion' if isinstance(Emitter['DIPOLE'][0],Fermion) else 'boson')
                         TYP = Emitter['PARTYPS']
 
                         DICT['SubProcSub'] += AMPMAPLINE
@@ -721,7 +721,14 @@ class Amplitude:
                         ##
 
                         DICT['SubProcPlu'] += AMPMAPLINE
-                        DICT['SubProcPlu'] += TAB6+';\n'
+                        DICT['SubProcPlu'] += BORNMAPLINE
+                        DICT['SubProcPlu'] += TAB6+'Invariant = BornMasses[j]['+str(I)+']*BornMasses[j]['+str(I)+']'\
+                                                              '+ BornMasses[j]['+str(J)+']*BornMasses[j]['+str(J)+']'\
+                                                              +('+' if (PREFIX=='II'or PREFIX=='FF') else '-')+\
+                                                              '2*(BornMomenta['+str(I)+']*BornMomenta['+str(J)+']);\n'
+                        DICT['SubProcPlu'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",pp,'+str(Next-1)+',mu,born,&acc);\n'
+                        DICT['SubProcPlu'] += TAB6+'CurlyG_'+DIPFUN+'_'+TYP+'(Invariant,BornMasses[j]['+str(I)+'],BornMasses[j]['+str(J)+'],mu,aux);\n'
+                        DICT['SubProcPlu'] += TAB6+'for(int k=0;k<=2;k++) rval[k] += DipFac*aux[k]*born[2];\n\n'
                         DICT['SubProcPlu'] += TAB6+';\n'
                         
                         ##
@@ -734,7 +741,6 @@ class Amplitude:
                                                               '+ BornMasses[j]['+str(J)+']*BornMasses[j]['+str(J)+']'\
                                                               +('+' if (PREFIX=='II'or PREFIX=='FF') else '-')+\
                                                               '2*(BornMomenta['+str(I)+']*BornMomenta['+str(J)+']);\n'
-                        DICT['SubProcEnd'] += TAB6+'for(int j=0;j<p.size();j++){ pp[4*j]=p.at(j).p0;pp[4*j+1]=p.at(j).p1;pp[4*j+2]=p.at(j).p2;pp[4*j+3]=p.at(j).p3;}\n'
                         DICT['SubProcEnd'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CPB+'",pp,'+str(Next-1)+',mu,born,&acc);\n'
                         DICT['SubProcEnd'] += TAB6+'G_'+DIPFUN+'_'+TYP+'(Invariant,BornMasses[j]['+str(I)+'],BornMasses[j]['+str(J)+'],mu,aux);\n'
                         DICT['SubProcEnd'] += TAB6+'for(int k=0;k<=2;k++) rval[k] += DipFac*aux[k]*born[2];\n\n'
@@ -775,8 +781,9 @@ class Amplitude:
                         if CACHEDTAG != Emitter['SBORNTAG']:
                             AMPMAPLINE = TAB6+'i = Proc->AmpMap.at("'+Emitter['SBORNTAG']+'");\n'
                             BORNMAPLINE  = TAB6+'j = BornMap.at("'+Emitter['SBORNTAG']+'");\n'
-                            BORNMAPLINE += TAB6+'SetInMom(j);\n'
-                            BORNMAPLINE += TAB6+'SetFiMom(j,rand,&J);\n'
+                            # BORNMAPLINE += TAB6+'SetInMom(j);\n'
+                            # BORNMAPLINE += TAB6+'SetFiMom(j,rand,&J);\n'
+                            BORNMAPLINE += TAB6+'BGenerate("'+Emitter['SBORNTAG']+'",sqrts,rand,&J);\n'
                             BORNMAPLINE += TAB6+'for(int j=0;j<NextR-1;j++){pp[5*j+0]=BornMomenta[j].p0;pp[5*j+1]=BornMomenta[j].p1;pp[5*j+2]=BornMomenta[j].p2;pp[5*j+3]=BornMomenta[j].p3;pp[5*j+4]=0.0;}\n'
                             CACHEDTAG = Emitter['SBORNTAG']
                         else:
