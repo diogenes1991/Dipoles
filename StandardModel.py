@@ -61,7 +61,7 @@ class StandardModel(Model):
         self.QCDPars = set([g])
         self.QCDPars = self.QCDPars.union(self.quarks)  
         
-        self.EWKPars = set([A,Z,Wp,Wm,h])
+        self.EWKPars = set([A,Z,Wp,Wm])
         self.EWKPars = self.EWKPars.union(self.quarks)
         self.EWKPars = self.EWKPars.union(self.leptons)
 
@@ -75,7 +75,7 @@ class StandardModel(Model):
         ## Composite particles are declared with a name and a list of fundmental 
         ## particles
 
-        p = CompositeParticle("p",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,g,A])
+        p = CompositeParticle("p",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,g])
 
         j = CompositeParticle("j",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,g,A])
         
