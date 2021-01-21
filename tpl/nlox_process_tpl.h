@@ -3,8 +3,7 @@
 
 #include "Phase_Space_Tools.h"
 
-####Include Born####
-####Include Radi####
+####Include Channels####
 
 class Process {
   Subprocess** subproc;
@@ -19,8 +18,7 @@ class Process {
       subproc = new Subprocess* [numSubprocesses];
 
       // Initialize classes derived from Subprocess
-        ####Construct Born####
-        ####Construct Radi####
+        ####Construct Channels####
 
         ####Amplitude Map####
         
