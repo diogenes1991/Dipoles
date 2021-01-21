@@ -1,14 +1,27 @@
 #!/usr/bin/env python
 
-from Particle_Engine import *
-from Utilities import *
+from Physics import *
+from Dipoles import *
+from OLP import *
 
 class Amplitude:
     def __init__(self,CONFIGFILE):
         self.ReadConfig(CONFIGFILE)
         self.LoadConfig()
         self.VetoProcs()
-        self.Build()
+        for Ch in self.BornProc.subproc:
+            print Ch
+        for Ch in self.RadiProc.subproc:
+            print Ch
+        self.Build_Dipole_Structures(False)
+        for Dipole in self.DipoleStructures:
+            print self.DipoleStructures[Dipole]
+
+        # self.BuildOLP()
+
+
+        # self.VetoProcs()
+        # self.Build()
 
     ##
     ##  Configfile reading and loading into the amplitude class
@@ -106,7 +119,7 @@ class Amplitude:
             print "\33[31mError\33[0m: Model file",self.config['MODELFILE'][0],"not found."
             sys.exit()
                 
-        self.Model =  LoadedModel.WorkingModel
+        self.Model = LoadedModel.WorkingModel
         self.ParticleContent = self.Model.ParticleContent
 
         self.ini = []
@@ -122,8 +135,8 @@ class Amplitude:
         for particle in self.config['FINAL STATE']:
             try:
                 self.finrad.append(self.ParticleContent[particle])
-                if self.ParticleContent[particle].nam in self.Model.Fundamentals:
-                    self.fin.append(self.ParticleContent[particle])
+                # if self.ParticleContent[particle].nam in self.Model.Fundamentals:
+                self.fin.append(self.ParticleContent[particle])
             except:
                 print "\33[31mError\33[0m: Particle class",particle,"not defined."
                 sys.exit()
@@ -134,7 +147,8 @@ class Amplitude:
             print "\33[31mError\33[0m: Particle class",self.config['RADIATIVE'][0],"not defined"
             sys.exit()
 
-        self.RadiProc = Process(self.ini,self.finrad)
+        self.RadiProc = Process(self.ini,self.finrad,self.Model)
+        self.BornProc = Process(self.ini,self.fin,self.Model)
         self.path = self.config['PATH'][0]+"/"+str(self.RadiProc)
 
         self.seed_tpl = self.config['SEED TEMP'][0]
@@ -154,6 +168,10 @@ class Amplitude:
             for conf in self.config:
                 print conf,'=',self.config[conf]
 
+        self.TplDir = 'tpl'
+        self.IntDir = 'src'
+        self.SrcDir = self.path
+
     def VetoProcs(self):
         ToDelete = []
         for subproc in self.RadiProc.subproc:
@@ -163,31 +181,7 @@ class Amplitude:
                 ToDelete.append(subproc)
         for proc in ToDelete:
             del self.RadiProc.subproc[proc]
-
-    def Build(self):
-
-        self.TplDir = 'tpl'
-        self.IntDir = 'src'
-        self.SrcDir = self.path
-        self.MatDir = self.SrcDir+'/NLOX_Process'
-
-        if self.stage:
-            MakeDir(self.SrcDir)
-            self.BuildDipoleTree()
-            self.BuildSeeds()
-            self.stage -= 1
-
-        if self.stage: 
-            # self.BuildMatrixElements()
-            # self.BuildProcess()
-            self.stage -= 1
-
-        if self.stage:
-            self.BuildDipoleTree()
-            self.BuildInterface()
-            self.BuildDipoleStructures()
-            self.BuildVirtualStructures()
-            
+        
     ##
     ##  Dipole Tree creation from the Radiative process
     ##
@@ -252,8 +246,8 @@ class Amplitude:
                                 syms[sym] += sign*par.sym[sym]
                             else:
                                 syms[sym] = sign*par.sym[sym]
-                    if partyps == 'fbf':
-                        partyps = 'ffb'
+                    # if partyps == 'fbf':
+                    #     partyps = 'ffb'
 
                     reject = False
                     for sym in syms:
@@ -303,170 +297,327 @@ class Amplitude:
                                                            'UPARS':AUX,'UBORNTAG':self.RadiProc.BuildString(AUX),\
                                                            'DIPTYP':TYP,'IJ':[id1,id2],'SUBTYP':SUBTYP,\
                                                            'NAME':dipole_nam,'DIPOLE':dipole,'PARTYPS':partyps})
+
+    def Build_Dipole_Structures_OLD(self,Verbose):
+
+        # We first fetch the allowed Underlying Born tags allowed by the 
+        # particle content specification in the input file
+
+        ALLOWEDTAGS={}
+        for Born in self.BornProc.subproc:
+            TAG=""
+            FINALS=self.BornProc.subproc[Born][self.RadiProc.lni:]
+            for Particle in FINALS:
+                TAG+=Particle.nam
+            ALLOWEDTAGS[TAG]=FINALS
+
+        # Now we proceed to build the Dipole structures
+
+        self.DipoleStructures = {}
+        for Radiative in self.RadiProc.subproc:
+            self.DipoleStructures[Radiative] = []
+
+            if Verbose:
+                print "Building Dipoles for",Radiative
+
+            Dipoles = []
+            for Ri in range(self.RadiProc.lni,len(self.RadiProc.subproc[Radiative])): # Radiation must be a final particle
+                Radiation = self.RadiProc.subproc[Radiative][Ri]
+
+
+                if Verbose:
+                    print "  Evaluating the possibility of considering "+Radiation.nam+"("+str(Ri)+") as radiation"
+
+                # Up to this point we have selected a particle to be our Radiation
+                # now we need to loop over the particle content of the Model to 
+                # and build all possible radiation channels
+                
+                for Ei in range(len(self.RadiProc.subproc[Radiative])):
+                    Emitter = self.RadiProc.subproc[Radiative][Ei]
+
+
+                    if Verbose:
+                        print "    Considering emission off of "+Emitter.nam+"("+str(Ei)+")"
+                    
+                    if Ei >= Ri: # Only consider pairs of emitter-radiation
+                        continue
+
+                    if not self.Model.CanMakeVertex(Emitter,Radiation):
+                        continue
+
+                    # We have to scenarios either the Emitter is initial or is final.
+                    # The conservation of Model Charges needs to be applied differently in 
+                    # each case:
+                    #           - Initial Emitter: Emitter    -> REParticle + Radiation
+                    #           - Final   Emitter: REParticle -> Emitter    + Radiation
+
+                    for NewPar in self.Model.Fundamentals: # Loop over the Mdoel's Fundamentals
+                        REParticle = self.Model.Fundamentals[NewPar]
+                        
+                        if REParticle.mas and Emitter.mas and Radiation.mas: # Skip dipoles with 3 massive particles
+                            continue
+                        
+                        if Ei < self.RadiProc.lni:
+                            DecayChannel = [Emitter,REParticle,Radiation]
+                        else:
+                            DecayChannel = [REParticle,Emitter,Radiation]
+
+                        # We need to hand-skip A->AA , A->ZA, A->ZZ, this needs to be better addressed by self.Model.CanMakeVertex 
+                        if DecayChannel[0] == self.Model.ParticleContent["A"] and DecayChannel[1] == self.Model.ParticleContent["A"] and DecayChannel[1] == self.Model.ParticleContent["A"]:
+                            continue
+                        if self.Model.ParticleContent["Z"] in DecayChannel and self.Model.ParticleContent["A"] in DecayChannel:
+                            continue
+                        
+                        # This next block uses particle engine to veto using charge conservation
+
+                        Symmetries = {}
+                        First = True
+                        for Particle in DecayChannel:
+                            Sign = +1
+                            if First:
+                                Sign = -1
+                                First = False
+                            for Symmetry in Particle.sym:
+                                if Symmetry in Symmetries:
+                                    Symmetries[Symmetry] += Sign*Particle.sym[Symmetry]
+                                else:
+                                    Symmetries[Symmetry]  = Sign*Particle.sym[Symmetry]
+                        
+                        Reject = False
+                        for Symmetry in Symmetries:
+                            if Symmetries[Symmetry] != 0:
+                                Reject = True
+                        if Reject:
+                            continue
+                        
+                        if Verbose:
+                            print "      Cosidering Radiation+Emitter: "+REParticle.nam
+
+                        # Now that we have built and veto the possible channels we 
+                        # proceed to build the dependency tree for this radiative
+
+                        UnderlyingBorn = []
+                        for Index in range(len(self.RadiProc.subproc[Radiative])):
+                            BornParticle = self.RadiProc.subproc[Radiative][Index]
+                            UnderlyingBorn.append(BornParticle)
+                        UnderlyingBorn[Ei] = REParticle
+                        del UnderlyingBorn[Ri]
+
+                        # Now we check if any of the resulting trees is disconected,
+                        # if so this Decay channel is disallowed
+
+                        def IsPossible(LIST):
+                            CC=[]
+                            self.Model.ConnectedComponents(LIST,CC)
+                            if len(CC)==1:
+                                return True
+                            else:
+                                return False
+
+                        if not IsPossible(DecayChannel) or not IsPossible(UnderlyingBorn):
+                            continue
+
+                        # Now we require that the Underlying born configuration
+                        # exists in the expansion of the Born tags
+
+                        def MyF(p):
+                                return -p.pid
+                        FIN = UnderlyingBorn[self.RadiProc.lni:]
+                        FIN.sort(key=MyF)
+                        TAG=""
+                        for Particle in FIN:
+                            TAG+=Particle.nam
+
+                        if TAG not in ALLOWEDTAGS:
+                            continue
+
+                        if REParticle in self.Model.QCDPars:
+                            Dipoles.append(QCDDipole(DecayChannel,UnderlyingBorn))
+
+                        if REParticle in self.Model.EWKPars:
+                            Dipoles.append(EWKDipole(DecayChannel,UnderlyingBorn))
+
+            self.DipoleStructures[Radiative]=DipoleStructure(Radiative,Dipoles)       
     
+    def Build_Dipole_Structures(self,Verbose):
+
+        # We first fetch the allowed Underlying Born tags allowed by the 
+        # particle content specification in the input file
+
+        ALLOWEDTAGS={}
+        for Born in self.BornProc.subproc:
+            TAG=""
+            FINALS=self.BornProc.subproc[Born][self.RadiProc.lni:]
+            for Particle in FINALS:
+                TAG+=Particle.nam
+            ALLOWEDTAGS[TAG]=FINALS
+
+        # Now we proceed to build the Dipole structures
+
+        self.DipoleStructures = {}
+        for Radiative in self.RadiProc.subproc:
+            self.DipoleStructures[Radiative] = []
+
+            if Verbose:
+                print "Building Dipoles for",Radiative
+
+            Dipoles = []
+            for Ri in range(self.RadiProc.lni,len(self.RadiProc.subproc[Radiative])): # Radiation must be a final particle
+                Radiation = self.RadiProc.subproc[Radiative][Ri]
+
+
+                if Verbose:
+                    print "  Evaluating the possibility of considering "+Radiation.nam+"("+str(Ri)+") as radiation"
+
+                # Up to this point we have selected a particle to be our Radiation
+                # now we need to loop over the particle content of the Model to 
+                # and build all possible radiation channels
+                
+                for Ei in range(len(self.RadiProc.subproc[Radiative])):
+                    Emitter = self.RadiProc.subproc[Radiative][Ei]
+
+
+                    if Verbose:
+                        print "    Considering emission off of "+Emitter.nam+"("+str(Ei)+")"
+                    
+                    if Ei >= Ri: # Only consider pairs of emitter-radiation
+                        continue
+
+                    if not self.Model.CanMakeVertex(Emitter,Radiation):
+                        continue
+
+                    # We have to scenarios either the Emitter is initial or is final.
+                    # The conservation of Model Charges needs to be applied differently in 
+                    # each case:
+                    #           - Initial Emitter: Emitter    -> REParticle + Radiation
+                    #           - Final   Emitter: REParticle -> Emitter    + Radiation
+
+                    for NewPar in self.Model.Fundamentals: # Loop over the Mdoel's Fundamentals
+                        REParticle = self.Model.Fundamentals[NewPar]
+                        
+                        if REParticle.mas and Emitter.mas and Radiation.mas: # Skip dipoles with 3 massive particles
+                            continue
+                        
+                        if Ei < self.RadiProc.lni and not REParticle.mas: # If the radiation is off the initial state only a massless RE is allowed
+                            DecayChannel = Channel([Emitter],[REParticle,Radiation],self.Model)
+                        else:
+                            DecayChannel = Channel([REParticle],[Emitter,Radiation],self.Model)
+
+                        # We need to hand-skip A->AA , A->ZA, A->ZZ, this needs to be better addressed by self.Model.CanMakeVertex 
+                        if DecayChannel.Particles[0] == self.Model.ParticleContent["A"] and DecayChannel.Particles[1] == self.Model.ParticleContent["A"] and DecayChannel.Particles[2] == self.Model.ParticleContent["A"]:
+                            continue
+                        if self.Model.ParticleContent["Z"] in DecayChannel.Particles and self.Model.ParticleContent["A"] in DecayChannel.Particles:
+                            continue
+                        
+                        if not DecayChannel.IsPossible():
+                            continue
+                        
+                        if Verbose:
+                            print "      Cosidering Radiation+Emitter: "+REParticle.nam
+
+                        # Now that we have built and veto the possible channels we 
+                        # proceed to build the dependency tree for this radiative
+
+                        UBList = []
+                        for Index in range(len(self.RadiProc.subproc[Radiative])):
+                            BornParticle = self.RadiProc.subproc[Radiative][Index]
+                            UBList.append(BornParticle)
+                        UBList[Ei] = REParticle
+                        del UBList[Ri]
+
+                        UnderlyingBorn = Channel(UBList[:self.RadiProc.lni],UBList[self.RadiProc.lni:],self.Model)
+
+                        # Now we check if any of the resulting trees is disconected,
+                        # if so this Decay channel is disallowed
+
+                        def IsPossible(LIST):
+                            CC=[]
+                            self.Model.ConnectedComponents(LIST,CC)
+                            if len(CC)==1:
+                                return True
+                            else:
+                                return False
+
+                        if not IsPossible(DecayChannel.Particles) or not IsPossible(UnderlyingBorn.Particles):
+                            continue
+
+                        # Now we require that the Underlying born configuration
+                        # exists in the expansion of the Born tags
+
+                        def MyF(p):
+                            return -p.pid
+                        FIN = UnderlyingBorn.Particles[self.RadiProc.lni:]
+                        FIN.sort(key=MyF)
+                        TAG=""
+                        for Particle in FIN:
+                            TAG+=Particle.nam
+
+                        if TAG not in ALLOWEDTAGS:
+                            continue
+
+                        if REParticle in self.Model.QCDPars:
+                            Dipoles.append(QCDDipole(DecayChannel,UnderlyingBorn))
+
+                        if REParticle in self.Model.EWKPars:
+                            Dipoles.append(EWKDipole(DecayChannel,UnderlyingBorn))
+
+            self.DipoleStructures[Radiative]=DipoleStructure(Radiative,Dipoles)       
+    
+    def CollectChannels(self):
+        self.Virts={}
+        self.Reals={}
+        self.Borns={}
+
+        for Ch in self.BornProc.subproc:
+            Ini = self.BornProc.subproc[Ch][:self.RadiProc.lni]
+            Fin = self.BornProc.subproc[Ch][self.RadiProc.lni:]
+            VirtChannel=Channel(Ini,Fin,self.Model)
+            self.Virts[Ch]=VirtChannel
+
+        for Ch in self.RadiProc.subproc:
+            Ini = self.RadiProc.subproc[Ch][:self.RadiProc.lni]
+            Fin = self.RadiProc.subproc[Ch][self.RadiProc.lni:]
+            RealChannel=Channel(Ini,Fin,self.Model)
+            self.Reals[Ch]=RealChannel
+
+            for Dipole in self.DipoleStructures[Ch].Dipoles:
+                Ini = Dipole.UnderlyingBorn[:self.RadiProc.lni]
+                Fin = Dipole.UnderlyingBorn[self.RadiProc.lni:]
+                def Key(p):
+                    return -p.pid
+                Ini.sort(key=Key)
+                Fin.sort(key=Key)
+                BornChannel=Channel(Ini,Fin,self.Model)
+                HASH=""
+                for Particle in Ini:
+                    HASH+=Particle.nam
+                HASH+="_"
+                for Particle in Fin:
+                    HASH+=Particle.nam
+                self.Borns[HASH]=BornChannel
+
     ##
     ##  NLOX: Seeeds, Matrix elements and Process class
     ##
 
-    def BuildSeeds(self):
-
-        for subproc in self.RadiProc.subproc:
-            DICT = {'Initial State' : '' ,\
-                    'Final State'   : '' ,\
-                    'Tree CP'       : 'bornAlphaQCD = ' ,\
-                    'Loop CP'       : 'virtAlphaQCD = ' ,\
-                    'enableTerms'   : '4' ,\
-                    'ColorCorr'     : 'false' ,\
-                    'SpinCorr'      : 'false' ,\
-                    'Path'          : '' }
-            Ini = [ s.nam for s in self.RadiProc.subproc[subproc][:self.RadiProc.lni]]
-            Fin = [ s.nam for s in self.RadiProc.subproc[subproc][self.RadiProc.lni:]]
-
-            EWKc = 0
-            QCDc = 0
-            for particle in self.RadiProc.subproc[subproc]:
-                if particle in self.Model.EWKPars:
-                    EWKc += 1
-                if particle in self.Model.QCDPars:
-                    QCDc += 1
-            MaxQCD = QCDc - 2
-            MinQCD = self.RadiProc.nex - EWKc 
-
-            count = 1
-            for parname in Ini:
-                DICT['Initial State'] += parname
-                if count != len(Ini):
-                    DICT['Initial State'] += ','
-                count += 1
-            count = 1
-            for parname in Fin:
-                DICT['Final State'] += parname
-                if count != len(Fin):
-                    DICT['Final State'] += ','
-                count += 1
-
-            DICT['Tree CP'] += CSS(MaxQCD,MinQCD)
-            DICT['Loop CP'] = '##virtAlphaQCD'
-            DICT['Path'] +=  self.MatDir
-            SubProcSeed = seek_and_destroy(self.seed_tpl,DICT)
-            WriteFile(self.SrcDir+'/'+subproc+'.in',SubProcSeed)
-
-        for born in self.Borns:
-            DICT = {'Initial State' : '' ,\
-                    'Final State'   : '' ,\
-                    'Tree CP'       : 'bornAlphaQCD = ' ,\
-                    'Loop CP'       : 'virtAlphaQCD = ' ,\
-                    'enableTerms'   : '7' ,\
-                    'ColorCorr'     : 'true' ,\
-                    'SpinCorr'      : 'true' ,\
-                    'Path'          : '' }
-            Ini = [ s.nam for s in self.Borns[born][:self.RadiProc.lni]]
-            Fin = [ s.nam for s in self.Borns[born][self.RadiProc.lni:]]
-
-            EWKc = 0
-            QCDc = 0
-            for particle in self.Borns[born]:
-                if particle in self.Model.EWKPars:
-                    EWKc += 1
-                if particle in self.Model.QCDPars:
-                    QCDc += 1
-            MaxQCD = max(0,QCDc-2)
-            MinQCD = len(self.Borns[born]) - EWKc
-
-            count = 1
-            for parname in Ini:
-                DICT['Initial State'] += parname
-                if count != len(Ini):
-                    DICT['Initial State'] += ','
-                count += 1
-            count = 1
-            for parname in Fin:
-                DICT['Final State'] += parname
-                if count != len(Fin):
-                    DICT['Final State'] += ','
-                count += 1
-
-            DICT['Tree CP'] += CSS(MaxQCD,MinQCD)
-            DICT['Loop CP'] += CSS(MaxQCD+1,MinQCD)
-            DICT['Path'] +=  self.MatDir
-            SubProcSeed = seek_and_destroy(self.seed_tpl,DICT)
-            WriteFile(self.SrcDir+'/'+born+'.in',SubProcSeed)
-
-    def BuildProcess(self):
-        DICT = {     'Include Born'    : '' ,\
-                     'Include Radi'   : '' ,\
-                     'NSubProcesses'  : str(len(self.Borns)+len(self.RadiProc.subproc)) ,\
-                     'Construct Born' : '\n' ,\
-                     'Construct Radi' : '\n' ,\
-                     'Amplitude Map'  : '\n'}
-        TAB3 = '    '
-        TAB6 = TAB3+TAB3
-        TAB9 = TAB6+TAB3
+    def BuildOLP(self):
         
-        count = 0
-        for subproc in self.Borns:
-            DICT['Include Born'] += '#include "../'+subproc+'/code/Sub_'+subproc+'.h"\n'
-            DICT['Construct Born'] += TAB6+'subproc['+str(count)+'] = '+'new Sub_'+subproc+'(pc);\n'
-            DICT['Amplitude Map'] += TAB6+'AmpMap.insert({"'+subproc+'",'+str(count)+'});\n'
-            count += 1
+        ## Here we will collect the Channels 
+        ## and pass them to the OLP Scheduler 
+        ## and Interface constructors to weave 
+        ## it all up
 
-        for subproc in self.RadiProc.subproc:
-            DICT['Include Radi'] += '#include "../'+subproc+'/code/Sub_'+subproc+'.h"\n'
-            DICT['Construct Radi'] += TAB6+'subproc['+str(count)+'] = '+'new Sub_'+subproc+'(pc);\n'
-            DICT['Amplitude Map'] += TAB6+'AmpMap.insert({"'+subproc+'",'+str(count)+'});\n'
-            count += 1
+        self.MatDir = self.SrcDir+'/NLOX_Process'
+        self.nlox_process = self.TplDir+'/nlox_process_tpl.h'
+        self.CollectChannels()
+        self.OLP = NLOX_OLP(self.nlox,self.Virts,self.Reals,self.Borns,self.Model,self.seed_tpl,self.nlox_process,self.MatDir)
         
-        ## 
-        ##  NLOX Interface  
-        ##
-        
-        NLOX_PROCESS_H = seek_and_destroy(self.TplDir+"/nlox_process_tpl.h",DICT)
-        WriteFile(self.MatDir+"/code/nlox_process.h",NLOX_PROCESS_H)
-        # CopyFile(self.IntDir+'/nlox_olp.h',self.MatDir+'/code/nlox_olp.h')
-        # CopyFile(self.IntDir+'/nlox_olp.cc',self.MatDir+'/code/nlox_olp.cc')
-        # CopyFile(self.IntDir+'/nlox_olp_fortran.h',self.MatDir+'/code/nlox_olp_fortran.h')
-        # CopyFile(self.IntDir+'/nlox_olp_fortran.cc',self.MatDir+'/code/nlox_olp_fortran.cc')
-        # CopyFile(self.IntDir+'/nlox_fortran_interface.f90',self.MatDir+'/code/nlox_fortran_interface.f90')
+        MakeDir(self.SrcDir)
+        MakeDir(self.MatDir)
+        self.OLP.WriteSeeds()
+        self.OLP.Generate()
+        self.OLP.GenerateInterface()
 
-        ##
-        ##  NLOX Test Code
-        ## 
-
-        # CopyFile(self.IntDir+'/ftest_process.f90',self.MatDir+'/test_process.f90')
-        # CopyFile(self.IntDir+'/test_process.cc',self.MatDir+'/test_process.cc')
-
-    def BuildMatrixElements(self):
-        Here = os.getcwd()
-        os.chdir(self.SrcDir)
-        
-        count = 1
-        tot = str(len(self.Borns))
-        for subproc in self.Borns:
-            if self.verbose:
-                print 'Generating born and virtual process: ',subproc,'('+str(count)+'/'+tot+')'
-            cmd = self.nlox+' '+subproc +'.in > '+subproc+'.log'
-            os.system(cmd)
-            cmd = 'mv '+subproc+'.log '+self.MatDir+'/'+subproc
-            os.system(cmd)
-            cmd = 'rm '+subproc+'.in '
-            os.system(cmd)
-            count += 1
-        
-        count = 1
-        tot = str(len(self.RadiProc.subproc))
-        for subproc in self.RadiProc.subproc:
-            if self.verbose:
-                print 'Generating real radiative process:',subproc,'('+str(count)+'/'+tot+')'
-            cmd = self.nlox+' '+subproc +'.in > '+subproc+'.log'
-            os.system(cmd)
-            cmd = 'mv '+subproc+'.log '+self.MatDir+'/'+subproc
-            os.system(cmd)
-            cmd = 'rm '+subproc+'.in '
-            os.system(cmd)
-            count += 1
-
-        os.chdir(Here)
-    
     ##
     ##  Dipoles: Overhead Interface, Integrands and CUBA Targets 
     ##
