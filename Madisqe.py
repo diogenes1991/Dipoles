@@ -4,24 +4,42 @@ from Physics import *
 from Dipoles import *
 from OLP import *
 
-class Amplitude:
+class Madisqe:
     def __init__(self,CONFIGFILE):
         self.ReadConfig(CONFIGFILE)
         self.LoadConfig()
         self.VetoProcs()
-        for Ch in self.BornProc.subproc:
-            print Ch
-        for Ch in self.RadiProc.subproc:
-            print Ch
-        self.Build_Dipole_Structures(False)
-        for Dipole in self.DipoleStructures:
-            print self.DipoleStructures[Dipole]
-
-        # self.BuildOLP()
+        self.Build()
 
 
-        # self.VetoProcs()
-        # self.Build()
+    def Build(self):
+        
+        self.CreateDirectories()
+
+        self.BuildDipoleTree()
+        self.Build_Dipole_Structures()
+        
+        self.BuildDipoleStructures()
+        self.BuildVirtualStructures()
+
+        self.BuildOLP()
+
+        self.BuildInterface()
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     ##
     ##  Configfile reading and loading into the amplitude class
@@ -439,7 +457,7 @@ class Amplitude:
 
             self.DipoleStructures[Radiative]=DipoleStructure(Radiative,Dipoles)       
     
-    def Build_Dipole_Structures(self,Verbose):
+    def Build_Dipole_Structures(self,Verbose=False):
 
         # We first fetch the allowed Underlying Born tags allowed by the 
         # particle content specification in the input file
@@ -581,8 +599,8 @@ class Amplitude:
             self.Reals[Ch]=RealChannel
 
             for Dipole in self.DipoleStructures[Ch].Dipoles:
-                Ini = Dipole.UnderlyingBorn[:self.RadiProc.lni]
-                Fin = Dipole.UnderlyingBorn[self.RadiProc.lni:]
+                Ini = Dipole.UnderlyingBorn.Particles[:self.RadiProc.lni]
+                Fin = Dipole.UnderlyingBorn.Particles[self.RadiProc.lni:]
                 def Key(p):
                     return -p.pid
                 Ini.sort(key=Key)
@@ -607,16 +625,20 @@ class Amplitude:
         ## and Interface constructors to weave 
         ## it all up
 
-        self.MatDir = self.SrcDir+'/NLOX_Process'
         self.nlox_process = self.TplDir+'/nlox_process_tpl.h'
         self.CollectChannels()
         self.OLP = NLOX_OLP(self.nlox,self.Virts,self.Reals,self.Borns,self.Model,self.seed_tpl,self.nlox_process,self.MatDir)
         
-        MakeDir(self.SrcDir)
-        MakeDir(self.MatDir)
         self.OLP.WriteSeeds()
         self.OLP.Generate()
         self.OLP.GenerateInterface()
+
+    def CreateDirectories(self):
+        self.MatDir = self.SrcDir+'/NLOX_Process'
+        MakeDir(self.SrcDir)
+        MakeDir(self.MatDir)
+        MakeDir(self.SrcDir+'/Code')
+
 
     ##
     ##  Dipoles: Overhead Interface, Integrands and CUBA Targets 
@@ -631,8 +653,6 @@ class Amplitude:
                      'Integrand.h']
         TOPLAYERFILES  = ['Main.cpp','Analysis.cpp','Run_Settings.input']
 
-        MakeDir(self.SrcDir+'/Code')
-
         for file in CODEFILES:
             CopyFile(self.IntDir+'/'+file,self.SrcDir+'/Code/'+file)
         
@@ -641,8 +661,9 @@ class Amplitude:
 
         self.LoadPaths()
         self.paths['NLOX PATH']=self.config['NLOX PATH'][0]
-        MAKEFILE = seek_and_destroy(self.TplDir+'/makefile',self.paths)
-        WriteFile(self.SrcDir+'/makefile',MAKEFILE)
+        
+        Makefile = Template(self.TplDir+'/makefile',self.SrcDir+'/makefile',self.paths)
+        Makefile.Write()
         
     def BuildDipoleStructures(self):
 
@@ -882,7 +903,7 @@ class Amplitude:
                         DICT['SubProcPlu'] += TAB6+'for(int k=0;k<=2;k++) rval[k] += DipFac*aux[k]*born[2];\n\n'
                         DICT['SubProcPlu'] += TAB6+';\n'
                         
-                        ##
+                        ##Channel
                         ##  Endpoint Function
                         ##
 
@@ -990,13 +1011,16 @@ class Amplitude:
                 DICT['SubProcPlu'] += TAB3+'}\n'
                 DICT['SubProcEnd'] += TAB3+'}\n'
             
-            SubFunctionH = seek_and_destroy(self.TplDir+'/Dipole_Functions_tpl.h',DICT)
-            SubFunctionC = seek_and_destroy(self.TplDir+'/Dipole_Functions_tpl.cpp',DICT)
-            WriteFile(ChlDir+'/'+Radiative+'_Real.cpp',SubFunctionC)
-            WriteFile(ChlDir+'/'+Radiative+'_Real.h',SubFunctionH)
-        
-        IntegrandClass = seek_and_destroy(self.TplDir+'/Real_tpl.h',INTDICT)
-        WriteFile(self.SrcDir+'/Code/Real.h',IntegrandClass)
+
+            SubFunctionH = Template(self.TplDir+'/Dipole_Functions_tpl.h',ChlDir+'/'+Radiative+'_Real.h',DICT)
+            SubFunctionC = Template(self.TplDir+'/Dipole_Functions_tpl.cpp',ChlDir+'/'+Radiative+'_Real.cpp',DICT)
+
+            SubFunctionH.Write()
+            SubFunctionC.Write()
+
+            
+        RealIntegrand = Template(self.TplDir+'/Real_tpl.h',self.SrcDir+'/Code/Real.h',INTDICT)
+        RealIntegrand.Write()
 
     def BuildVirtualStructures(self):
         
@@ -1096,19 +1120,18 @@ class Amplitude:
                 DICT['SubProcVirt'] += TAB6+'}\n'
     
 
+            SubFunctionH = Template(self.TplDir+'/Virtual_Functions_tpl.h',ChlDir+'/'+Born+'_Virtual.h',DICT)
+            SubFunctionC = Template(self.TplDir+'/Virtual_Functions_tpl.cpp',ChlDir+'/'+Born+'_Virtual.cpp',DICT)
+            
+            SubFunctionH.Write()
+            SubFunctionC.Write()
 
-
-            SubFunctionH = seek_and_destroy(self.TplDir+'/Virtual_Functions_tpl.h',DICT)
-            SubFunctionC = seek_and_destroy(self.TplDir+'/Virtual_Functions_tpl.cpp',DICT)
-            WriteFile(ChlDir+'/'+Born+'_Virtual.cpp',SubFunctionC)
-            WriteFile(ChlDir+'/'+Born+'_Virtual.h',SubFunctionH)
-
-        IntegrandClass = seek_and_destroy(self.TplDir+'/Virtual_tpl.h',VIRTDICT)
-        WriteFile(self.SrcDir+'/Code/Virtual.h',IntegrandClass)
+        VirtualIntegrand = Template(self.TplDir+'/Virtual_tpl.h',self.SrcDir+'/Code/Virtual.h',VIRTDICT)
+        VirtualIntegrand.Write()
 
 def main(CONFIGFILE):
     
-    AMPLITUDE = Amplitude(CONFIGFILE)
+    MADISQE = Madisqe(CONFIGFILE)
 
 if __name__ == "__main__":
     if len(sys.argv)<2:
