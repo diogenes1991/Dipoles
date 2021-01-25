@@ -195,6 +195,17 @@ class Channel:
             self.MaxQCD = QCDc - 2
             self.MinQCD = len(self.Initial) + len(self.Final) - EWKc
 
+        def IsPossibleAtTreeLevel(self):
+            CC = []
+            if self.IsPossible():
+                self.Model.ConnectedComponents(self.Particles,CC)
+                if len(CC)==1:
+                    return True
+                else:
+                    return False
+            else:
+                return False
+
         def IsPossible(self):
             
             ##
