@@ -2,7 +2,7 @@ import os,sys
 from Utilities import *
 
 class Template():
-
+    
     def __init__(self,Source,Path,Dictionary):
 
         self.tmp_arg_mrk="####"
@@ -22,7 +22,7 @@ class Template():
 
     def Fill(self,permissive=False):
         template_file = open(self.Source,'r')
-        filled_template = ''
+        self.FilledTemplate = ''
         has_empty = False
         for template_line in template_file:
             if template_line.find(self.com_char)==0:
@@ -44,19 +44,18 @@ class Template():
                 has_empty = (self.Dictionary[template_key] == '')
             for char in self.special_chars:
                 line = line.replace(char,str('\\'+char))
-            filled_template += line
+            self.FilledTemplate += line
         if has_empty:
             wrn_msg = '\33[95mWarning\33[0m: '
             wrn_msg += 'data structure: '+str(self.Dictionary)+' has an empty template argument'
             if not permissive:
                 wrn_msg += ', skkiped'
-                filled_template = ""
+                self.FilledTemplate = ""
             else:
                 wrn_msg += ', written with missing arguments'
             print wrn_msg
         template_file.close()
-        return filled_template
 
     def Write(self):
-        FilledTemplate=self.Fill()
-        WriteFile(self.Path,FilledTemplate)
+        self.Fill()
+        WriteFile(self.Path,self.FilledTemplate)
