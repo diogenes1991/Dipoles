@@ -21,8 +21,8 @@ def find_substring(string, substring):
     return recurse([], 0)
 
 ##
-## Template Handleling 
-##
+## File Manipulation
+## 
 
 def MakeDir(Path):
         line = 'mkdir -p '+Path
