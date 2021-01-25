@@ -72,9 +72,9 @@ olpProcessPath = ####Path####
 generateSpinCorrelations = ####SpinCorr####
 generateColorCorrelations = ####ColorCorr####
 
-numThreads = 8
+numThreads = 4
 
 ## FORM settings
-formWorkspace   = 40M
-formMaxTermSize = 10K
+formWorkspace   = 1G
+formMaxTermSize = 200K
 
