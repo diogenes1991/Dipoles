@@ -73,15 +73,15 @@ class NLOX_OLP(OLP):
 
         for Ch in self.Borns:
             BornDict = self.ChannelToDict(self.Borns[Ch],'Born')
-            self.Channels[Ch]={'Channel':self.Borns[Ch],'Dictionary':BornDict}
+            self.Channels[Ch]={'Channel':self.Borns[Ch],'Dictionary':BornDict,'Type':'Born'}
         
         for Ch in self.Reals:
             RealDict = self.ChannelToDict(self.Reals[Ch],'Real')
-            self.Channels[Ch]={'Channel':self.Reals[Ch],'Dictionary':RealDict}
+            self.Channels[Ch]={'Channel':self.Reals[Ch],'Dictionary':RealDict,'Type':'Real'}
 
         for Ch in self.Virts:
             VirtDict = self.ChannelToDict(self.Virts[Ch],'Virt')
-            self.Channels[Ch]={'Channel':self.Virts[Ch],'Dictionary':VirtDict}
+            self.Channels[Ch]={'Channel':self.Virts[Ch],'Dictionary':VirtDict,'Type':'Virt'}
 
         self.ReducedChannels={}
         self.ChannelMap={}
@@ -110,7 +110,7 @@ class NLOX_OLP(OLP):
         count = 1
         tot = str(len(self.ReducedChannels))
         for Ch in self.ReducedChannels:
-            print 'Generating:',Ch,'('+str(count)+'/'+tot+')'
+            print 'Generating',self.ReducedChannels[Ch]['Type'],'channel:',Ch,'('+str(count)+'/'+tot+')'
             cmd = self.nlox+' '+Ch +'.in > '+Ch+'.log'
             os.system(cmd)
             cmd = 'mv '+Ch+'.log '+self.Path+'/'+Ch
