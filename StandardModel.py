@@ -1,5 +1,5 @@
 
-from Particle_Engine import *
+from Physics import *
 import gc
         
 class StandardModel(Model):
@@ -56,7 +56,7 @@ class StandardModel(Model):
         taup  = Fermion("taup", {'tness':-1,'Charge':3},-15,False)
         ntbar = Fermion("ntbar",{'tness':-1,'Charge':0},-16,False)
 
-        self.leptons = set([ep,em,mup,mum,taup,taum,ne,nebar,nm,nmbar,nt,ntbar])
+        self.leptons = set([ep,em,mup,mum,taup,taum,ne,nebar,nm,nmbar,nt,ntbar])        
 
         self.QCDPars = set([g])
         self.QCDPars = self.QCDPars.union(self.quarks)  
@@ -75,7 +75,7 @@ class StandardModel(Model):
         ## Composite particles are declared with a name and a list of fundmental 
         ## particles
 
-        p = CompositeParticle("p",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,g])
+        p = CompositeParticle("p",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,g,A])
 
         j = CompositeParticle("j",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,g,A])
         
