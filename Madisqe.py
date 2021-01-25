@@ -42,7 +42,7 @@ class Madisqe:
 
 
     ##
-    ##  Configfile reading and loading into the amplitude class
+    ##  Configfile reading and loading into the Madisqe class
     ##  We need to get rid of the extra wrapping the configs get,
     ##  all real configs are at self.config['Key'][0]
     ##
@@ -459,8 +459,10 @@ class Madisqe:
     
     def Build_Dipole_Structures(self,Verbose=False):
 
-        # We first fetch the allowed Underlying Born tags allowed by the 
-        # particle content specification in the input file
+        ##
+        ## We first fetch the allowed Underlying Born tags allowed by the 
+        ## particle content specification in the input file
+        ##
 
         ALLOWEDTAGS={}
         for Born in self.BornProc.subproc:
@@ -470,7 +472,9 @@ class Madisqe:
                 TAG+=Particle.nam
             ALLOWEDTAGS[TAG]=FINALS
 
-        # Now we proceed to build the Dipole structures
+        ## 
+        ## Now we proceed to build the Dipole structures
+        ##
 
         self.DipoleStructures = {}
         for Radiative in self.RadiProc.subproc:
@@ -487,9 +491,11 @@ class Madisqe:
                 if Verbose:
                     print "  Evaluating the possibility of considering "+Radiation.nam+"("+str(Ri)+") as radiation"
 
-                # Up to this point we have selected a particle to be our Radiation
-                # now we need to loop over the particle content of the Model to 
-                # and build all possible radiation channels
+                ##
+                ## Up to this point we have selected a particle to be our Radiation
+                ## now we need to loop over the particle content of the Model
+                ## and build all possible radiation channels
+                ##
                 
                 for Ei in range(len(self.RadiProc.subproc[Radiative])):
                     Emitter = self.RadiProc.subproc[Radiative][Ei]
@@ -504,11 +510,13 @@ class Madisqe:
                     if not self.Model.CanMakeVertex(Emitter,Radiation):
                         continue
 
-                    # We have to scenarios either the Emitter is initial or is final.
-                    # The conservation of Model Charges needs to be applied differently in 
-                    # each case:
-                    #           - Initial Emitter: Emitter    -> REParticle + Radiation
-                    #           - Final   Emitter: REParticle -> Emitter    + Radiation
+                    ##
+                    ## We have to scenarios either the Emitter is initial or is final.
+                    ## The conservation of Model Charges needs to be applied differently in 
+                    ## each case:
+                    ##           - Initial Emitter: Emitter    -> REParticle + Radiation
+                    ##           - Final   Emitter: REParticle -> Emitter    + Radiation
+                    ##
 
                     for NewPar in self.Model.Fundamentals: # Loop over the Mdoel's Fundamentals
                         REParticle = self.Model.Fundamentals[NewPar]
@@ -520,8 +528,10 @@ class Madisqe:
                             DecayChannel = Channel([Emitter],[REParticle,Radiation],self.Model)
                         else:
                             DecayChannel = Channel([REParticle],[Emitter,Radiation],self.Model)
+                        ##
+                        ## We need to hand-skip A->AA , A->ZA, A->ZZ, this needs to be better addressed by self.Model.CanMakeVertex 
+                        ##
 
-                        # We need to hand-skip A->AA , A->ZA, A->ZZ, this needs to be better addressed by self.Model.CanMakeVertex 
                         if DecayChannel.Particles[0] == self.Model.ParticleContent["A"] and DecayChannel.Particles[1] == self.Model.ParticleContent["A"] and DecayChannel.Particles[2] == self.Model.ParticleContent["A"]:
                             continue
                         if self.Model.ParticleContent["Z"] in DecayChannel.Particles and self.Model.ParticleContent["A"] in DecayChannel.Particles:
@@ -533,8 +543,10 @@ class Madisqe:
                         if Verbose:
                             print "      Cosidering Radiation+Emitter: "+REParticle.nam
 
-                        # Now that we have built and veto the possible channels we 
-                        # proceed to build the dependency tree for this radiative
+                        ##
+                        ## Now that we have built and veto the possible channels we 
+                        ## proceed to build the dependency tree for this radiative
+                        ##
 
                         UBList = []
                         for Index in range(len(self.RadiProc.subproc[Radiative])):
@@ -545,22 +557,13 @@ class Madisqe:
 
                         UnderlyingBorn = Channel(UBList[:self.RadiProc.lni],UBList[self.RadiProc.lni:],self.Model)
 
-                        # Now we check if any of the resulting trees is disconected,
-                        # if so this Decay channel is disallowed
-
-                        def IsPossible(LIST):
-                            CC=[]
-                            self.Model.ConnectedComponents(LIST,CC)
-                            if len(CC)==1:
-                                return True
-                            else:
-                                return False
-
-                        if not IsPossible(DecayChannel.Particles) or not IsPossible(UnderlyingBorn.Particles):
+                        if not UnderlyingBorn.IsPossibleAtTreeLevel() or not DecayChannel.IsPossibleAtTreeLevel():
                             continue
 
-                        # Now we require that the Underlying born configuration
-                        # exists in the expansion of the Born tags
+                        ## 
+                        ## Now we require that the Underlying born configuration
+                        ## exists in the expansion of the Born tags
+                        ## 
 
                         def MyF(p):
                             return -p.pid
@@ -580,8 +583,18 @@ class Madisqe:
                             Dipoles.append(EWKDipole(DecayChannel,UnderlyingBorn))
 
             self.DipoleStructures[Radiative]=DipoleStructure(Radiative,Dipoles)       
-    
+
+    ##
+    ##  OLP Scheduler: Prepare Channels to schedule and Schedule
+    ##
+
     def CollectChannels(self):
+
+        ##
+        ##  This collects the channels and prepares them 
+        ##  to be passed down to the OLP Scheduler 
+        ##
+
         self.Virts={}
         self.Reals={}
         self.Borns={}
@@ -614,10 +627,6 @@ class Madisqe:
                     HASH+=Particle.nam
                 self.Borns[HASH]=BornChannel
 
-    ##
-    ##  NLOX: Seeeds, Matrix elements and Process class
-    ##
-
     def BuildOLP(self):
         
         ## Here we will collect the Channels 
@@ -633,17 +642,16 @@ class Madisqe:
         self.OLP.Generate()
         self.OLP.GenerateInterface()
 
+    ##
+    ##  Build the Interface 
+    ##
+    
     def CreateDirectories(self):
         self.MatDir = self.SrcDir+'/NLOX_Process'
         MakeDir(self.SrcDir)
         MakeDir(self.MatDir)
         MakeDir(self.SrcDir+'/Code')
 
-
-    ##
-    ##  Dipoles: Overhead Interface, Integrands and CUBA Targets 
-    ##
-    
     def BuildInterface(self):
         CODEFILES = ['Dipole_Structure.h','Dipole_Definitions.h', \
                      'PSP_Generator.h','Utilities.h','Virtual_Structure.h',\
@@ -665,6 +673,10 @@ class Madisqe:
         Makefile = Template(self.TplDir+'/makefile',self.SrcDir+'/makefile',self.paths)
         Makefile.Write()
         
+    ##
+    ##  Build the Integrands Classes: Virtual and Real
+    ##
+
     def BuildDipoleStructures(self):
 
         def ProcessConstMassName(particle):
@@ -748,7 +760,7 @@ class Madisqe:
             Bcount = 0
             for Born in self.Linked[Radiative]:
                 count = 0
-                DICT['SubProcConst'] += TAB3+'BornMap.insert({"'+Born+'",'+str(Bcount)+'});\n'
+                DICT['SubProcfConst'] += TAB3+'BornMap.insert({"'+Born+'",'+str(Bcount)+'});\n'
                 for particle in self.Linked[Radiative][Born]:
                     DICT['SubProcConst'] += TAB3+'BornMasses['+str(Bcount)+']['+str(count)+']='+ProcessConstMassName(particle)+';\n'
                     DICT['SubProcConst'] += TAB3+'BornPID['+str(Bcount)+']['+str(count)+']='+str(particle.pid)+';\n'
