@@ -3,15 +3,19 @@ from Template import *
 
 class OLP:
     
-    template = ''
+    Channels = {}
 
-    def Write():
-        ChannelDict = {'BuildChannels':''}
-        for Ch in self.ChannelMap:
-            ChannelDict += 'ChannelMap.insert({"'+Ch+'",'+self.ChannelMap[Ch]+'})\n'
+    def ReduceChannels(self):
+
+        self.ReducedChannels={}
+        self.ChannelMap={}
+
+        for Ch in self.Channels:
+            self.ReducedChannels[Ch]=self.Channels[Ch]
+            self.ChannelMap[Ch]=self.Channels[Ch]
 
 class NLOX_OLP(OLP):
-    def __init__(self,NLOX,Virts,Reals,Borns,Model,Seed,Process,Path):
+    def __init__(self,NLOX,Virts,Reals,Borns,Model,Seed,Process,OLP_Tpl,Path):
         
         self.nlox=NLOX
         self.Virts=Virts
@@ -21,6 +25,7 @@ class NLOX_OLP(OLP):
         self.Path =Path
         self.Seed=Seed
         self.Process=Process
+        self.Templ=OLP_Tpl
         self.ConfigureChannels()
 
     def ChannelToDict(self,Channel,Type):
@@ -64,12 +69,12 @@ class NLOX_OLP(OLP):
 
     def ConfigureChannels(self,Fixed=False):
         
+        ##
         ## We have three kind of Channels to Schedule to the OLP
         ## Virts -> 2 to n @NLO Channels
         ## Reals -> 2 to n+1 @LO Channles
         ## Borns -> 2 to n @LO Channels -> Both Spin and Color Correlated 
-
-        self.Channels={}
+        ##
 
         for Ch in self.Borns:
             BornDict = self.ChannelToDict(self.Borns[Ch],'Born')
@@ -83,27 +88,19 @@ class NLOX_OLP(OLP):
             VirtDict = self.ChannelToDict(self.Virts[Ch],'Virt')
             self.Channels[Ch]={'Channel':self.Virts[Ch],'Dictionary':VirtDict,'Type':'Virt'}
 
-        self.ReducedChannels={}
-        self.ChannelMap={}
+        self.ReduceChannels()
 
-        for Ch in self.Channels:
-            self.ReducedChannels[Ch]=self.Channels[Ch]
-            self.ChannelMap[Ch]=self.Channels[Ch]
-
-        ## We need to add some padding to avoid sending
-        ## unecessary resquests to the OLP. The padding 
-        ## will work as follows:
-        ##        - The c++ OLP object has all the Channels listed
-        ##        - It also has a map from the Channels to the subset requested to the OLP
-        
     def WriteSeeds(self):
+        Count = 1
         for Ch in self.ReducedChannels:
+            print 'Writing NLOX seed for',Ch,'at',self.ReducedChannels[Ch]['Type'],str(Count)+'/'+str(len(self.ReducedChannels))
             Dictionary = self.ReducedChannels[Ch]['Dictionary']
-            FileName=self.Path+'/'+Ch+'.in'
+            FileName=self.Path+'/NLOX_Process/'+Ch+'.in'
             ChannelSeed = Template(self.Seed,FileName,Dictionary)
             ChannelSeed.Write()
+            Count += 1  
 
-    def Generate(self):
+    def GenerateCode(self):
         Here = os.getcwd()
         os.chdir(self.Path)
         
@@ -126,21 +123,119 @@ class NLOX_OLP(OLP):
                          'NSubProcesses'      : str(len(self.ReducedChannels)) ,\
                          'Construct Channels' : '\n' ,\
                          'Amplitude Map'      : '\n'}
+
         TAB3 = '    '
         TAB6 = TAB3+TAB3
         
-        count = 0
+        Count = 0
         for Ch in self.ReducedChannels:
             INTERFACEDICT['Include Channels']   += '#include "../'+Ch+'/code/Sub_'+Ch+'.h"\n'
-            INTERFACEDICT['Construct Channels'] += TAB6+'subproc['+str(count)+'] = '+'new Sub_'+Ch+'(pc);\n'
-            INTERFACEDICT['Amplitude Map']      += TAB6+'AmpMap.insert({"'+Ch+'",'+str(count)+'});\n'
-            count += 1
+            INTERFACEDICT['Construct Channels'] += TAB6+'subproc['+str(Count)+'] = '+'new Sub_'+Ch+'(pc);\n'
+            INTERFACEDICT['Amplitude Map']      += TAB6+'AmpMap.insert({"'+Ch+'",'+str(Count)+'});\n'
+            Count += 1
 
-        FILENAME = self.Path+'/code/nlox_process.h'
+        FILENAME = self.Path+'/NLOX_Process/code/nlox_process.h'
         cmd = 'rm '+FILENAME
         os.system(cmd)
         NLOXPROCESS = Template(self.Process,FILENAME,INTERFACEDICT)
         NLOXPROCESS.Write()
 
-class Recola_OLP(OLP):
-    pass
+    def WriteOLPClass(self):
+        OLPDICT = {'Define Channels':''}
+
+        TAB4='    '
+        TAB8=TAB4+TAB4
+        TAB12=TAB8+TAB4
+        ChannelCount = 0
+        for Ch in self.ReducedChannels:
+            ThisChannel = self.ReducedChannels[Ch]['Channel']
+            OLPDICT['Define Channels'] += TAB12+'ChannelIndex.insert({"'+str(ThisChannel)+'",'+str(ChannelCount)+'});\n'
+            ChannelCount += 1
+
+        NLOX_OLP = Template(self.Templ,self.Path+'/Code/NLOX_OLP.h',OLPDICT)
+        NLOX_OLP.Write()
+
+
+class RECOLA_OLP(OLP):
+
+    ##
+    ##  Madisqe uses NLOX particle names by default 
+    ##  we need to have a map from the names in Madisqe 
+    ##  to those used by RECOLA
+    ##
+
+    RECOLA_NAME = {'d'    : 'd'    , 's'    : 's'     , 'b'    : 'b'      ,\
+                   'dbar' : 'd~'   , 'sbar' : 's~'    , 'bbar' : 'b~'     ,\
+                   'u'    : 'u'    , 'c'    : 'c'     , 't'    : 't'      ,\
+                   'ubar' : 'u~'   , 'cbar' : 'c~'    , 'tbar' : 't~'     ,\
+                   'ep'   : 'e+'   , 'mup'  : 'mu+'   , 'taup' : 'tau+'   ,\
+                   'em'   : 'e-'   , 'mum'  : 'mu-'   , 'taum' : 'tau-'   ,\
+                   'ne'   : 'nu_e' , 'nm'   : 'nu_mu' , 'nt'   : 'nu_tau' ,\
+                   'nebar': 'nu_e~', 'nmbar': 'nu_mu~', 'ntbar': 'nu_tau~',\
+                   'Wm'   : 'W-'   , 'Wp'   : 'W+'    , 'Z'    : 'Z'      ,\
+                   'g'    : 'g'    , 'A'    : 'A'     , 'h'    : 'H'       \
+                   }
+
+    def __init__(self,RECOLA,Virts,Reals,Borns,Model,OLP_Tpl,Path):
+        
+        self.Recola=RECOLA
+        self.Virts=Virts
+        self.Reals=Reals
+        self.Borns=Borns
+        self.Model=Model
+        self.Templ=OLP_Tpl
+        self.Path =Path
+
+    def ConfigureChannels(self):
+
+        for Ch in self.Borns:
+            self.Channels[Ch]={'Channel':self.Borns[Ch],'Type':'Born'}
+        
+        for Ch in self.Reals:
+            self.Channels[Ch]={'Channel':self.Reals[Ch],'Type':'Real'}
+
+        for Ch in self.Virts:
+            self.Channels[Ch]={'Channel':self.Virts[Ch],'Type':'Virt'}
+        
+        self.ReduceChannels()
+
+    def WriteOLPClass(self):
+        RECOLA_DICT = { 'Define Channels' : ''}
+
+        TAB4  = '    '
+        TAB8  = TAB4 + '    '
+        TAB12 = TAB8 + '    '
+
+        ORDER = {'Virt':'NLO','Real':'LO','Born':'LO'}
+
+        ChannelCount = 1
+        for Ch in self.Channels:
+            ThisChannel = self.Channels[Ch]['Channel']
+            
+            ChannelName = ''
+            
+            Count = 1
+            for Particle in ThisChannel.Initial:
+                ChannelName += self.RECOLA_NAME[Particle.nam]+(' ' if Count < len(ThisChannel.Initial) else '')
+                Count += 1
+            
+            Count = 1
+            ChannelName += ' -> '
+            for Particle in ThisChannel.Final:
+                ChannelName += self.RECOLA_NAME[Particle.nam]+(' ' if Count < len(ThisChannel.Final) else '')
+                Count += 1
+            
+            RECOLA_DICT['Define Channels'] += TAB12+'Recola::define_process_rcl('+str(ChannelCount)+',"'+ChannelName+'","'+ORDER[self.Channels[Ch]['Type']]+'");\n'
+            RECOLA_DICT['Define Channels'] += TAB12+'ChannelIndex.insert({"'+str(ThisChannel)+'",'+str(ChannelCount)+'});\n'
+            
+            ChannelCount += 1
+
+        RECOLA_OLP = Template(self.Templ,self.Path+'/Code/RECOLA_OLP.h',RECOLA_DICT)
+        RECOLA_OLP.Write()
+
+
+
+            
+
+
+
