@@ -1,9 +1,9 @@
-
 LHAPDFSet = CT14qed_inc_proton
 sqrts = 13000
 muRen = 91.1876
 muFac = 91.1876
 
+OLP = recola
 Integrand = Born
 Channel = bg_Zb
 Coupling = as1ae1
@@ -13,8 +13,3 @@ Method = Vegas
 NStart = 5000
 NIncrease = 5000
 NEvaluations = 1000000
-
-
-
-
-

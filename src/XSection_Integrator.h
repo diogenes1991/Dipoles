@@ -25,9 +25,15 @@ class XSection_Integrator{
         size_t NVars;
         };
 
-        XSection_Integrator(std::string pdfname, std::string Integrator){
+        XSection_Integrator(std::string olp, std::string pdfname, std::string Integrator){
             
-            XSec = new XSection(pdfname);
+            std::cout<<"XSection Integration Environment Intialized"<<std::endl;
+            std::cout<<"For this run we are using:"<<std::endl;
+            std::cout<<"1-Loop Provider     : "<<olp<<std::endl;
+            std::cout<<"PDF Set             : "<<pdfname<<std::endl;
+            std::cout<<"Integration Routine : "<<Integrator<<std::endl;
+            
+            XSec = new XSection(olp,pdfname);
 
             if(pdfname!=""){
                 NVarB+=2;

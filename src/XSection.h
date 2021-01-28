@@ -3,6 +3,8 @@
 
 #include "Real.h"
 #include "Virtual.h"
+#include "NLOX_OLP.h"
+#include "RECOLA_OLP.h"
 #include "PDF_Sets.h"
 #include "Analysis.h"
 #include "Constants.h"
@@ -10,7 +12,6 @@
 class XSection{
 
     bool usingpdfs = false;
-    bool usingjetalg = false;
 
     std::unordered_map<std::string,Integrand*> XSectionMap;
     std::unordered_map<std::string,int> XSectionNPar;
@@ -21,24 +22,37 @@ class XSection{
         double mu_ren;
         double mu_fac;
 
-        Process * Proc;
+        OLP * Provider;
+        Model * model;
         RealIntegrands * Reals;
         VirtualIntegrands * Virtuals;
         LHAPDF_Set * PDF;
         Integrand * IntegrandPtr = NULL;
 
-        XSection(std::string pdfset = ""){
+        XSection(std::string olp = "nlox", std::string pdfset = ""){
             if(pdfset!=""){
                 PDF = new LHAPDF_Set(pdfset);
                 usingpdfs = true;
             }
-            Proc = new Process();
             
-            Reals  = new RealIntegrands(Proc);
+            if( olp == "nlox"){
+                Provider = new NLOX_OLP();
+                           }
+            else if( olp == "recola"){
+                Provider = new RECOLA_OLP();
+            }
+            else{
+                std::cout<<"Error: OLP type "<<olp<<" not supported"<<std::endl;
+                abort();
+            }
+
+            model = new Model();
+
+            Reals  = new RealIntegrands(Provider,model);
             XSectionMap.insert({"Reals",Reals});
             XSectionNPar.insert({"Reals",NextR});
             
-            Virtuals = new VirtualIntegrands(Proc);
+            Virtuals = new VirtualIntegrands(Provider,model);
             XSectionMap.insert({"Virtuals",Virtuals});
             XSectionNPar.insert({"Virtuals",NextV});
             
@@ -46,9 +60,10 @@ class XSection{
 
         ~XSection(){
             if(usingpdfs) delete PDF;
+            delete model;
+            delete Provider;
             delete Virtuals;
             delete Reals;
-            delete Proc;
         }
 
         void SetScales(double sqrts0, double mu_ren0, double mu_fac0){
@@ -92,10 +107,10 @@ class XSection{
 
             if(sqrtshat > sqrtshat_min){
                 
-                prefactor *= 1.0/(2.0*sqrt(lambda(sqrtshat*sqrtshat,mass[0]*mass[0],mass[1]*mass[1])));
+                prefactor *= 1.0/(2.0*sqrt(Lambda(sqrtshat*sqrtshat,mass[0]*mass[0],mass[1]*mass[1])));
                 
                 double partxsec;
-                FourVector p[Next];
+                FVector p[Next];
                 IntegrandPtr->Call(Integrand,Channel,Coupling,sqrtshat,x,mu_ren,&partxsec);
 
                 double reweight;

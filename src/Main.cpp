@@ -1,10 +1,15 @@
 #include "XSection_Integrator.h"
 
-class Environment{
+class Madisqe{
 
     std::unordered_map<std::string,std::string> InputFile;
 
     static void LoadInput(const std::string & filename, std::unordered_map<std::string,std::string>& settings){
+        
+        // There is a bug in here were the last line is not read 
+        // for now we get around it by adding an extra inert line 
+        // at the end of the Input file
+
         std::ifstream data;
         std::string linebuf;
         data.open(filename.data());
@@ -40,9 +45,17 @@ class Environment{
 
     public:
 
-        Environment(std::string InputFileName){
+        Madisqe(std::string InputFileName){
             LoadInput(InputFileName,InputFile);
+            std::cout<<"Madisqe Environment Initialized"<<std::endl;
+            std::cout<<"Using the user settings:"<<std::endl;
+            
+            for (auto Setting : InputFile){
+                std::cout<<Setting.first<<" = "<<Setting.second<<std::endl;
+            }
+            
             std::string PDFSet     = InputFile.at("LHAPDFSet");
+            std::string Provider   = InputFile.at("OLP");
             std::string Integrator = InputFile.at("Integrator");
             
             MC_SP.Method    = InputFile.at("Method");
@@ -53,16 +66,17 @@ class Environment{
             XS.Integrand = InputFile.at("Integrand");
             XS.Channel   = InputFile.at("Channel");
             XS.Coupling  = InputFile.at("Coupling");
-            
+                
             double sqrts = stod(InputFile.at("sqrts"));
             double muRen = stod(InputFile.at("muRen"));
             double muFac = stod(InputFile.at("muFac"));
+
+            XSec_Int = new XSection_Integrator(Provider,PDFSet,Integrator);
+            XSec_Int->XSec->SetScales(sqrts,muRen,muFac);     
             
-            XSec_Int = new XSection_Integrator(PDFSet,Integrator);
-            XSec_Int->XSec->SetScales(sqrts,muRen,muFac);
         }
 
-        ~Environment(){
+        ~Madisqe(){
             delete XSec_Int;
         }
 
@@ -77,13 +91,13 @@ int main(int argc, char* argv[]){
         std::cout<<"Error: No input file specified"<<std::endl;
         abort();
     }
-    if( argc >2){
+    if( argc > 2){
         std::cout<<"Error: Too many arguments"<<std::endl;
         abort();
     }
 
-    Environment E1(argv[1]);
-    E1.Run();
+    Madisqe E1(argv[1]);
+    // E1.Run();
 
     return 0;
 }
