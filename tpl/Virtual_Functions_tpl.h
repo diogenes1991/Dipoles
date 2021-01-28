@@ -11,7 +11,7 @@ class ####SubProcName#### : public VirtualStructure{
 
     public:
         
-        ####SubProcName####(Process& process);
+        ####SubProcName####(OLP& Prov, Model& Mod);
         
         void Born(std::string cp, double sqrts, double* rand, double mu, double* rval);
         void Virtual(std::string cp, double sqrts, double* rand, double mu, double* rval);

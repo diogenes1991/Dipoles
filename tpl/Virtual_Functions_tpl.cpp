@@ -1,10 +1,11 @@
 #include "####SubProcName####.h"
 
-####SubProcName####::####SubProcName####(Process& process){
+####SubProcName####::####SubProcName####(OLP& Prov, Model& Mod){
 
-    Proc = &process; 
+    Provider = &Prov; 
+    model = &Mod;
     nPar = NextV; 
-    BornMomenta = new FourVector[NextV];
+    BornMomenta = new FVector[NextV];
     BornMasses = new double[NextV];
     BornPID = new int[NextV];
 

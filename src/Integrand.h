@@ -1,7 +1,8 @@
 #ifndef __INTEGRAND_H__
 #define __INTEGRAND_H__
 
-#include "nlox_process.h"
+#include "OLP.h"
+#include "Model.h"
 
 class Integrand{
             
@@ -9,7 +10,8 @@ class Integrand{
         
         int nChannels;
         std::unordered_map<std::string,int> ChannelMap;     
-        Process * Proc;
+        OLP * Provider;
+        Model * model;
 
         virtual ~Integrand(){}
         
@@ -25,7 +27,7 @@ class Integrand{
             return Channel;
         }
 
-        virtual void GetMomenta(std::string ch, FourVector* p) = 0;
+        virtual void GetMomenta(std::string ch, FVector* p) = 0;
         virtual void GetMasses(std::string ch, double* m) = 0;
         virtual void GetPID(std::string ch, int* pid) = 0;
         virtual void Call(std::string in, std::string ch, std::string cp, double sqrts, double* rand, double mu, double* rval) = 0;

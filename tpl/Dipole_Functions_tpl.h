@@ -11,7 +11,7 @@ class ####SubProcName#### : public DipoleStructure{
 
     public:
         
-        ####SubProcName####(Process& process);
+        ####SubProcName####(OLP& Prov, Model& Mod);
         
         void Subtracted(std::string cp, double sqrts, double* rand, double mu, double* rval);
         void PlusDistribution(std::string cp, double sqrts, double* rand, double mu, double* rval);

@@ -13,9 +13,10 @@ class RealIntegrands : public Integrand{
 
         DipoleStructure** Channels;
 
-        RealIntegrands(Process * process){
+        RealIntegrands(OLP * Prov, Model * Mod){
 
-            Proc = process;
+            Provider = Prov;
+            model = Mod;
             RCatalog.insert({"Subtracted",&RealIntegrands::Subtracted});
             RCatalog.insert({"PlusDistribution",&RealIntegrands::PlusDistribution});
             RCatalog.insert({"Endpoint",&RealIntegrands::Endpoint});    
@@ -32,7 +33,7 @@ class RealIntegrands : public Integrand{
             delete [] Channels;
         }
 
-        void GetMomenta(std::string ch, FourVector* p){
+        void GetMomenta(std::string ch, FVector* p){
             int Channel = ChannelSelect(ch);
             Channels[Channel]->GetMomenta(p);
         }

@@ -13,9 +13,10 @@ class VirtualIntegrands : public Integrand{
 
         VirtualStructure** Channels;
         
-        VirtualIntegrands(Process * process){
+        VirtualIntegrands(OLP * Prov, Model * Mod){
 
-            Proc = process;
+            Provider = Prov;
+            model = Mod;
             VCatalog.insert({"Virtual",&VirtualIntegrands::Virtual});
             VCatalog.insert({"Born",&VirtualIntegrands::Born});
 
@@ -31,7 +32,7 @@ class VirtualIntegrands : public Integrand{
             delete [] Channels;
         }
 
-        void GetMomenta(std::string ch, FourVector* p){
+        void GetMomenta(std::string ch, FVector* p){
             int Channel = ChannelSelect(ch);
             Channels[Channel]->GetMomenta(p);
         }
