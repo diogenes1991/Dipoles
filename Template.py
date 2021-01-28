@@ -18,7 +18,12 @@ class Template():
         if os.path.exists(self.Path):
             print '\33[31mError\33[0m: Target file:',self.Path,'already exists'
             sys.exit()
+
         self.Dictionary=Dictionary
+        for Key in self.Dictionary:
+            if not isinstance(self.Dictionary[Key],str):
+                print '\33[31mError\33[0m: Replacement dictionary contains a non string for:',Key
+                sys.exit()
 
     def Fill(self,permissive=False):
         template_file = open(self.Source,'r')
