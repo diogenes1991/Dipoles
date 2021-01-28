@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from Physics import *
 from Dipoles import *
 from OLP import *
 
@@ -15,18 +14,23 @@ class Madisqe:
     def Build(self):
         
         self.CreateDirectories()
+        self.WriteModel()
 
         self.BuildDipoleTree()
-        self.Build_Dipole_Structures()
-        
         self.BuildDipoleStructures()
+
+        self.Build_Dipole_Structures()
+        self.BuildOLP(False)
         self.BuildVirtualStructures()
 
-        self.BuildOLP()
-
         self.BuildInterface()
+            
         
-
+        ## 
+        ##  TO DO: At the moment the code is a bit unstable 
+        ##  We need to stabilize and clean as much as possible 
+        ##  The next task will be to centralize masses into the 
+        ##
 
 
 
@@ -91,11 +95,12 @@ class Madisqe:
                   'MODEL FILE'   : ['StandardModel'],\
                   'PATH'         : [os.getcwd()],\
                   'NLOX PATH'    : [0] ,\
+                  'RECOLA PATH'  : [0] ,\
                   'SEED TEMP'    : ['tpl/NLOX_seed_tpl.in'] ,\
                   'VERBOSE'      : [0] ,\
                   'STAGE'        : [0] }
         
-        REQUIRED = set(['INITIAL STATE','FINAL STATE','NLOX PATH','RADIATIVE']) 
+        REQUIRED = set(['INITIAL STATE','FINAL STATE','NLOX PATH','RECOLA PATH','RADIATIVE']) 
 
         COMMCHAR = '#'
 
@@ -153,7 +158,6 @@ class Madisqe:
         for particle in self.config['FINAL STATE']:
             try:
                 self.finrad.append(self.ParticleContent[particle])
-                # if self.ParticleContent[particle].nam in self.Model.Fundamentals:
                 self.fin.append(self.ParticleContent[particle])
             except:
                 print "\33[31mError\33[0m: Particle class",particle,"not defined."
@@ -179,6 +183,11 @@ class Madisqe:
             print '\33[31mError\33[0m: NLOX executable',self.nlox,'not found'
             sys.exit()
 
+        self.recola = self.config['RECOLA PATH'][0]
+        if not os.path.exists(self.recola+'/recola2-2.2.2/librecola.so'):
+            print '\33[31mError\33[0m: RECOLA library: librecola.so not found at',self.recola+'/recola2-2.2.2'
+            sys.exit()
+
         self.stage = int(self.config['STAGE'][0])
 
         if self.verbose:
@@ -200,8 +209,27 @@ class Madisqe:
         for proc in ToDelete:
             del self.RadiProc.subproc[proc]
         
+    def WriteModel(self):
+        MOD_DICT = {'Build Model' : '' ,\
+                    'NParticles'  : '' ,\
+                    }
+                    
+        TAB4 = '    '
+        TAB8 = TAB4+'    '
+
+        MOD_DICT['NParticles'] += str(len(self.Model.Fundamentals))
+        
+        for Particle in self.Model.Fundamentals:
+            P = self.Model.Fundamentals[Particle]
+            MOD_DICT['Build Model'] += TAB8+'Particle '+P.nam+' = Particle("'+P.nam+'",0.0,'+str(P.pid)+');\n' 
+        
+            
+        MODEL = Template(self.TplDir+'/Model_tpl.h',self.SrcDir+'/Code/Model.h',MOD_DICT)
+        MODEL.Write()
+
     ##
     ##  Dipole Tree creation from the Radiative process
+    ##  BuildDipoleTree, GetDipoles and Build_Dipole_Structures are deprecated...
     ##
 
     def BuildDipoleTree(self):
@@ -627,29 +655,46 @@ class Madisqe:
                     HASH+=Particle.nam
                 self.Borns[HASH]=BornChannel
 
-    def BuildOLP(self):
+    def BuildOLP(self,GenerateCode):
         
         ## Here we will collect the Channels 
-        ## and pass them to the OLP Scheduler 
+        ## and pass them to the OLP Schedulers 
         ## and Interface constructors to weave 
         ## it all up
 
-        self.nlox_process = self.TplDir+'/nlox_process_tpl.h'
         self.CollectChannels()
-        self.OLP = NLOX_OLP(self.nlox,self.Virts,self.Reals,self.Borns,self.Model,self.seed_tpl,self.nlox_process,self.MatDir)
-        
-        self.OLP.WriteSeeds()
-        self.OLP.Generate()
-        self.OLP.GenerateInterface()
+
+        ## 
+        ##  Generate code using NLOX : Since NLOX is an analytical code 
+        ##  we fisrt generate the source code and then build the OLP interface
+        ##
+
+        self.nlox_process = self.TplDir+'/nlox_process_tpl.h'
+        self.nlox_olp = self.TplDir+'/NLOX_OLP_tpl.h'
+        self.NLOX_OLP = NLOX_OLP(self.nlox,self.Virts,self.Reals,self.Borns,self.Model,self.seed_tpl,self.nlox_process,self.nlox_olp,self.SrcDir)
+        self.NLOX_OLP.WriteSeeds()
+        if GenerateCode:
+            self.NLOX_OLP.GenerateCode()
+            self.NLOX_OLP.GenerateInterface()
+        self.NLOX_OLP.WriteOLPClass()
+
+        ## 
+        ##  Generate RECOLA inerface : Since RECOLA is numerical 
+        ##  we simply need to write the OLP interface and the actual 
+        ##  generation of code will be done at runtime
+        ##
+
+        self.recola_olp = self.TplDir+'/RECOLA_OLP_tpl.h'
+        self.RECOLA_OLP = RECOLA_OLP(self.recola,self.Virts,self.Reals,self.Borns,self.Model,self.recola_olp,self.SrcDir)
+        self.RECOLA_OLP.WriteOLPClass()
 
     ##
     ##  Build the Interface 
     ##
     
     def CreateDirectories(self):
-        self.MatDir = self.SrcDir+'/NLOX_Process'
         MakeDir(self.SrcDir)
-        MakeDir(self.MatDir)
+        MakeDir(self.SrcDir+'/NLOX_Process')
         MakeDir(self.SrcDir+'/Code')
 
     def BuildInterface(self):
@@ -658,7 +703,8 @@ class Madisqe:
                      'Montecarlo_Integrator.h','GSL_Integrator.h','CUBA_Integrator.h', \
                      'PDF_Sets.h','Kinematics.h','Analysis.h', \
                      'Constants.h','XSection.h','XSection_Integrator.h',\
-                     'Integrand.h']
+                     'Integrand.h','OLP.h','Four_Vector.h']
+
         TOPLAYERFILES  = ['Main.cpp','Analysis.cpp','Run_Settings.input']
 
         for file in CODEFILES:
@@ -669,6 +715,7 @@ class Madisqe:
 
         self.LoadPaths()
         self.paths['NLOX PATH']=self.config['NLOX PATH'][0]
+        self.paths['RECOLA PATH']=self.config['RECOLA PATH'][0]
         
         Makefile = Template(self.TplDir+'/makefile',self.SrcDir+'/makefile',self.paths)
         Makefile.Write()
@@ -720,7 +767,7 @@ class Madisqe:
             ClassName = Radiative+'_Real'
 
             INTDICT['Include Integrands'] += '#include "../Real/'+Radiative+'/'+ClassName+'.h"\n'
-            INTDICT['Integrand Catalogue'] += TAB9+'Channels['+str(Count)+'] = new '+ClassName+'(*Proc);\n'
+            INTDICT['Integrand Catalogue'] += TAB9+'Channels['+str(Count)+'] = new '+ClassName+'(*Provider,*model);\n'
             INTDICT['Integrand Catalogue'] += TAB9+'ChannelMap.insert({"'+Radiative+'",'+str(Count)+'});\n'
 
             Count += 1
@@ -733,8 +780,9 @@ class Madisqe:
                   'Next'             : str(self.RadiProc.nex) ,\
                   'SubProcMat'       : '' ,\
                   'SubProcSub'       : '' ,\
-                  'SubProcPlu'       : '',\
-                  'SubProcEnd'       : ''}
+                  'SubProcPlu'       : '' ,\
+                  'SubProcEnd'       : '' ,\
+                  'Model'            : self.Model.Name}
             
             DICT['SubProcHeader'] = Radiative.upper()
             DICT['SubProcName'] = ClassName
@@ -746,8 +794,8 @@ class Madisqe:
             count = 0 
             for particle in self.RadiProc.subproc[Radiative]:
                 massvalue = ProcessConstMassName(particle)
-                DICT['SubProcConst'] += TAB3+'Masses['+str(count)+'] = '+massvalue+';\n'
-                DICT['SubProcConst'] += TAB3+'PID['+str(count)+'] = '+str(particle.pid)+';\n'
+                DICT['SubProcConst'] += TAB3+'Masses['+str(count)+'] = model->'+particle.nam+'.Mass;\n'
+                DICT['SubProcConst'] += TAB3+'PID['+str(count)+'] = model->'+particle.nam+'.PID;\n'
                 count += 1
     
             DICT['SubProcConst'] += '\n'   
@@ -760,10 +808,10 @@ class Madisqe:
             Bcount = 0
             for Born in self.Linked[Radiative]:
                 count = 0
-                DICT['SubProcfConst'] += TAB3+'BornMap.insert({"'+Born+'",'+str(Bcount)+'});\n'
+                DICT['SubProcConst'] += TAB3+'BornMap.insert({"'+Born+'",'+str(Bcount)+'});\n'
                 for particle in self.Linked[Radiative][Born]:
-                    DICT['SubProcConst'] += TAB3+'BornMasses['+str(Bcount)+']['+str(count)+']='+ProcessConstMassName(particle)+';\n'
-                    DICT['SubProcConst'] += TAB3+'BornPID['+str(Bcount)+']['+str(count)+']='+str(particle.pid)+';\n'
+                    DICT['SubProcConst'] += TAB3+'BornMasses['+str(Bcount)+']['+str(count)+']= model->'+particle.nam+'.Mass;\n'
+                    DICT['SubProcConst'] += TAB3+'BornPID['+str(Bcount)+']['+str(count)+']= model->'+particle.nam+'.PID;\n'
                     count += 1
                 Bcount += 1
             
@@ -985,7 +1033,7 @@ class Madisqe:
                         BORNTYP = ('cc'     if TYP == 'ffb' else 'cc_and_sc')
                         BORNPTR = ('borncc' if TYP == 'ffb' else str(I)+',BornCCSC.ccsc')
                         TR      = (''       if TYP == 'ffb' else 'Trace')
-                        INI     = (''       if TYP == 'ffb' else 'FourMatrixT<double>')
+                        INI     = (''       if TYP == 'ffb' else 'FMatrixT<double>')
                         BORN    = ('borncc' if TYP == 'ffb' else 'BornCCSC.ccsc')
 
                         ## 
@@ -1030,12 +1078,11 @@ class Madisqe:
             SubFunctionH.Write()
             SubFunctionC.Write()
 
-            
         RealIntegrand = Template(self.TplDir+'/Real_tpl.h',self.SrcDir+'/Code/Real.h',INTDICT)
         RealIntegrand.Write()
 
     def BuildVirtualStructures(self):
-        
+
         def ProcessConstMassName(particle):
 
             ##  This is a NLOX-specific function, it translates the names from StandardModel.py
@@ -1059,7 +1106,6 @@ class Madisqe:
                     massvalue = 'sqrt(Proc->pc.m'+particle.nam[0]+'2.real())'
             return massvalue
 
-
         TAB3 = '    '
         TAB6 = TAB3+TAB3
         TAB9 = TAB6+TAB3
@@ -1074,7 +1120,7 @@ class Madisqe:
             ClassName = Born+'_Virtual'
 
             VIRTDICT['Include Virtuals'] += '#include "../Virtual/'+Born+'/'+ClassName+'.h"\n'
-            VIRTDICT['Virtual Catalogue'] += TAB9+'Channels['+str(Count)+'] = new '+ClassName+'(*Proc);\n'
+            VIRTDICT['Virtual Catalogue'] += TAB9+'Channels['+str(Count)+'] = new '+ClassName+'(*Provider,*model);\n'
             VIRTDICT['Virtual Catalogue'] += TAB9+'ChannelMap.insert({"'+Born+'",'+str(Count)+'});\n'
 
             Count += 1
@@ -1092,12 +1138,12 @@ class Madisqe:
             DICT['SubProcName'] = ClassName
  
             count = 0
-            for particle in self.Borns[Born]:
-                DICT['SubProcConst'] += TAB3+'BornMasses['+str(count)+']='+ProcessConstMassName(particle)+';\n'
-                DICT['SubProcConst'] += TAB3+'BornPID['+str(count)+']='+str(particle.pid)+';\n'
+            for particle in self.Borns[Born].Particles:
+                DICT['SubProcConst'] += TAB3+'BornMasses['+str(count)+']= model->'+particle.nam+'.Mass;\n'
+                DICT['SubProcConst'] += TAB3+'BornPID['+str(count)+']= model->'+particle.nam+'.PID;\n'
                 count += 1
             
-            BornCPS = self.Model.GetCPS(self.Borns[Born])
+            BornCPS = self.Model.GetCPS(self.Borns[Born].Particles)
             VirtCPS = {}
             for CP in BornCPS:
                 asp = BornCPS[CP]['as']
@@ -1131,7 +1177,6 @@ class Madisqe:
                 DICT['SubProcVirt'] += TAB6+'Proc->evaluate_alpha(i,"tree_loop","'+CP+'",pp,'+str(self.RadiProc.nex-1)+',mu,virt,&acc);\n'
                 DICT['SubProcVirt'] += TAB6+'}\n'
     
-
             SubFunctionH = Template(self.TplDir+'/Virtual_Functions_tpl.h',ChlDir+'/'+Born+'_Virtual.h',DICT)
             SubFunctionC = Template(self.TplDir+'/Virtual_Functions_tpl.cpp',ChlDir+'/'+Born+'_Virtual.cpp',DICT)
             
