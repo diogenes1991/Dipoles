@@ -87,6 +87,24 @@ COMMON_LIB_DIRS += -L$(PROCPATH)
 ### ### ### ### ### ### ### ### ### ##
 
 ### ### ### ### ### ### ### ### ### ##
+###
+###   RECOLA Block
+###
+	
+RECOLA_DIR=####RECOLA PATH####
+ifdef RECOLA_DIR
+COMMON_INC+=-I$(RECOLA_DIR)/recola2-2.2.2/include
+COMMON_LIBS+=-lrecola -lcollier -lmodelfile
+COMMON_LIB_DIRS+=-L$(RECOLA_DIR)/recola2-2.2.2
+COMMON_LIB_DIRS+=-L$(RECOLA_DIR)/COLLIER-1.2.5
+COMMON_LIB_DIRS+=-L$(RECOLA_DIR)/model_files_2.2.2/SM_2.2.2
+endif
+
+###
+###
+### ### ### ### ### ### ### ### ### ##
+
+### ### ### ### ### ### ### ### ### ##
 ##
 ## Dipoles
 
