@@ -30,7 +30,7 @@ class ColorAndSpinMatrixT{
         }
         void Show(){
             for(int cc=0;cc<n;cc++){
-                FourMatrixT<T> Bmunu(ccsc[cc]);
+                FMatrixT<T> Bmunu(ccsc[cc]);
                 std::cout<<"B("<<cc<<")= \n";
                 std::cout<<Bmunu<<std::endl;
             }
@@ -76,6 +76,29 @@ class Clock{
         }
 
             
+};
+
+template<class T>
+class PoleVector{
+    
+
+    public:
+        
+        T DoublePole;
+        T SinglePole;
+        T FinitePart;
+
+        PoleVector(){
+
+
+        }
+
+        ~PoleVector(){
+
+        }
+
+
+
 };
 
 #endif
