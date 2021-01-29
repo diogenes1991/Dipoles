@@ -27,11 +27,15 @@ class XSection_Integrator{
 
         XSection_Integrator(std::string olp, std::string pdfname, std::string Integrator){
             
-            std::cout<<"XSection Integration Environment Intialized"<<std::endl;
-            std::cout<<"For this run we are using:"<<std::endl;
-            std::cout<<"1-Loop Provider     : "<<olp<<std::endl;
-            std::cout<<"PDF Set             : "<<pdfname<<std::endl;
-            std::cout<<"Integration Routine : "<<Integrator<<std::endl;
+            std::cout<<"#############################################################"<<std::endl;
+            std::cout<<"                                                             "<<std::endl;
+            std::cout<<"         XSection Integrator Instance Created                "<<std::endl;
+            std::cout<<"                                                             "<<std::endl;
+            std::cout<<"             1-Loop Provider     : "  <<   olp                <<std::endl;
+            std::cout<<"             PDF Set             : "  <<   pdfname            <<std::endl;
+            std::cout<<"             Integration Routine : "  <<   Integrator         <<std::endl;
+            std::cout<<"                                                             "<<std::endl;
+            std::cout<<"#############################################################"<<std::endl;
             
             XSec = new XSection(olp,pdfname);
 
