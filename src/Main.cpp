@@ -34,7 +34,7 @@ class Madisqe : public Input{
             std::cout<<"                                                             "<<std::endl;
             
             for (auto Setting : InputFile){
-                std::cout<<"           "<<Setting.first<<" : "<<Setting.second<<std::endl;
+                std::cout<<"           "<< Setting.first << " : " << Setting.second   <<std::endl;
             }
 
             std::cout<<"                                                             "<<std::endl;

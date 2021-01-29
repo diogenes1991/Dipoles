@@ -36,7 +36,7 @@ class XSection{
                 usingpdfs = true;
             }
 
-            model = new Model("Model_Mass.par");
+            model = new Model("Model_Masses.input");
             
             if( olp == "nlox"){
                 Provider = new NLOX_OLP(model);
