@@ -1,6 +1,8 @@
 #ifndef __GENERATOR_H__
 #define __GENERATOR_H__
 
+#include "Four_Vector.h"
+
 class Generator {
 
     int NPar;
@@ -13,7 +15,7 @@ class Generator {
 
         }
         
-        void GetPSP(double* rand, FourVector* )
+        void GetPSP(double* rand, FVector* )
 };
 
 #endif

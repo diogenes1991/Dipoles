@@ -2,6 +2,7 @@
 #define __KINEMATICS_H__
 
 #include "Four_Vector.h"
+#include <cmath>
 
 namespace Kinematics{
 
