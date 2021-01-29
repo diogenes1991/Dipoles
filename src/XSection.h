@@ -30,24 +30,26 @@ class XSection{
         Integrand * IntegrandPtr = NULL;
 
         XSection(std::string olp = "nlox", std::string pdfset = ""){
+            
             if(pdfset!=""){
                 PDF = new LHAPDF_Set(pdfset);
                 usingpdfs = true;
             }
+
+            model = new Model("Model_Mass.par");
             
             if( olp == "nlox"){
-                Provider = new NLOX_OLP();
+                Provider = new NLOX_OLP(model);
                            }
             else if( olp == "recola"){
-                Provider = new RECOLA_OLP();
+                Provider = new RECOLA_OLP(model);
             }
             else{
                 std::cout<<"Error: OLP type "<<olp<<" not supported"<<std::endl;
                 abort();
             }
 
-            model = new Model();
-
+            
             Reals  = new RealIntegrands(Provider,model);
             XSectionMap.insert({"Reals",Reals});
             XSectionNPar.insert({"Reals",NextR});

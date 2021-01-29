@@ -10,6 +10,7 @@ class OLP{
     public:
 
         std::unordered_map<std::string,int> ChannelIndex;
+        Model * model;
 
         struct Arguments{
             std::string SubProc;
@@ -18,7 +19,7 @@ class OLP{
             double mu_ren;
             FVector * Momenta;
             int NExt;
-            double * Rval;
+            double * RVal;
         };
 
         int SelectSubProcess(std::string SP){
@@ -34,6 +35,7 @@ class OLP{
         }
 
         virtual ~OLP(){};
+        virtual void UpdateParameters() = 0;
         virtual void Evaluate(Arguments * args) = 0;
         virtual void Evaluate_CC(Arguments * args) = 0;
         virtual void Evaluate_SC(Arguments * args) = 0;

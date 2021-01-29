@@ -11,14 +11,19 @@ class RECOLA_OLP : public OLP{
 
     public:
 
-        RECOLA_OLP(){
-            
+        RECOLA_OLP(Model * Mod){
+
+            model = Mod;
 ####Define Channels####
             Recola::generate_processes_rcl();
         }
 
         ~RECOLA_OLP(){
             Recola::reset_recola_rcl();
+        }
+
+        void UpdateParameters(){
+            
         }
 
         void Evaluate(Arguments * arg){

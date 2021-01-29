@@ -13,16 +13,24 @@ class NLOX_OLP : public OLP{
     public:
 
         Process * Proc;
-        std::unordered_map<std::string,std::string> OrderMap({{"LO","tree_tree"},{"NLO","tree_loop"}});
+        std::unordered_map<std::string,std::string> OrderMap = {{"LO","tree_tree"},{"NLO","tree_loop"}};
 
-        NLOX_OLP(){
+        NLOX_OLP(Model * Mod){
+            
             Proc = new Process();
+            model = Mod;
 
 ####Define Channels####
         }
 
         ~NLOX_OLP(){
             delete Proc;
+        }
+
+        void UpdateParameters(){
+
+            Proc->pc.set_param("alpha_s",model->alpha_s);
+
         }
 
         void Evaluate(Arguments * arg){
