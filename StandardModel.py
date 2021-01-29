@@ -5,7 +5,7 @@ import gc
 class StandardModel(Model):
     def __init__(self):
 
-        self.name = 'Standard Model'
+        self.Name = 'StandardModel'
 
         ##
         ## Bosons
