@@ -10,18 +10,17 @@ class Madisqe:
         self.VetoProcs()
         self.Build()
 
-
     def Build(self):
         
         self.CreateDirectories()
         self.WriteModel()
 
         self.BuildDipoleTree()
-        self.BuildDipoleStructures()
+        self.BuildRealIntegrands()
 
         self.Build_Dipole_Structures()
         self.BuildOLP(False)
-        self.BuildVirtualStructures()
+        self.BuildVirtualIntegrands()
 
         self.BuildInterface()
             
@@ -31,19 +30,6 @@ class Madisqe:
         ##  We need to stabilize and clean as much as possible 
         ##  The next task will be to centralize masses into the 
         ##
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     ##
     ##  Configfile reading and loading into the Madisqe class
@@ -197,6 +183,7 @@ class Madisqe:
 
         self.TplDir = 'tpl'
         self.IntDir = 'src'
+        self.Inputs = 'input'
         self.SrcDir = self.path
 
     def VetoProcs(self):
@@ -703,15 +690,20 @@ class Madisqe:
                      'Montecarlo_Integrator.h','GSL_Integrator.h','CUBA_Integrator.h', \
                      'PDF_Sets.h','Kinematics.h','Analysis.h', \
                      'Constants.h','XSection.h','XSection_Integrator.h',\
-                     'Integrand.h','OLP.h','Four_Vector.h']
+                     'Integrand.h','OLP.h','Four_Vector.h','Input.h']
 
-        TOPLAYERFILES  = ['Main.cpp','Analysis.cpp','Run_Settings.input']
+        INPUTFILES = ['Run_Settings.input','Model_Masses.input']
+
+        TOPLAYERFILES  = ['Main.cpp','Analysis.cpp']
 
         for file in CODEFILES:
             CopyFile(self.IntDir+'/'+file,self.SrcDir+'/Code/'+file)
         
         for file in TOPLAYERFILES:
             CopyFile(self.IntDir+'/'+file,self.SrcDir+'/'+file)
+
+        for file in INPUTFILES:
+            CopyFile(self.Inputs+'/'+file,self.SrcDir+'/'+file)
 
         self.LoadPaths()
         self.paths['NLOX PATH']=self.config['NLOX PATH'][0]
@@ -724,30 +716,7 @@ class Madisqe:
     ##  Build the Integrands Classes: Virtual and Real
     ##
 
-    def BuildDipoleStructures(self):
-
-        def ProcessConstMassName(particle):
-
-            ##  This is a NLOX-specific function, it translates the names from StandardModel.py
-            ##  into the ones in the NLOX's Processconst class
-            
-            massvalue = 'Proc->pc.m'
-            if (particle in self.Model.quarks):
-                if abs(particle.pid) == 2:
-                    massvalue += particle.nam[0]+'p.real()'
-                else:
-                    massvalue += particle.nam[0]+'.real()'
-            elif (particle in self.Model.leptons):
-                if particle.sym['Charge']!=0:
-                    massvalue = '0.0'
-                else:
-                    massvalue += particle.nam[:1]+'.real()'
-            elif isinstance(particle,Boson):
-                if (particle.nam=='g' or particle.nam == 'A'):
-                    massvalue = '0.0'
-                else:
-                    massvalue = 'sqrt(Proc->pc.m'+particle.nam[0]+'2.real())'
-            return massvalue
+    def BuildRealIntegrands(self):
 
         ## 
         ##  This function has waaaay too many reponsabilities.... 
@@ -793,7 +762,6 @@ class Madisqe:
 
             count = 0 
             for particle in self.RadiProc.subproc[Radiative]:
-                massvalue = ProcessConstMassName(particle)
                 DICT['SubProcConst'] += TAB3+'Masses['+str(count)+'] = model->'+particle.nam+'.Mass;\n'
                 DICT['SubProcConst'] += TAB3+'PID['+str(count)+'] = model->'+particle.nam+'.PID;\n'
                 count += 1
@@ -898,11 +866,6 @@ class Madisqe:
                         I = [ i for i in Emitter['IJ'] if i != K ][0]
                         J = [ i for i in Spectator['IJ'] if i != K ][0]
 
-                        # SigmaI = ( 1 if (( I<self.RadiProc.lni and self.RadiProc.subproc[Radiative][I].pid>0)\
-                        #                  or  ( I>self.RadiProc.lni and self.RadiProc.subproc[Radiative][I].pid<0)) else -1 )
-                        # SigmaJ = ( 1 if (( J<self.RadiProc.lni and self.RadiProc.subproc[Radiative][J].pid>0)\
-                        #                  or  ( J>self.RadiProc.lni and self.RadiProc.subproc[Radiative][J].pid<0)) else -1 )
-                        
                         QI=0
                         QJ=0
 
@@ -917,8 +880,6 @@ class Madisqe:
                         if CACHEDTAG != Emitter['SBORNTAG']:
                             AMPMAPLINE   = TAB6+'i = Proc->AmpMap.at("'+Emitter['SBORNTAG']+'");\n'
                             BORNMAPLINE  = TAB6+'j = BornMap.at("'+Emitter['SBORNTAG']+'");\n'
-                            # BORNMAPLINE += TAB6+'SetInMom(j);\n'
-                            # BORNMAPLINE += TAB6+'SetFiMom(j,rand,&J);\n'
                             BORNMAPLINE += TAB6+'BGenerate("'+Emitter['SBORNTAG']+'",sqrts,rand,&J);\n'
                             BORNMAPLINE += TAB6+'for(int j=0;j<NextR-1;j++){pp[5*j+0]=BornMomenta[j].p0;pp[5*j+1]=BornMomenta[j].p1;pp[5*j+2]=BornMomenta[j].p2;pp[5*j+3]=BornMomenta[j].p3;pp[5*j+4]=0.0;}\n'
                             CACHEDTAG = Emitter['SBORNTAG']
@@ -1013,8 +974,6 @@ class Madisqe:
                         if CACHEDTAG != Emitter['SBORNTAG']:
                             AMPMAPLINE = TAB6+'i = Proc->AmpMap.at("'+Emitter['SBORNTAG']+'");\n'
                             BORNMAPLINE  = TAB6+'j = BornMap.at("'+Emitter['SBORNTAG']+'");\n'
-                            # BORNMAPLINE += TAB6+'SetInMom(j);\n'
-                            # BORNMAPLINE += TAB6+'SetFiMom(j,rand,&J);\n'
                             BORNMAPLINE += TAB6+'BGenerate("'+Emitter['SBORNTAG']+'",sqrts,rand,&J);\n'
                             BORNMAPLINE += TAB6+'for(int j=0;j<NextR-1;j++){pp[5*j+0]=BornMomenta[j].p0;pp[5*j+1]=BornMomenta[j].p1;pp[5*j+2]=BornMomenta[j].p2;pp[5*j+3]=BornMomenta[j].p3;pp[5*j+4]=0.0;}\n'
                             CACHEDTAG = Emitter['SBORNTAG']
@@ -1081,30 +1040,7 @@ class Madisqe:
         RealIntegrand = Template(self.TplDir+'/Real_tpl.h',self.SrcDir+'/Code/Real.h',INTDICT)
         RealIntegrand.Write()
 
-    def BuildVirtualStructures(self):
-
-        def ProcessConstMassName(particle):
-
-            ##  This is a NLOX-specific function, it translates the names from StandardModel.py
-            ##  into the ones in the NLOX's Processconst class
-            
-            massvalue = 'Proc->pc.m'
-            if (particle in self.Model.quarks):
-                if abs(particle.pid) == 2:
-                    massvalue += particle.nam[0]+'p.real()'
-                else:
-                    massvalue += particle.nam[0]+'.real()'
-            elif (particle in self.Model.leptons):
-                if particle.sym['Charge']!=0:
-                    massvalue = '0.0'
-                else:
-                    massvalue += particle.nam[:1]+'.real()'
-            elif isinstance(particle,Boson):
-                if (particle.nam=='g' or particle.nam == 'A'):
-                    massvalue = '0.0'
-                else:
-                    massvalue = 'sqrt(Proc->pc.m'+particle.nam[0]+'2.real())'
-            return massvalue
+    def BuildVirtualIntegrands(self):
 
         TAB3 = '    '
         TAB6 = TAB3+TAB3
@@ -1161,8 +1097,10 @@ class Madisqe:
                     CPHEAD = TAB3+'if (cp =="'+CP+'"){\n'
 
                 DICT['SubProcBorn'] += CPHEAD
-                DICT['SubProcBorn'] += TAB6+'int i = Proc->AmpMap.at("'+Born+'");\n'
-                DICT['SubProcBorn'] += TAB6+'Proc->evaluate_alpha(i,"tree_tree","'+CP+'",pp,'+str(self.RadiProc.nex-1)+',mu,born,&acc);\n'
+                DICT['SubProcBorn'] += TAB6+'Args.SubProc = "'+Born+'";\n'
+                DICT['SubProcBorn'] += TAB6+'Args.CouplingPower[0] = '+str(BornCPS[CP]['as'])+';\n'
+                DICT['SubProcBorn'] += TAB6+'Args.CouplingPower[1] = '+str(BornCPS[CP]['ae'])+';\n'
+                DICT['SubProcBorn'] += TAB6+'Provider->Evaluate(&Args);\n'
                 DICT['SubProcBorn'] += TAB6+'}\n'
             
             CPHEAD = ''  
@@ -1173,8 +1111,10 @@ class Madisqe:
                     CPHEAD = TAB3+'if (cp =="'+CP+'"){\n'
 
                 DICT['SubProcVirt'] += CPHEAD
-                DICT['SubProcVirt'] += TAB6+'int i = Proc->AmpMap.at("'+Born+'");\n'
-                DICT['SubProcVirt'] += TAB6+'Proc->evaluate_alpha(i,"tree_loop","'+CP+'",pp,'+str(self.RadiProc.nex-1)+',mu,virt,&acc);\n'
+                DICT['SubProcVirt'] += TAB6+'Args.SubProc = "'+Born+'";\n'
+                DICT['SubProcVirt'] += TAB6+'Args.CouplingPower[0] = '+str(VirtCPS[CP]['as'])+';\n'
+                DICT['SubProcVirt'] += TAB6+'Args.CouplingPower[1] = '+str(VirtCPS[CP]['ae'])+';\n'
+                DICT['SubProcVirt'] += TAB6+'Provider->Evaluate(&Args);\n'
                 DICT['SubProcVirt'] += TAB6+'}\n'
     
             SubFunctionH = Template(self.TplDir+'/Virtual_Functions_tpl.h',ChlDir+'/'+Born+'_Virtual.h',DICT)
