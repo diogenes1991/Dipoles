@@ -1,42 +1,7 @@
+#include "Input.h"
 #include "XSection_Integrator.h"
 
-class Madisqe{
-
-    std::unordered_map<std::string,std::string> InputFile;
-
-    static void LoadInput(const std::string & filename, std::unordered_map<std::string,std::string>& settings){
-        
-        // There is a bug in here were the last line is not read 
-        // for now we get around it by adding an extra inert line 
-        // at the end of the Input file
-
-        std::ifstream data;
-        std::string linebuf;
-        data.open(filename.data());
-            if (!data.fail()) {
-                while(!std::getline(data,linebuf).eof()) {
-                    if(linebuf=="") continue;
-                    std::istringstream ss(linebuf);
-                    std::string name;
-                    char equal;
-                    std::string val;
-                    ss >> name;
-                    ss >> equal;
-                    if (!ss.fail() && equal == '=') {
-                        ss >> val;
-                        settings.insert({name,val});
-                    }
-                    else{
-                        std::cout<<"Warning: Malformed line at input"<<linebuf<<std::endl;
-                    }
-                }
-            data.close();
-            }
-            else {
-                std::cout << "Error: No input file found" << std::endl;
-                abort();
-            }
-    }
+class Madisqe : public Input{
 
     XSection_Integrator * XSec_Int;
 
@@ -46,13 +11,34 @@ class Madisqe{
     public:
 
         Madisqe(std::string InputFileName){
+            
             LoadInput(InputFileName,InputFile);
-            std::cout<<"Madisqe Environment Initialized"<<std::endl;
-            std::cout<<"Using the user settings:"<<std::endl;
+            
+            std::cout<<"#############################################################"<<std::endl;
+            std::cout<<"                                                             "<<std::endl;
+            std::cout<<"   ███╗░░░███╗░█████╗░██████╗░██╗░██████╗░██████╗░███████╗   "<<std::endl;
+            std::cout<<"   ████╗░████║██╔══██╗██╔══██╗██║██╔════╝██╔═══██╗██╔════╝   "<<std::endl;
+            std::cout<<"   ██╔████╔██║███████║██║░░██║██║╚█████╗░██║██╗██║█████╗░░   "<<std::endl;
+            std::cout<<"   ██║╚██╔╝██║██╔══██║██║░░██║██║░╚═══██╗╚██████╔╝██╔══╝░░   "<<std::endl;
+            std::cout<<"   ██║░╚═╝░██║██║░░██║██████╔╝██║██████╔╝░╚═██╔═╝░███████╗   "<<std::endl;
+            std::cout<<"   ╚═╝░░░░░╚═╝╚═╝░░╚═╝╚═════╝░╚═╝╚═════╝░░░░╚═╝░░░╚══════╝   "<<std::endl;
+            std::cout<<"                                                             "<<std::endl;
+            std::cout<<"                        Version 1.0.0                        "<<std::endl;
+            std::cout<<"                     Author: D.Figueroa.                     "<<std::endl;
+            std::cout<<"                                                             "<<std::endl;
+            std::cout<<"#############################################################"<<std::endl;
+            
+            std::cout<<"#############################################################"<<std::endl;
+            std::cout<<"                                                             "<<std::endl;
+            std::cout<<"        MADISQE Instance Created                             "<<std::endl;
+            std::cout<<"                                                             "<<std::endl;
             
             for (auto Setting : InputFile){
-                std::cout<<Setting.first<<" = "<<Setting.second<<std::endl;
+                std::cout<<"           "<<Setting.first<<" : "<<Setting.second<<std::endl;
             }
+
+            std::cout<<"                                                             "<<std::endl;
+            std::cout<<"#############################################################"<<std::endl;
             
             std::string PDFSet     = InputFile.at("LHAPDFSet");
             std::string Provider   = InputFile.at("OLP");
@@ -97,7 +83,7 @@ int main(int argc, char* argv[]){
     }
 
     Madisqe E1(argv[1]);
-    // E1.Run();
+    E1.Run();
 
     return 0;
 }
