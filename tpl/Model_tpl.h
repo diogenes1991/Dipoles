@@ -21,7 +21,7 @@ class Particle{
 
 };
 
-class Model{
+class Model : public Input{
 
     public:
 
@@ -32,8 +32,17 @@ class Model{
     
 ####Build Model####
 
-        Model(){
+        Model(std::string InputFileName){
 
+            LoadInput(InputFileName,InputFile);
+            std::cout<<"Model Mass Environment Initialized"<<std::endl;
+            
+            for (auto Setting : InputFile){
+                std::cout<<Setting.first<<" = "<<Setting.second<<std::endl;
+            }
+
+            
+            
         }
 
         ~Model(){
