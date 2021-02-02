@@ -51,7 +51,7 @@ class NLOX_OLP(OLP):
                 BASEDICT['Final State'] += ','
             count += 1
 
-        BASEDICT['Path'] = self.Path
+        BASEDICT['Path'] = self.Path+'/NLOX_Process'
         BASEDICT['Tree CP'] += CSS(Channel.MaxQCD,Channel.MinQCD)
         
         if(Type=='Virt'):
@@ -93,7 +93,6 @@ class NLOX_OLP(OLP):
     def WriteSeeds(self):
         Count = 1
         for Ch in self.ReducedChannels:
-            print 'Writing NLOX seed for',Ch,'at',self.ReducedChannels[Ch]['Type'],str(Count)+'/'+str(len(self.ReducedChannels))
             Dictionary = self.ReducedChannels[Ch]['Dictionary']
             FileName=self.Path+'/NLOX_Process/'+Ch+'.in'
             ChannelSeed = Template(self.Seed,FileName,Dictionary)
@@ -102,7 +101,7 @@ class NLOX_OLP(OLP):
 
     def GenerateCode(self):
         Here = os.getcwd()
-        os.chdir(self.Path)
+        os.chdir(self.Path+'/NLOX_Process')
         
         count = 1
         tot = str(len(self.ReducedChannels))
@@ -110,9 +109,7 @@ class NLOX_OLP(OLP):
             print 'Generating',self.ReducedChannels[Ch]['Type'],'channel:',Ch,'('+str(count)+'/'+tot+')'
             cmd = self.nlox+' '+Ch +'.in > '+Ch+'.log'
             os.system(cmd)
-            cmd = 'mv '+Ch+'.log '+self.Path+'/'+Ch
-            os.system(cmd)
-            cmd = 'mv '+Ch+'.in '+self.Path+'/'+Ch
+            cmd = 'mv '+Ch+'.log '+self.Path+'/NLOX_Process/'+Ch
             os.system(cmd)
             count += 1
 
