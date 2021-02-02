@@ -17,8 +17,9 @@ class NLOX_OLP : public OLP{
 
         NLOX_OLP(Model * Mod){
             
-            Proc = new Process();
             model = Mod;
+            Proc = new Process();
+            UpdateParameters()
 
 ####Define Channels####
         }
@@ -29,7 +30,43 @@ class NLOX_OLP : public OLP{
 
         void UpdateParameters(){
 
+            //
+            //  Couplings
+            //
+
             Proc->pc.set_param("alpha_s",model->alpha_s);
+            Proc->pc.set_param("alpha_e",model->alpha_e);
+            Proc->pc.set_param("GF",model->GFermi);
+
+            //
+            //  Scheme
+            //
+
+            Proc->pc.nlf       = model->NLF;
+            Proc->pc.nhf       = model->NHF;
+
+            Proc->pc.cmScheme  = model->UseCMScheme;
+            Proc->pc.GmuScheme = model->UseGMuScheme;
+
+            //
+            //  Masses: Only t and b quarks are allowed 
+            //  massive by NLOX
+            //
+
+            Proc->pc.set_param("mb",model->b.Mass);
+            Proc->pc.set_param("wb",model->b.Width);
+
+            Proc->pc.set_param("mt",model->t.Mass);
+            Proc->pc.set_param("wt",model->t.Width);
+
+            Proc->pc.set_param("mW",model->Wp.Mass);
+            Proc->pc.set_param("wW",model->Wp.Width);
+
+            Proc->pc.set_param("mZ",model->Z.Mass);
+            Proc->pc.set_param("wZ",model->Z.Width);
+
+            Proc->pc.set_param("mH",model->H.Mass);
+            Proc->pc.set_param("wH",model->H.Width);
 
         }
 
