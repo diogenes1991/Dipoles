@@ -44,6 +44,10 @@ class GSL_Integrator : public Montecarlo_Integrator{
             else METHOD = mc_specs->Method;
 
             if(METHOD=="Plain"){
+                std::cout<<"###################################################################"<<std::endl;
+                std::cout<<"                                                                   "<<std::endl;
+                std::cout<<"                   GSL-Plain integration initiated                 "<<std::endl;
+                std::cout<<"                                                                   "<<std::endl;
                 gsl_monte_plain_state * s = gsl_monte_plain_alloc(Dimension);
                 size_t Calls = 0;
                 size_t Evals = mc_specs->NStart;
@@ -59,9 +63,15 @@ class GSL_Integrator : public Montecarlo_Integrator{
                     if(std::abs(err/res)<mc_specs->RelErr) break;
                 }
                 gsl_monte_plain_free(s);
+                std::cout<<"                                                                   "<<std::endl;
+                std::cout<<"###################################################################"<<std::endl;
             }
             
             else if(METHOD=="Vegas"){
+                std::cout<<"###################################################################"<<std::endl;
+                std::cout<<"                                                                   "<<std::endl;
+                std::cout<<"                   GSL-Vegas integration initiated                 "<<std::endl;
+                std::cout<<"                                                                   "<<std::endl;
                 gsl_monte_vegas_state * s = gsl_monte_vegas_alloc(Dimension);
                 size_t Calls = 0;
                 size_t Evals = mc_specs->NStart;
@@ -77,9 +87,15 @@ class GSL_Integrator : public Montecarlo_Integrator{
                     if(std::abs(err/res)<mc_specs->RelErr) break;
                 }
                 gsl_monte_vegas_free(s);
+                std::cout<<"                                                                   "<<std::endl;
+                std::cout<<"###################################################################"<<std::endl;
             }
             
             else if(METHOD=="Miser"){
+                std::cout<<"###################################################################"<<std::endl;
+                std::cout<<"                                                                   "<<std::endl;
+                std::cout<<"                   GSL-Miser integration initiated                 "<<std::endl;
+                std::cout<<"                                                                   "<<std::endl;
                 gsl_monte_miser_state *s = gsl_monte_miser_alloc(Dimension);
                 size_t Calls = 0;
                 size_t Evals = mc_specs->NStart;
@@ -95,6 +111,8 @@ class GSL_Integrator : public Montecarlo_Integrator{
                     if(std::abs(err/res)<mc_specs->RelErr) break;
                 }
                 gsl_monte_miser_free(s);
+                std::cout<<"                                                                   "<<std::endl;
+                std::cout<<"###################################################################"<<std::endl;
             }
             
             else{

@@ -103,21 +103,33 @@ class CUBA_Integrator : public Montecarlo_Integrator{
 
 
             if(METHOD=="Vegas"){
+                std::cout<<"###################################################################"<<std::endl;
+                std::cout<<"                                                                   "<<std::endl;
+                std::cout<<"                  CUBA-Vegas integration initiated                 "<<std::endl;
                 Vegas(Dimension,1,Integrand,Params,
                       NVec,RelErr,AbsErr,Flag,Seed,
                       MinEval,MaxEval,NStart,NIncrease,NBatch,
                       Grid, State, &Spin,
                       &NEval,&Fail,
                       Integral, Error, Prob);
+                std::cout<<"                                                                   "<<std::endl;
+                std::cout<<"###################################################################"<<std::endl;
             }
+            
+            
 
             else if(METHOD=="Suave"){
+                std::cout<<"###################################################################"<<std::endl;
+                std::cout<<"                                                                   "<<std::endl;
+                std::cout<<"                  CUBA-Suave integration initiated                 "<<std::endl;
                 Suave(Dimension,1,Integrand,Params, 
                       NVec,RelErr,AbsErr,Flag,Seed,
                       MinEval,MaxEval,NNew,NMin,
                       Flatness,State,&Spin,
                       &NRegions,&NEval,&Fail,
                       Integral,Error,Prob);
+                std::cout<<"                                                                   "<<std::endl;
+                std::cout<<"###################################################################"<<std::endl;
             }
 
             else{
