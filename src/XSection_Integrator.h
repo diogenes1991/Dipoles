@@ -27,15 +27,15 @@ class XSection_Integrator{
 
         XSection_Integrator(std::string olp, std::string pdfname, std::string Integrator){
             
-            std::cout<<"#############################################################"<<std::endl;
-            std::cout<<"                                                             "<<std::endl;
-            std::cout<<"         XSection Integrator Instance Created                "<<std::endl;
-            std::cout<<"                                                             "<<std::endl;
-            std::cout<<"             1-Loop Provider     : "  <<   olp                <<std::endl;
-            std::cout<<"             PDF Set             : "  <<   pdfname            <<std::endl;
-            std::cout<<"             Integration Routine : "  <<   Integrator         <<std::endl;
-            std::cout<<"                                                             "<<std::endl;
-            std::cout<<"#############################################################"<<std::endl;
+            std::cout<<"###################################################################"<<std::endl;
+            std::cout<<"                                                                   "<<std::endl;
+            std::cout<<"         XSection Integrator Instance Created                      "<<std::endl;
+            std::cout<<"                                                                   "<<std::endl;
+            std::cout<<"             1-Loop Provider     : "  <<   olp                      <<std::endl;
+            std::cout<<"             PDF Set             : "  <<   pdfname                  <<std::endl;
+            std::cout<<"             Integration Routine : "  <<   Integrator               <<std::endl;
+            std::cout<<"                                                                   "<<std::endl;
+            std::cout<<"###################################################################"<<std::endl;
             
             XSec = new XSection(olp,pdfname);
 
@@ -98,6 +98,8 @@ class XSection_Integrator{
 
             Montecarlo_Integrator * MCI;
 
+            Clock C1();
+
             if (XS.Integrand=="Born"||XS.Integrand=="Virtual"){
                 MCI = BIntegrator;
                 XS.Catalog = "Virtuals";
@@ -124,7 +126,9 @@ class XSection_Integrator{
             }
 
             mc.Params = &XS;
-            MCI->Integrate(&mc);    
+            MCI->Integrate(&mc);
+            std::cout<<"The integration took: ";
+            C1.ShowTime(); 
         }
 
 };
