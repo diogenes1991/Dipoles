@@ -1,6 +1,6 @@
 
-INITIAL STATE = b,g
-FINAL STATE = Z,b
+INITIAL STATE = p,p
+FINAL STATE = Z,jb,jb
 RADIATIVE = j
 
 MODEL FILE = StandardModel
@@ -9,7 +9,7 @@ PATH = /home/diogenes1991/Madisqe_Tests
 SEED TEMP = tpl/NLOX_seed_tpl.in
 
 NLOX PATH = /home/diogenes1991/NLOX
-RECOLA PATH = /home/diogenes1991/RECOLA
+RECOLA PATH = /home/diogenes1991/recola2-collier-2.2.2
 
 STAGE = 3
 VERBOSE = 1

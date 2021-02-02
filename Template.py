@@ -25,7 +25,7 @@ class Template():
                 print '\33[31mError\33[0m: Replacement dictionary contains a non string for:',Key
                 sys.exit()
 
-    def Fill(self,permissive=False):
+    def Fill(self,permissive=True):
         template_file = open(self.Source,'r')
         self.FilledTemplate = ''
         has_empty = False

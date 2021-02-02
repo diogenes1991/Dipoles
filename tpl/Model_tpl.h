@@ -1,7 +1,7 @@
 #ifndef __MODEL_H__
 #define __MODEL_H__
 
-#include "Input.h"
+#include <string>
 
 class Particle{
 
@@ -9,12 +9,14 @@ class Particle{
 
         std::string Name;
         double Mass;
+        double Width;
         int PID;
 
-        Particle(std::string N, double m, int p){
+        Particle(std::string N, double m, double w, int p){
             Name = N;
             Mass = m;
             PID  = p;
+            Width = w;
         }
 
         ~Particle(){
@@ -23,34 +25,29 @@ class Particle{
 
 };
 
-class Model : public Input{
+class Model {
+
+    const int NParticles = ####NParticles####;
 
     public:
 
+        int NLF = 4;
+        int NHF = 2;
+
+        bool UseCMScheme = true;
+        bool UseGMuScheme = true;
+
         double alpha_e = 1.0;
         double alpha_s = 1.0;
-        
-        const int NParticles = ####NParticles####;
+        double GFermi  = 1.16637E-5;
     
 ####Build Model####
 
-        Model(std::string InputFileName){
+        Model();
 
-            LoadInput(InputFileName,InputFile);
-            std::cout<<"Model Mass Environment Initialized"<<std::endl;
-            
-            for (auto Setting : InputFile){
-                std::cout<<Setting.first<<" = "<<Setting.second<<std::endl;
-            }
-
-            
-            
-        }
-
-        ~Model(){
-            
-        }
+        ~Model(){}
 
 };
+
 
 #endif

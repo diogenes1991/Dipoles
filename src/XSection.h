@@ -31,7 +31,7 @@ class XSection{
 
         XSection(std::string olp = "nlox", std::string pdfset = ""){
             
-            if(pdfset!=""){
+            if( pdfset != "" ){
                 PDF = new LHAPDF_Set(pdfset);
                 usingpdfs = true;
             }
@@ -48,7 +48,6 @@ class XSection{
                 std::cout<<"Error: OLP type "<<olp<<" not supported"<<std::endl;
                 abort();
             }
-
             
             Reals  = new RealIntegrands(Provider,model);
             XSectionMap.insert({"Reals",Reals});

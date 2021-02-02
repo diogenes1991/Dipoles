@@ -15,7 +15,7 @@
 }
 
 void ####SubProcName####::Subtracted(std::string cp, double sqrts, double* rand, double mu, double* rval){
-
+/*
     int i;
     double radiative[3];
     double EWKFac = 4*M_PI*(model->alpha_e);
@@ -40,11 +40,11 @@ void ####SubProcName####::Subtracted(std::string cp, double sqrts, double* rand,
    }
 
    *rval *= J;
-
+*/
 }
 
 void ####SubProcName####::PlusDistribution(std::string cp, double sqrts, double* rand, double mu, double* rval){
-
+/*
     int i;
     double Ix,I1;
     double EWKFac = model->alpha_e/(2*M_PI);
@@ -58,11 +58,11 @@ void ####SubProcName####::PlusDistribution(std::string cp, double sqrts, double*
         std::cout << "Error: Coupling power: "<<cp<<" not found in process"<<std::endl;
         abort();
    }
-
+*/
 }
 
 void ####SubProcName####::Endpoint(std::string cp, double sqrts, double* rand, double mu, double* rval){
-
+/*
     int i,j;
     double EWKFac = model->alpha_e/(2*M_PI);
     double QCDFac = model->alpha_s/(2*M_PI);
@@ -81,4 +81,5 @@ void ####SubProcName####::Endpoint(std::string cp, double sqrts, double* rand, d
         std::cout << "Error: Coupling power: "<<cp<<" not found in process"<<std::endl;
         abort();
    }
+*/
 }

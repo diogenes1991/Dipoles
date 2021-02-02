@@ -75,7 +75,7 @@ class StandardModel(Model):
         ## Composite particles are declared with a name and a list of fundmental 
         ## particles
 
-        p = CompositeParticle("p",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,g,A])
+        p = CompositeParticle("p",[d,dbar,u,ubar,b,bbar,g,A])
 
         j = CompositeParticle("j",[d,dbar,u,ubar,s,sbar,c,cbar,b,bbar,g,A])
         

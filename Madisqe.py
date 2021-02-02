@@ -1,29 +1,105 @@
 #!/usr/bin/env python
 
+from time import localtime,strftime,mktime
 from Dipoles import *
 from OLP import *
 
 class Madisqe:
     def __init__(self,CONFIGFILE):
+        
+        StartTime = localtime()
+
+        LogFile = open('Madisqe.log','w')
+        cmd = "git log --pretty=format:'commit %H%nDate:   %ad' -n 1 > Madisqe.log"
+        os.system(cmd)
+        LogFile.close()
+        
         self.ReadConfig(CONFIGFILE)
+        
+        print '     Code Generation Started at '+strftime('%d %b %Y %H:%M:%S %Z',StartTime)
+        print '                                                                   '
+        print '###################################################################'
+        print '                                                                   '
+        print '     Sorting the necesary channels                                 '
+        print '                                                                   '
+        
+        ##
+        ##  Both the Born and Radiative processes are classified by
+        ##  Processes which are the same up to sorting are not kept 
+        ##  this must be all summed back by the c++ interface
+        ##  
+        ##  The veto here is on all processes that are not possible at tree level 
+        ##  The issue is that if we allow these we can only compute them @ LO
+        ##
+
         self.LoadConfig()
         self.VetoProcs()
-        self.Build()
-
-    def Build(self):
-        
         self.CreateDirectories()
         self.WriteModel()
 
+        print '                                                                   '
+        print '     Sorting completed at '+strftime('%d %b %Y %H:%M:%S %Z',localtime())
+        print '     Total elapsed time: ' + str(mktime(localtime())-mktime(StartTime)) + ' s'
+        print '                                                                   '        
+        print '###################################################################'
+        print '                                                                   '
+        print '     The Born and Virtuel include the channels('+str(len(self.BornProc.subproc))+'):'
+        print '                                                                   '
+        
+        for Ch in self.BornProc.subproc:
+            print '     '+Ch
+        
+        print '                                                                   '
+        print '###################################################################'
+        print '                                                                   '
+        print '     The Radiative includes the channels ('+str(len(self.RadiProc.subproc))+'):'
+        print '                                                                   '
+        
+        for Ch in self.RadiProc.subproc:
+            print '     '+Ch
+
+        print '                                                                   '
+        print '###################################################################'
+        print '                                                                   '
+        print '     Building Real Integrands                                      '
+        print '                                                                   '
+        
         self.BuildDipoleTree()
         self.BuildRealIntegrands()
-
         self.Build_Dipole_Structures()
+
+        print '                                                                   '
+        print '     Dipole fetching completed at '+strftime('%d %b %Y %H:%M:%S %Z',localtime())
+        print '     Total elapsed time: ' + str(mktime(localtime())-mktime(StartTime)) + ' s'
+        print '                                                                   '
+        print '###################################################################'
+        print '                                                                   '
+        print '     Generating matrix elements and Virtual Integrands             '
+        print '                                                                   '
+        
         self.BuildOLP(False)
         self.BuildVirtualIntegrands()
 
+        print '                                                                   '
+        print '     Generation of matrix elements completed at '+strftime('%d %b %Y %H:%M:%S %Z',localtime())
+        print '     Total elapsed time: ' + str(mktime(localtime())-mktime(StartTime)) + ' s'
+        print '                                                                   '
+        print '###################################################################'
+        print '                                                                   '
+        print '     Building Madisqe Interface                                    '
+        
         self.BuildInterface()
-            
+        
+        print '                                                                   '
+        print '     Interface building completed at '+strftime('%d %b %Y %H:%M:%S %Z',localtime())
+        print '     Total elapsed time: ' + str(mktime(localtime())-mktime(StartTime)) + ' s'
+        print '                                                                   '
+        print '###################################################################'
+        print '                                                                   '
+        print '     Code generation finished at '+strftime('%d %b %Y %H:%M:%S %Z',localtime())
+        print '     Total elapsed time: ' + str(mktime(localtime())-mktime(StartTime)) + ' s'
+        print '                                                                   '
+        print '###################################################################'
         
         ## 
         ##  TO DO: At the moment the code is a bit unstable 
@@ -33,8 +109,6 @@ class Madisqe:
 
     ##
     ##  Configfile reading and loading into the Madisqe class
-    ##  We need to get rid of the extra wrapping the configs get,
-    ##  all real configs are at self.config['Key'][0]
     ##
 
     def LoadPaths(self):
@@ -179,7 +253,7 @@ class Madisqe:
         if self.verbose:
             print 'Configuartion loaded succesfuly'
             for conf in self.config:
-                print conf,'=',self.config[conf]
+                print conf,'=',(self.config[conf] if len(self.config[conf]) > 1 else self.config[conf][0])
 
         self.TplDir = 'tpl'
         self.IntDir = 'src'
@@ -216,7 +290,7 @@ class Madisqe:
 
     ##
     ##  Dipole Tree creation from the Radiative process
-    ##  BuildDipoleTree, GetDipoles and Build_Dipole_Structures are deprecated...
+    ##  BuildDipoleTree, GetDipoles and Build_Dipole_Structures_OLD are deprecated...
     ##
 
     def BuildDipoleTree(self):
@@ -1127,7 +1201,23 @@ class Madisqe:
         VirtualIntegrand.Write()
 
 def main(CONFIGFILE):
-    
+
+    print'''
+####################################################################
+#                                                                  #        
+#      __  __               _   _                                  #
+#     |  \/  |   __ _    __| | (_)  ___    __ _    ___             #
+#     | |\/| |  / _` |  / _` | | | / __|  / _` |  / _ \            #
+#     | |  | | | (_| | | (_| | | | \__ \ | (_| | |  __/            #
+#     |_|  |_|  \__,_|  \__,_| |_| |___/  \__, |  \___|            #
+#                                            |_|                   #
+#                                                                  #        
+#                           Version 1.0.0                          #                   
+#                          by D. Figueroa                          #                   
+#                                                                  #        
+#                                                                  #        
+####################################################################
+'''
     MADISQE = Madisqe(CONFIGFILE)
 
 if __name__ == "__main__":

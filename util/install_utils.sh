@@ -119,6 +119,7 @@ mv $LOGFILE $LHAPDF
 cd $LHAPDF
 echo "Configuring LHAPDF"
 ./configure --prefix="${PWD}/built" >> $LOGFILE
+# ./configure >> $LOGFILE
 echo "Compiling LHAPDF (this may take a while)"
 make -j8 >> $LOGFILE 2>&1
 make install >> $LOGFILE 2>&1
