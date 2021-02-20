@@ -6,46 +6,6 @@
 #include <cmath>
 #include "Four_Vector.h"
 
-#define ZERO_SPEED 1E-38
-
-template <class T>
-    T Lambda(T x, T y, T z){
-    return x*x + y*y + z*z - 2*x*y - 2*y*z - 2*z*x;  
-}
-
-template <class T>
-FMatrixT<T> Boost(T v_x, T v_y, T v_z){
-  FMatrixT<T> out;
-  T v = sqrt( v_x*v_x + v_y*v_y + v_z*v_z );
-  FMatrixT<T> keta;
-    if(v < ZERO_SPEED){
-    keta.M[0][1] = 0 ;
-    keta.M[0][2] = 0 ;
-    keta.M[0][3] = 0 ;
-    keta.M[1][0] = 0 ;
-    keta.M[2][0] = 0 ;
-    keta.M[3][0] = 0 ;
-    }
-      
-    else{
-    keta.M[0][1] = v_x / v ;
-    keta.M[0][2] = v_y / v ;
-    keta.M[0][3] = v_z / v ;
-    keta.M[1][0] = v_x / v ;
-    keta.M[2][0] = v_y / v ;
-    keta.M[3][0] = v_z / v ;
-    }
-  
-  T gamma = v*v;
-    gamma = 1-gamma;
-    gamma = sqrt(gamma);
-    gamma = 1/gamma;
-  
-  out = 1 + gamma*v*keta + (gamma - 1)*keta*keta;
-    
-  return out;   
-}
-
 template <class T>
 void Phase_Space_Point_Generator_2_Particle(FVectorT<T> P, FVectorT<T>& p1, T m1, FVectorT<T>& p2, T m2, T* r, T& J){
   
