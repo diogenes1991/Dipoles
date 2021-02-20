@@ -5,13 +5,14 @@
 #include "Virtual.h"
 #include "NLOX_OLP.h"
 #include "RECOLA_OLP.h"
-#include "PDF_Sets.h"
+#include "Dummy_PDF.h"
+#include "LHA_PDF.h"
 #include "Analysis.h"
 #include "Constants.h"
 
 class XSection{
 
-    bool usingpdfs = false;
+    bool usingpdfs = true;
 
     std::unordered_map<std::string,Integrand*> XSectionMap;
     std::unordered_map<std::string,int> XSectionNPar;
@@ -26,28 +27,15 @@ class XSection{
         Model * model;
         RealIntegrands * Reals;
         VirtualIntegrands * Virtuals;
-        LHAPDF_Set * PDF;
+        PDF_Set * PDF;
         Integrand * IntegrandPtr = NULL;
+        std::vector<Histogram> * Histograms;
 
-        XSection(std::string olp = "nlox", std::string pdfset = ""){
-            
-            if( pdfset != "" ){
-                PDF = new LHAPDF_Set(pdfset);
-                usingpdfs = true;
-            }
+        XSection(std::vector<Histogram> * Histos, Model * mod, OLP * prov, PDF_Set * pdf){
 
-            model = new Model("Model_Masses.input");
-            
-            if( olp == "nlox"){
-                Provider = new NLOX_OLP(model);
-                           }
-            else if( olp == "recola"){
-                Provider = new RECOLA_OLP(model);
-            }
-            else{
-                std::cout<<"Error: OLP type "<<olp<<" not supported"<<std::endl;
-                abort();
-            }
+            Provider = prov;
+            model = mod;
+            PDF = pdf;
             
             Reals  = new RealIntegrands(Provider,model);
             XSectionMap.insert({"Reals",Reals});
@@ -56,13 +44,12 @@ class XSection{
             Virtuals = new VirtualIntegrands(Provider,model);
             XSectionMap.insert({"Virtuals",Virtuals});
             XSectionNPar.insert({"Virtuals",NextV});
+
+            Histograms = Histos;
             
         }
 
         ~XSection(){
-            if(usingpdfs) delete PDF;
-            delete model;
-            delete Provider;
             delete Virtuals;
             delete Reals;
         }
@@ -82,6 +69,7 @@ class XSection{
 
             double sqrtshat;
             double prefactor=1.0;
+            double beta = 0.0;
             
             int PID[Next];
             IntegrandPtr->GetPID(Channel,PID);
@@ -99,8 +87,9 @@ class XSection{
                 double x2_max = 0.5 * (1.0+sqrt(1.0-4.0*mass[1]*mass[1]/sqrts/sqrts));
                 double x1 = x1_min + x[nVars-2] * (x1_max-x1_min);
                 double x2 = x2_min + x[nVars-1] * (x2_max-x2_min);
+                beta     = (x1 - mass[0]*mass[0]/(sqrts*x1) - x2 + mass[1]*mass[1]/(sqrts*x2))/(x1 + mass[0]*mass[0]/(sqrts*x1) + x2 + mass[1]*mass[1]/(sqrts*x2)); 
                 sqrtshat = sqrt(mass[0]*mass[0]+mass[1]*mass[1]+mass[0]*mass[0]*mass[1]*mass[1]/(sqrts*sqrts*x1*x2)+sqrts*sqrts*x1*x2);
-                prefactor = PDF->Evaluate(PID[0],x1,mu_fac)*PDF->Evaluate(PID[1],x2,mu_fac)+PDF->Evaluate(PID[1],x1,mu_fac)*PDF->Evaluate(PID[0],x2,mu_fac);
+                prefactor = PDF->Evaluate(PID[0],x1,mu_fac)*PDF->Evaluate(PID[1],x2,mu_fac);
                 }
             else{
                 sqrtshat = sqrts;
@@ -116,13 +105,16 @@ class XSection{
 
                 double reweight;
                 IntegrandPtr->GetMomenta(Channel,p);
-                Analysis::ReweightEvent(p,mass,PID,Next,&reweight);
+                Analysis::ReweightEvent(p,beta,mass,PID,Next,&reweight);
 
-                if(reweight) *xsec = reweight*prefactor*partxsec;
+                if(reweight){ 
+                    *xsec = GeVtoPB*reweight*prefactor*partxsec;
+                    double xsec_val = *xsec;
+                    Analysis::FillHistograms(p,beta,mass,PID,Next,xsec_val,Histograms);
+                }
             }
             else *xsec = 0;
-
-            *xsec *= GeVtoPB;
+            
 
         }
 };

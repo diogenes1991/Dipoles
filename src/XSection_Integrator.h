@@ -4,14 +4,19 @@
 #include "XSection.h"
 #include "GSL_Integrator.h"
 #include "CUBA_Integrator.h"
+#include "Analysis.h"
 
 class XSection_Integrator{
 
-    size_t NVarB = 3*NextV-4;
-    size_t NVarP = 3*NextV-3;
-    size_t NVarS = 3*NextR-4;
+    size_t NVarB = 3*NextV-4+2;
+    size_t NVarP = 3*NextV-3+2;
+    size_t NVarS = 3*NextR-4+2;
 
+    Model * model;
+    OLP * Provider;
+    PDF_Set * PDF;
     Montecarlo_Integrator *BIntegrator, *SIntegrator, *PIntegrator;
+    std::vector<Histogram> Histograms;
 
     public:
 
@@ -25,26 +30,15 @@ class XSection_Integrator{
         size_t NVars;
         };
 
-        XSection_Integrator(std::string olp, std::string pdfname, std::string Integrator){
+        XSection_Integrator(Model * mod, OLP * prov, PDF_Set * pdf, std::string Integrator){
             
-            std::cout<<"###################################################################"<<std::endl;
-            std::cout<<"                                                                   "<<std::endl;
-            std::cout<<"         XSection Integrator Instance Created                      "<<std::endl;
-            std::cout<<"                                                                   "<<std::endl;
-            std::cout<<"             1-Loop Provider     : "  <<   olp                      <<std::endl;
-            std::cout<<"             PDF Set             : "  <<   pdfname                  <<std::endl;
-            std::cout<<"             Integration Routine : "  <<   Integrator               <<std::endl;
-            std::cout<<"                                                                   "<<std::endl;
-            std::cout<<"###################################################################"<<std::endl;
+            model = mod;
+            PDF = pdf;
+            Provider = prov;
+
+            Analysis::InitializeHistograms(&Histograms);
+            XSec = new XSection(&Histograms,model,Provider,PDF);
             
-            XSec = new XSection(olp,pdfname);
-
-            if(pdfname!=""){
-                NVarB+=2;
-                NVarS+=2;
-                NVarP+=2;
-            }
-
             if(Integrator=="GSL"){
                 BIntegrator = new GSL_Integrator(GSL_Integrand,NVarB);
                 SIntegrator = new GSL_Integrator(GSL_Integrand,NVarS);
@@ -96,9 +90,8 @@ class XSection_Integrator{
             mc.MaxEval = MC.MaxEval;
             mc.RelErr = MC.RelErr;
 
-            Montecarlo_Integrator * MCI;
-
-            Clock C1();
+            Montecarlo_Integrator * MCI;    
+            Clock C1;
 
             if (XS.Integrand=="Born"||XS.Integrand=="Virtual"){
                 MCI = BIntegrator;
@@ -126,11 +119,17 @@ class XSection_Integrator{
             }
 
             mc.Params = &XS;
-            MCI->Integrate(&mc);
-            std::cout<<"The integration took: ";
+            double res,err;
+            MCI->Integrate(&mc,&res,&err);
+            std::cout<<"\nThe integration took: ";
             C1.ShowTime(); 
-        }
+            std::cout<<std::endl;
 
+            for(Histogram H : Histograms){
+                std::string Title = XS.Channel+" @ "+XS.Coupling; 
+                H.Write(Title);
+            } 
+        }
 };
 
 XSection * XSection_Integrator::XSec = NULL;
