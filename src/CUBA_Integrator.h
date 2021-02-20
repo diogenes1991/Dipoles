@@ -61,7 +61,7 @@ class CUBA_Integrator : public Montecarlo_Integrator{
 
         ~CUBA_Integrator(){};
 
-        void Integrate(Specifications * mc_specs){
+        void Integrate(Specifications * mc_specs, double* result, double* error){
             
             std::string METHOD;
             if(mc_specs->Method=="")METHOD="Vegas";
@@ -101,7 +101,6 @@ class CUBA_Integrator : public Montecarlo_Integrator{
             const double Flatness = 2;
             int NRegions = 1;
 
-
             if(METHOD=="Vegas"){
                 std::cout<<"###################################################################"<<std::endl;
                 std::cout<<"                                                                   "<<std::endl;
@@ -115,8 +114,6 @@ class CUBA_Integrator : public Montecarlo_Integrator{
                 std::cout<<"                                                                   "<<std::endl;
                 std::cout<<"###################################################################"<<std::endl;
             }
-            
-            
 
             else if(METHOD=="Suave"){
                 std::cout<<"###################################################################"<<std::endl;
@@ -137,6 +134,9 @@ class CUBA_Integrator : public Montecarlo_Integrator{
                 for(auto a : Available) std::cout<<"    - "<<a<<std::endl;
                 abort();
             }
+
+            *result = Integral[0];
+            *error  = Error[0];
         }
 };
 

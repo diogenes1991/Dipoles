@@ -35,7 +35,7 @@ class GSL_Integrator : public Montecarlo_Integrator{
             gsl_rng_free(R);
         }
 
-        void Integrate(Specifications * mc_specs){
+        void Integrate(Specifications * mc_specs, double* result, double* error){
             
             double res,err;
             gsl_monte_function F = {Integrand,Dimension,mc_specs->Params};
@@ -58,8 +58,8 @@ class GSL_Integrator : public Montecarlo_Integrator{
                     Iter += 1;
                     Calls += Evals;
                     Evals += mc_specs->NIncrease;
-                    std::cout<<"Iteration["<<Iter<<"] "<<Calls<<" evaluations so far"<<std::endl<<std::endl;
-                    std::cout<<res<<" +/- "<<err<<std::endl;
+                    std::cout<<"Iteration["<<Iter<<"] "<<Calls<<" evaluations so far"<<std::endl;
+                    std::cout<<res<<" +/- "<<err<<std::endl<<std::endl;
                     if(std::abs(err/res)<mc_specs->RelErr) break;
                 }
                 gsl_monte_plain_free(s);
@@ -106,8 +106,8 @@ class GSL_Integrator : public Montecarlo_Integrator{
                     Iter += 1;
                     Calls += Evals;
                     Evals += mc_specs->NIncrease;
-                    std::cout<<"Iteration["<<Iter<<"] "<<Calls<<" evaluations so far"<<std::endl<<std::endl;
-                    std::cout<<res<<" +/- "<<err<<std::endl;
+                    std::cout<<"Iteration["<<Iter<<"] "<<Calls<<" evaluations so far"<<std::endl;
+                    std::cout<<res<<" +/- "<<err<<std::endl<<std::endl;
                     if(std::abs(err/res)<mc_specs->RelErr) break;
                 }
                 gsl_monte_miser_free(s);
@@ -120,6 +120,9 @@ class GSL_Integrator : public Montecarlo_Integrator{
                 for(auto a : Available) std::cout<<"    - "<<a<<std::endl;
                 abort();
             }
+
+            *result = res;
+            *error  = err; 
         }     
 };
 

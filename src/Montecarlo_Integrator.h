@@ -22,7 +22,7 @@ class Montecarlo_Integrator{
         };
 
         virtual ~Montecarlo_Integrator(){};
-        virtual void Integrate(Specifications * mc_specs) = 0;
+        virtual void Integrate(Specifications * mc_specs, double* result, double* error) = 0;
 
 };
 
