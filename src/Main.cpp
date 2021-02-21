@@ -1,48 +1,229 @@
+#include <cstdio>
+#include <iostream>
 #include "Input.h"
 #include "XSection_Integrator.h"
 
-class Madisqe : public Input{
+void ShowLetterHead(){
+    std::cout<<"###################################################################"<<std::endl;
+    std::cout<<"                                                                   "<<std::endl;
+    std::cout<<"                                                                   "<<std::endl;
+    std::cout<<"          __  __               _   _                               "<<std::endl;
+    std::cout<<"         |  \\/  |   __ _    __| | (_)  ___    __ _    ___         "<<std::endl;
+    std::cout<<"         | |\\/| |  / _` |  / _` | | | / __|  / _` |  / _ \\       "<<std::endl;
+    std::cout<<"         | |  | | | (_| | | (_| | | | \\__ \\ | (_| | |  __/       "<<std::endl;
+    std::cout<<"         |_|  |_|  \\__,_|  \\__,_| |_| |___/  \\__, |  \\___|     "<<std::endl; 
+    std::cout<<"                                                |_|                "<<std::endl;
+    std::cout<<"                                                                   "<<std::endl;
+    std::cout<<"                                                                   "<<std::endl;
+    std::cout<<"                           Version 1.0.0                           "<<std::endl;
+    std::cout<<"                           by D.Figueroa                           "<<std::endl;
+    std::cout<<"                                                                   "<<std::endl;
+    std::cout<<"                                                                   "<<std::endl;
+    std::cout<<"###################################################################"<<std::endl;
+}
 
-    XSection_Integrator * XSec_Int;
-
-    Montecarlo_Integrator::Specifications MC_SP;
-    XSection_Integrator::XSection_Selector XS;
+class CommandHandler{
 
     public:
 
-        Madisqe(std::string InputFileName){
+        std::string Name;
+        std::unordered_map<std::string,int> CommandMap = {{"Exit",-1}};
+
+        CommandHandler(){};
+        ~CommandHandler(){};
+
+        int GetCommand(std::string Command){
+            int CommandInt;
+            try{CommandInt = CommandMap.at(Command);}
+            catch(const std::out_of_range& oor){CommandInt = -2;}
+            return CommandInt;
+        }
+
+        void BeginLoop(){
+            std::string Command;
+            bool Stay = true;
+            do{
+                std::cout<<Name<<" \\> ";
+                std::cin>>Command;
+                Stay = HandleCommand(Command);
+            
+            } while(Stay);
+        }
+
+        virtual bool HandleCommand(std::string Command) = 0;
+
+};
+
+class MatrixElementTester : public CommandHandler{
+
+    Model * model;
+    NLOX_OLP   * NLOX_Proc;
+    RECOLA_OLP * RECOLA_Proc;
+    VirtualIntegrands * NLOX_Virt;
+    VirtualIntegrands * RECOLA_Virt;
+
+    static constexpr double sqrts = 13000;
+    static constexpr double fixed_mu = 1000;
+    double r[5] = {0.93123213,0.89201321,0.2125693,0.72554343,0.344583732};
+    
+    public:
+
+        std::string Order;
+        std::string Coupling;
+        std::string Channel;
+
+        MatrixElementTester(){
+            Name = "Madisqe Tester";
+            CommandMap.insert({"SetAll",0});
+            CommandMap.insert({"SetChannel",1});
+            CommandMap.insert({"SetOrder",2});
+            CommandMap.insert({"SetCoupling",3});
+            CommandMap.insert({"SetRandom",4});
+            CommandMap.insert({"Test",5});
+            model = new Model;
+            NLOX_Proc = new NLOX_OLP(model);
+            RECOLA_Proc = new RECOLA_OLP(model);
+            NLOX_Virt = new VirtualIntegrands(NLOX_Proc,model);
+            RECOLA_Virt = new VirtualIntegrands(RECOLA_Proc,model);
+            Start();
+        }
+
+        ~MatrixElementTester(){
+            delete NLOX_Virt;
+            delete RECOLA_Virt;
+            delete NLOX_Proc;
+            delete RECOLA_Proc;
+            delete model;
+            
+        };
+
+        void Start(){
+            std::cout<<"Entering Testing Envionment"<<std::endl;
+            BeginLoop();
+        }
+
+        bool HandleCommand(std::string Command){
+            bool Stay = true;
+            int CommandInt = GetCommand(Command);
+            
+            switch(CommandInt){
+                case 0:
+                    SetAll();
+                    break;
+                case 1:
+                    SetChannel();
+                    break;
+                case 2:
+                    SetOrder();
+                    break;
+                case 3:
+                    SetCoupling();
+                    break;
+                case 4:
+                    SetRandom();
+                    break;
+                case 5:
+                    Test();
+                    break;
+                case -1:
+                    std::cout<<"Exiting Testing Environment"<<std::endl;
+                    Stay = false;
+                    break;
+                default:
+                    std::cout<<"Unrecognized Option, the recognized ones are:"<<std::endl;
+                    for(auto C : CommandMap)std::cout<<C.first<<std::endl;
+            }
+
+            return Stay;
+        }
+
+        void SetChannel(){
+            std::cout<<"Channel \\>";
+            std::cin>>Channel;
+        }
+
+        void SetOrder(){    
+            std::cout<<"Order \\>";
+            std::cin>>Order;
+        }
+
+        void SetCoupling(){
+            std::cout<<"Coupling \\>";
+            std::cin>>Coupling;
+        }
+
+        void SetAll(){
+            SetChannel();
+            SetOrder();
+            SetCoupling();
+        }
+
+        void SetRandom(){
+            std::cout<<"Enter "<<NextV<<" random numbers \\>"<<std::endl;
+            for(int i=0;i<NextV;i++){
+                std::cout<<"r["<<i<<"] \\>  ";
+                std::cin>>r[i];
+            }
+        }
+
+        void Test(){
+            try{
+                std::string timen,timer;
+                double rvaln,rvalr;
+                FVector Mom[5];
+                Clock C;
+                NLOX_Virt->Call(Order,Channel,Coupling,sqrts,r,fixed_mu,&rvaln);
+                timen = C.GetTime();
+                C.Reset();
+                RECOLA_Virt->Call(Order,Channel,Coupling,sqrts,r,fixed_mu,&rvalr);
+                timer = C.GetTime();
+                NLOX_Virt->GetMomenta(Channel,Mom);
+                std::cout<<"Testing "<<Channel<<" @ "<<Coupling<<std::endl;
+                std::cout<<"PSP for this comparison:"<<std::endl;
+                for(int i=0;i<NextV;i++){std::cout<<"p"<<i+1<<" = ";Mom[i].print();}
+                std::cout<<"NLOX   = "<<rvaln<<" ( "<<timen<<" )"<<std::endl;
+                std::cout<<"RECOLA = "<<rvalr<<" ( "<<timer<<" )"<<std::endl;
+            }
+            catch(const char* se){
+                std::cout<<"Catching an instance of \""<<se<<"\" Error"<<std::endl;
+            }
+
+        }
+};
+
+class XSectionTester : public Input{
+
+    OLP * Provider;
+    PDF_Set * PDF;
+    Model * model;
+    XSection_Integrator * XSec_Int;
+
+    public:
+
+        Montecarlo_Integrator::Specifications MC_SP;
+        XSection_Integrator::XSection_Selector XS;
+
+        XSectionTester(std::string InputFileName){
             
             LoadInput(InputFileName,InputFile);
             
-            std::cout<<"#############################################################"<<std::endl;
-            std::cout<<"                                                             "<<std::endl;
-            std::cout<<"   ███╗░░░███╗░█████╗░██████╗░██╗░██████╗░██████╗░███████╗   "<<std::endl;
-            std::cout<<"   ████╗░████║██╔══██╗██╔══██╗██║██╔════╝██╔═══██╗██╔════╝   "<<std::endl;
-            std::cout<<"   ██╔████╔██║███████║██║░░██║██║╚█████╗░██║██╗██║█████╗░░   "<<std::endl;
-            std::cout<<"   ██║╚██╔╝██║██╔══██║██║░░██║██║░╚═══██╗╚██████╔╝██╔══╝░░   "<<std::endl;
-            std::cout<<"   ██║░╚═╝░██║██║░░██║██████╔╝██║██████╔╝░╚═██╔═╝░███████╗   "<<std::endl;
-            std::cout<<"   ╚═╝░░░░░╚═╝╚═╝░░╚═╝╚═════╝░╚═╝╚═════╝░░░░╚═╝░░░╚══════╝   "<<std::endl;
-            std::cout<<"                                                             "<<std::endl;
-            std::cout<<"                        Version 1.0.0                        "<<std::endl;
-            std::cout<<"                     Author: D.Figueroa.                     "<<std::endl;
-            std::cout<<"                                                             "<<std::endl;
-            std::cout<<"#############################################################"<<std::endl;
+            ShowLetterHead();
             
-            std::cout<<"#############################################################"<<std::endl;
-            std::cout<<"                                                             "<<std::endl;
-            std::cout<<"        MADISQE Instance Created                             "<<std::endl;
-            std::cout<<"                                                             "<<std::endl;
+            std::cout<<"###################################################################"<<std::endl;
+            std::cout<<"                                                                   "<<std::endl;
+            std::cout<<"              Settings Loaded                                      "<<std::endl;
+            std::cout<<"                                                                   "<<std::endl;
             
             for (auto Setting : InputFile){
                 std::cout<<"           "<< Setting.first << " : " << Setting.second   <<std::endl;
             }
 
-            std::cout<<"                                                             "<<std::endl;
-            std::cout<<"#############################################################"<<std::endl;
+            std::cout<<"                                                                   "<<std::endl;
+            std::cout<<"###################################################################"<<std::endl;
             
-            std::string PDFSet     = InputFile.at("LHAPDFSet");
-            std::string Provider   = InputFile.at("OLP");
-            std::string Integrator = InputFile.at("Integrator");
+            std::string PDFSet       = InputFile.at("PDFSet");
+            std::string ProviderName = InputFile.at("OLP");
+            std::string Integrator   = InputFile.at("Integrator");
             
             MC_SP.Method    = InputFile.at("Method");
             MC_SP.MaxEval   = stoi(InputFile.at("NEvaluations"));
@@ -57,33 +238,111 @@ class Madisqe : public Input{
             double muRen = stod(InputFile.at("muRen"));
             double muFac = stod(InputFile.at("muFac"));
 
-            XSec_Int = new XSection_Integrator(Provider,PDFSet,Integrator);
+            model = new Model();
+
+            if     (ProviderName=="NLOX") Provider = new NLOX_OLP(model);
+            else if(ProviderName=="RECOLA") Provider = new RECOLA_OLP(model);
+            else {
+                std::cout<<"Unsoported OLP"<<std::endl;
+                throw "Unsoported OLP";
+            }
+
+            if (PDFSet=="Dummy") PDF = new Dummy_PDF();
+            else {
+                try {
+                    PDF = new LHA_PDF(PDFSet);
+                }
+                catch(const char* err){
+                    std::cout<<"Catching an instance of \""<<err<<"\" error"<<std::endl;
+
+                }
+            }
+
+            XSec_Int = new XSection_Integrator(model,Provider,PDF,Integrator);
             XSec_Int->XSec->SetScales(sqrts,muRen,muFac);     
             
         }
 
-        ~Madisqe(){
+        ~XSectionTester(){
             delete XSec_Int;
+            delete PDF;
+            delete Provider;
         }
 
-        void Run(){
-            XSec_Int->ComputeXSection(XS,MC_SP);
+        void TestXSection(){
+            try {
+                XSec_Int->ComputeXSection(XS,MC_SP);
+            }
+            catch(const char* err){
+                std::cout<<"Catching an instance of \""<<err<<"\" error"<<std::endl;
+            }
+            
         }
 };
 
+class Madisqe : public CommandHandler{
+
+    public:
+
+        Madisqe(){
+            Name = "Madisqe";
+            CommandMap.insert({"Test_ME",0});
+            CommandMap.insert({"Test_XSec",1});
+            BeginLoop();
+        }
+
+        bool HandleCommand(std::string Command){
+            bool Stay = true;
+
+            int CommandInt = GetCommand(Command);
+            
+            switch(CommandInt){
+                case 0:
+                    TestMatrixElements();
+                    break;
+                case 1:
+                    TestXSection();
+                    break;
+                case -1:
+                    std::cout<<"Exiting Testing Environment"<<std::endl;
+                    Stay = false;
+                    break;
+                default:
+                    std::cout<<"Unrecognized Option, the recognized ones are:"<<std::endl;
+                    for(auto C : CommandMap)std::cout<<C.first<<std::endl;
+            }
+
+            return Stay;
+        }
+
+        void TestMatrixElements(){
+            MatrixElementTester MET;
+        }
+
+        void TestXSection(){
+            XSectionTester * XST;
+            std::string InFile;
+            std::cout<<"Please specify an input file for the Xsection Run: ";
+            std::cin >> InFile;
+            try{
+                XST = new XSectionTester(InFile);
+            }
+            catch(const char* Err){
+                std::cout<<"Catching an instance of \""<<Err<<"\" error"<<std::endl;
+            }
+
+            XST->TestXSection();
+            delete XST;
+        }
+
+};
+
+#define NEW_MODE 1
+
 int main(int argc, char* argv[]){
 
-    if( argc < 2){
-        std::cout<<"Error: No input file specified"<<std::endl;
-        abort();
-    }
-    if( argc > 2){
-        std::cout<<"Error: Too many arguments"<<std::endl;
-        abort();
-    }
-
-    Madisqe E1(argv[1]);
-    E1.Run();
+    std::cout.precision(16);
+    Madisqe M;
 
     return 0;
 }
