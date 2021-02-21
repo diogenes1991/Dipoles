@@ -12,10 +12,11 @@ class Particle{
         double Width;
         int PID;
 
-        Particle(std::string N, double m, double w, int p){
+        Particle(std::string N, double m, double w, double c, int p){
             Name = N;
             Mass = m;
             PID  = p;
+            Charge = c;
             Width = w;
         }
 
