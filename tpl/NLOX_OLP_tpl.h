@@ -19,7 +19,7 @@ class NLOX_OLP : public OLP{
             
             model = Mod;
             Proc = new Process();
-            UpdateParameters()
+            UpdateParameters();
 
 ####Define Channels####
         }
@@ -65,8 +65,8 @@ class NLOX_OLP : public OLP{
             Proc->pc.set_param("mZ",model->Z.Mass);
             Proc->pc.set_param("wZ",model->Z.Width);
 
-            Proc->pc.set_param("mH",model->H.Mass);
-            Proc->pc.set_param("wH",model->H.Width);
+            Proc->pc.set_param("mH",model->h.Mass);
+            Proc->pc.set_param("wH",model->h.Width);
 
         }
 
