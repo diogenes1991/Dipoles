@@ -20,9 +20,9 @@ class Integrand{
             try {Channel = ChannelMap.at(CH);}
             catch (const std::out_of_range& oor) {
                 std::cerr<<"Error: Channel "<<CH<<" not found in Process"<<std::endl;
-                std::cout<<"The available Radiative processes are:"<<std::endl;
+                std::cout<<"The available processes are:"<<std::endl;
                 for ( auto& x : ChannelMap ) std::cout<<x.first<<" => "<<x.second<<std::endl;
-                abort();
+                throw "Unrecognized Channel";
             }
             return Channel;
         }
