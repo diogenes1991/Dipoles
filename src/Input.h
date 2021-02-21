@@ -40,7 +40,7 @@ class Input{
                 }
                 else {
                     std::cout << "Error: No input file found" << std::endl;
-                    abort();
+                    throw "No input file found";
                 }
         }
 
