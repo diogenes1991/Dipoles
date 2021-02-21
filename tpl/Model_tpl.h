@@ -10,6 +10,7 @@ class Particle{
         std::string Name;
         double Mass;
         double Width;
+        double Charge;
         int PID;
 
         Particle(std::string N, double m, double w, double c, int p){
