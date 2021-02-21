@@ -816,7 +816,8 @@ class Madisqe:
         CODEFILES = ['Dipole_Structure.h','Dipole_Definitions.h', \
                      'PSP_Generator.h','Utilities.h','Virtual_Structure.h',\
                      'Montecarlo_Integrator.h','GSL_Integrator.h','CUBA_Integrator.h', \
-                     'PDF_Sets.h','Kinematics.h','Analysis.h', \
+                     'PDF_Set.h','LHA_PDF.h','Kinematics.h','Analysis.h', \
+                     'Dummy_PDF.h' ,\
                      'Constants.h','XSection.h','XSection_Integrator.h',\
                      'Integrand.h','OLP.h','Four_Vector.h','Input.h']
 
@@ -1203,8 +1204,7 @@ class Madisqe:
  
             count = 0
             for particle in self.Borns[Born].Particles:
-                DICT['SubProcConst'] += TAB3+'BornMasses['+str(count)+']= model->'+particle.nam+'.Mass;\n'
-                DICT['SubProcConst'] += TAB3+'BornPID['+str(count)+']= model->'+particle.nam+'.PID;\n'
+                DICT['SubProcConst'] += TAB3+'Particles['+str(count)+']= &(model->'+particle.nam+');\n'
                 count += 1
             
             BornCPS = self.Model.GetCPS(self.Borns[Born].Particles)

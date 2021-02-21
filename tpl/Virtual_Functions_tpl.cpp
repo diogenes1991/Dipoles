@@ -5,10 +5,9 @@
     Provider = &Prov; 
     model = &Mod;
     nPar = NextV; 
-    BornMomenta = new FVector[NextV];
-    BornMasses = new double[NextV];
-    BornPID = new int[NextV];
-
+    Particles = new Particle*[NextV]; 
+    Momenta   = new FVector[NextV];
+    
 ####SubProcConst####
 
 }
@@ -25,7 +24,7 @@ void ####SubProcName####::Born(std::string cp, double sqrts, double* rand, doubl
     Args.RVal = rval;
     Args.NExt = NextV;
     Args.Order = "LO";    
-    Args.Momenta = BornMomenta; 
+    Args.Momenta = Momenta; 
            
     
 ####SubProcBorn####
@@ -50,7 +49,7 @@ void ####SubProcName####::Virtual(std::string cp, double sqrts, double* rand, do
     Args.RVal = rval;
     Args.NExt = NextV;
     Args.Order = "NLO";    
-    Args.Momenta = BornMomenta; 
+    Args.Momenta = Momenta; 
     
 ####SubProcVirt####
 
