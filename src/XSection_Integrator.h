@@ -51,7 +51,7 @@ class XSection_Integrator{
             }
             else{
                 std::cout<<"Error: Integrator interface not supported:"<<Integrator<<std::endl;
-                abort();
+                throw "Unrecognized Integrator Interface";
             }
         }
 
@@ -115,7 +115,7 @@ class XSection_Integrator{
             }
             else{
                 std::cout<<"Error: Unavailable integrand "<<XS.Integrand<<" for "<<XS.Channel<<" channel"<<std::endl;
-                abort();
+                throw "Unrecognized Integrand";
             }
 
             mc.Params = &XS;

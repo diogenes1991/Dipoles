@@ -227,7 +227,7 @@ class SharedHistogramT{
             if(NBins<=_max_nbins) PTR = new Bins[NBins];
             else{
                 std::cout<<"Error: Histogram is too large, the current limit on the number of bins is:"<<_max_nbins<<std::endl;
-                abort();
+                throw "Histogram too large";
             }
             for(unsigned int i=0;i<BinBoundaries.size();i++) Boundaries[i] = BinBoundaries[i];
         }

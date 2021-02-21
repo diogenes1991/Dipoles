@@ -41,7 +41,7 @@ void ####SubProcName####::Subtracted(std::string cp, double sqrts, double* rand,
 
    else{
         std::cout << "Error: Coupling power: "<<cp<<" not found in process"<<std::endl;
-        abort();
+        throw "Unrecognized Coupling";
    }
 
    *rval *= J;
@@ -61,7 +61,7 @@ void ####SubProcName####::PlusDistribution(std::string cp, double sqrts, double*
 
     else{
         std::cout << "Error: Coupling power: "<<cp<<" not found in process"<<std::endl;
-        abort();
+        throw "Unrecognized Coupling";
    }
 */
 }
@@ -84,7 +84,7 @@ void ####SubProcName####::Endpoint(std::string cp, double sqrts, double* rand, d
 
     else{
         std::cout << "Error: Coupling power: "<<cp<<" not found in process"<<std::endl;
-        abort();
+        throw "Unrecognized Coupling";
    }
 */
 }

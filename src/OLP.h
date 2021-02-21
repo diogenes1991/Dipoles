@@ -29,7 +29,7 @@ class OLP{
                 std::cerr<<"Error: Channel "<<SP<<" not found in OLP"<<std::endl;
                 std::cout<<"The available Channels are:"<<std::endl;
                 for ( auto& x : ChannelIndex ) std::cout<<x.first<<" => "<<x.second<<std::endl;
-                abort();
+                throw "Unregonized Channel";
             }
             return SubProcess;
         }

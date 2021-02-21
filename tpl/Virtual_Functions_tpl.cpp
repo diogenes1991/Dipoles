@@ -32,7 +32,7 @@ void ####SubProcName####::Born(std::string cp, double sqrts, double* rand, doubl
 
     else{
         std::cout << "Error: Coupling power: "<<cp<<" not found in process"<<std::endl;
-        abort();
+        throw "Unrecognized Coupling";
     }
     
     *rval *= J;
@@ -56,7 +56,7 @@ void ####SubProcName####::Virtual(std::string cp, double sqrts, double* rand, do
 
     else{
         std::cout << "Error: Coupling power: "<<cp<<" not found in process"<<std::endl;
-        abort();
+        throw "Unrecognized Coupling";
     }
     
     *rval *= J;

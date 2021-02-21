@@ -118,7 +118,7 @@ class GSL_Integrator : public Montecarlo_Integrator{
             else{
                 std::cout<<"Error: The integrator routine you requested "<<METHOD<<" is not available, the available GSL routines are:"<<std::endl;
                 for(auto a : Available) std::cout<<"    - "<<a<<std::endl;
-                abort();
+                throw "Unrecognized Montecarlo Routine";
             }
 
             *result = res;
