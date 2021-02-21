@@ -77,7 +77,7 @@ class Madisqe:
         print '     Generating matrix elements and Virtual Integrands             '
         print '                                                                   '
         
-        self.BuildOLP(False)
+        self.BuildOLP(True)
         self.BuildVirtualIntegrands()
 
         print '                                                                   '
@@ -106,6 +106,10 @@ class Madisqe:
         ##  We need to stabilize and clean as much as possible 
         ##  The next task will be to centralize masses into the 
         ##
+
+        # for DipoleStrucure in self.DipoleStructures:
+            # print self.DipoleStructures[DipoleStrucure]
+            # self.DipoleStructures[DipoleStrucure].Show()
 
     ##
     ##  Configfile reading and loading into the Madisqe class
@@ -282,8 +286,15 @@ class Madisqe:
         
         for Particle in self.Model.Fundamentals:
             P = self.Model.Fundamentals[Particle]
-            MOD_DICT['Build Model'] += TAB8+'Particle '+P.nam+' = Particle("'+P.nam+'",0.0,'+str(P.pid)+');\n' 
-        
+            Charge = '0'
+            if 'Charge' in P.sym:
+                ##
+                ## The charges in SandardModel have a relative factor of 3 with respect to the real world
+                ## this is to enforce charge conservation using integers
+                ##
+                Charge = str(P.sym['Charge'])+'/3'
+            MOD_DICT['Build Model'] += TAB8+'Particle '+P.nam+' = Particle("'+P.nam+'",0.0,0.0,'+Charge+','+str(P.pid)+');\n' 
+    
             
         MODEL = Template(self.TplDir+'/Model_tpl.h',self.SrcDir+'/Code/Model.h',MOD_DICT)
         MODEL.Write()
@@ -566,16 +577,16 @@ class Madisqe:
         ##
 
         self.DipoleStructures = {}
-        for Radiative in self.RadiProc.subproc:
+        for Radiative in self.RadiProc.Channels:
+            RadiativeChannel = self.RadiProc.Channels[Radiative]
             self.DipoleStructures[Radiative] = []
 
             if Verbose:
                 print "Building Dipoles for",Radiative
 
             Dipoles = []
-            for Ri in range(self.RadiProc.lni,len(self.RadiProc.subproc[Radiative])): # Radiation must be a final particle
-                Radiation = self.RadiProc.subproc[Radiative][Ri]
-
+            for Ri in range(self.RadiProc.lni,len(RadiativeChannel.Particles)): # Radiation must be a final particle[Ei,Ri],
+                Radiation = RadiativeChannel.Particles[Ri]
 
                 if Verbose:
                     print "  Evaluating the possibility of considering "+Radiation.nam+"("+str(Ri)+") as radiation"
@@ -586,8 +597,8 @@ class Madisqe:
                 ## and build all possible radiation channels
                 ##
                 
-                for Ei in range(len(self.RadiProc.subproc[Radiative])):
-                    Emitter = self.RadiProc.subproc[Radiative][Ei]
+                for Ei in range(len(RadiativeChannel.Particles)):
+                    Emitter = RadiativeChannel.Particles[Ei]
 
 
                     if Verbose:
@@ -613,9 +624,15 @@ class Madisqe:
                         if REParticle.mas and Emitter.mas and Radiation.mas: # Skip dipoles with 3 massive particles
                             continue
                         
-                        if Ei < self.RadiProc.lni and not REParticle.mas: # If the radiation is off the initial state only a massless RE is allowed
+                        Type = ''
+                        if Ei < self.RadiProc.lni: # If the radiation is off the initial state only a massless RE is allowed
+
+                            Type = 'ia'
+                            ParentIndices = [Ei,Ri]
                             DecayChannel = Channel([Emitter],[REParticle,Radiation],self.Model)
                         else:
+                            Type = 'ij'
+                            ParentIndices = [Ei,Ri]
                             DecayChannel = Channel([REParticle],[Emitter,Radiation],self.Model)
                         ##
                         ## We need to hand-skip A->AA , A->ZA, A->ZZ, this needs to be better addressed by self.Model.CanMakeVertex 
@@ -637,14 +654,55 @@ class Madisqe:
                         ## proceed to build the dependency tree for this radiative
                         ##
 
+                        def MyF(p):
+                            return -p.pid
+
                         UBList = []
-                        for Index in range(len(self.RadiProc.subproc[Radiative])):
-                            BornParticle = self.RadiProc.subproc[Radiative][Index]
+                        UBMap = {}
+                        Count = 0
+                        for Index in range(len(RadiativeChannel.Particles)):
+                            BornParticle = RadiativeChannel.Particles[Index]
                             UBList.append(BornParticle)
+                            if Index != Ri:
+                                # if Index != Ei:
+                                UBMap[Index] = Count
+                                Count +=1
                         UBList[Ei] = REParticle
                         del UBList[Ri]
 
-                        UnderlyingBorn = Channel(UBList[:self.RadiProc.lni],UBList[self.RadiProc.lni:],self.Model)
+                        Initial = UBList[:self.RadiProc.lni]
+                        Final = UBList[self.RadiProc.lni:]
+                        Initial.sort(key=MyF)
+                        Final.sort(key=MyF)
+                        
+                        ##
+                        ##  There is a lot going on here and it would be better to get 
+                        ##  the c++ OLP to do all this sorting when called...
+                        ##  I think for now this is ok, however we should rework this later
+                        ##
+
+                        def BuildMap(List,offset=0):
+                            MappingList = []
+                            Counter = offset
+                            for Particle in List:
+                                MappingList.append([Particle,Counter])
+                                Counter+=1
+                            def SortFun(p):
+                                return -p[0].pid
+                            MappingList.sort(key=SortFun)
+                            Mapping = {}
+                            Count = offset
+                            for Entry in MappingList:
+                                Mapping[Count]=Entry[1]
+                                Count += 1
+                            return Mapping
+
+                        Mapping = BuildMap(UBList[:self.RadiProc.lni])
+                        Mapping.update(BuildMap(UBList[self.RadiProc.lni:],self.RadiProc.lni))
+                        UnderlyingBorn = Channel(Initial,Final,self.Model)
+
+                        ## Unsorted
+                        # UnderlyingBorn = Channel(UBList[:self.RadiProc.lni],UBList[self.RadiProc.lni:],self.Model)
 
                         if not UnderlyingBorn.IsPossibleAtTreeLevel() or not DecayChannel.IsPossibleAtTreeLevel():
                             continue
@@ -654,24 +712,20 @@ class Madisqe:
                         ## exists in the expansion of the Born tags
                         ## 
 
-                        def MyF(p):
-                            return -p.pid
-                        FIN = UnderlyingBorn.Particles[self.RadiProc.lni:]
-                        FIN.sort(key=MyF)
                         TAG=""
-                        for Particle in FIN:
+                        for Particle in Final:
                             TAG+=Particle.nam
 
                         if TAG not in ALLOWEDTAGS:
                             continue
 
-                        if REParticle in self.Model.QCDPars:
-                            Dipoles.append(QCDDipole(DecayChannel,UnderlyingBorn))
+                        if self.Model.Fundamentals['g'] in DecayChannel.Particles:
+                            Dipoles.append(QCDDipole(Type,ParentIndices,UBMap,Mapping,RadiativeChannel,DecayChannel,UnderlyingBorn,self.Model))
 
-                        if REParticle in self.Model.EWKPars:
-                            Dipoles.append(EWKDipole(DecayChannel,UnderlyingBorn))
+                        if self.Model.Fundamentals['A'] in DecayChannel.Particles:
+                            Dipoles.append(EWKDipole(Type,ParentIndices,UBMap,Mapping,RadiativeChannel,DecayChannel,UnderlyingBorn,self.Model))
 
-            self.DipoleStructures[Radiative]=DipoleStructure(Radiative,Dipoles)       
+            self.DipoleStructures[Radiative]=DipoleStructure(RadiativeChannel,Dipoles)       
 
     ##
     ##  OLP Scheduler: Prepare Channels to schedule and Schedule
@@ -766,9 +820,9 @@ class Madisqe:
                      'Constants.h','XSection.h','XSection_Integrator.h',\
                      'Integrand.h','OLP.h','Four_Vector.h','Input.h']
 
-        INPUTFILES = ['Run_Settings.input','Model_Masses.input']
+        INPUTFILES = ['Run_Settings.input']
 
-        TOPLAYERFILES  = ['Main.cpp','Analysis.cpp']
+        TOPLAYERFILES  = ['Main.cpp','Analysis.cpp','Model.cpp']
 
         for file in CODEFILES:
             CopyFile(self.IntDir+'/'+file,self.SrcDir+'/Code/'+file)
