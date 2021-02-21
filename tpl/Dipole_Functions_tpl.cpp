@@ -16,21 +16,26 @@
 
 void ####SubProcName####::Subtracted(std::string cp, double sqrts, double* rand, double mu, double* rval){
 /*
-    int i;
-    double radiative[3];
+    double J = 1.0;
     double EWKFac = 4*M_PI*(model->alpha_e);
     double QCDFac = 4*M_PI*(model->alpha_s);
+    double MatrixElement;
+    FMatrix SpinCorr;
+    CMatrix ColorCorr(NextR);
     double DipFac = 1.0;
-    double J = 1.0;
-    double acc;
+    int BornIndex;
     *rval = 0.;
 
+    OLP::Arguments Args;
+    Args.mu_ren = mu;
+    Args.RVal = MatrixElement;
+    Args.NExt = NextR;
+    Args.Order = "LO";    
+    Args.Momenta = Momenta;
+    Args.SCRVal = &SpinCorr;
+    Args.CCRVal = &ColorCorr;
+
     SGenerate(sqrts,rand,&J);
-    std::vector<FVector> p,p_tilde;
-    double pp[5*NextR],pp_tilde[5*NextR];
-    for(int j=0;j<NextR;j++){
-        p.push_back(Momenta[j]);
-    }
     
 ####SubProcSub####
 
