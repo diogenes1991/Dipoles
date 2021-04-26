@@ -64,7 +64,8 @@ class MatrixElementTester : public CommandHandler{
 
     static constexpr double sqrts = 13000;
     static constexpr double fixed_mu = 1000;
-    double r[5] = {0.93123213,0.89201321,0.2125693,0.72554343,0.344583732};
+    static const int NRandom = 3*NextV-10;
+    double r[NRandom];
     
     public:
 
@@ -159,8 +160,8 @@ class MatrixElementTester : public CommandHandler{
         }
 
         void SetRandom(){
-            std::cout<<"Enter "<<NextV<<" random numbers \\>"<<std::endl;
-            for(int i=0;i<NextV;i++){
+            std::cout<<"Enter "<<NRandom<<" random numbers \\>"<<std::endl;
+            for(int i=0;i<NRandom;i++){
                 std::cout<<"r["<<i<<"] \\>  ";
                 std::cin>>r[i];
             }
@@ -170,7 +171,7 @@ class MatrixElementTester : public CommandHandler{
             try{
                 std::string timen,timer;
                 double rvaln,rvalr;
-                FVector Mom[5];
+                FVector Mom[NextV];
                 Clock C;
                 NLOX_Virt->Call(Order,Channel,Coupling,sqrts,r,fixed_mu,&rvaln);
                 timen = C.GetTime();
@@ -320,7 +321,7 @@ class Madisqe : public CommandHandler{
         }
 
         void TestXSection(){
-            XSectionTester * XST;
+            XSectionTester * XST = NULL;
             std::string InFile;
             std::cout<<"Please specify an input file for the Xsection Run: ";
             std::cin >> InFile;
