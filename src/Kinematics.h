@@ -27,7 +27,9 @@ namespace Kinematics{
  
     template<class T>
     T RDistance(FVectorT<T> p1, FVectorT<T> p2){
-        return 0;
+        T DEta = Rapidity(p1)-Rapidity(p2);
+        T DPhi = std::atan(p1.p2/p1.p1) - std::atan(p2.p2/p2.p1);
+        return std::sqrt(DEta*DEta + DPhi*DPhi);
     }
 
 };
