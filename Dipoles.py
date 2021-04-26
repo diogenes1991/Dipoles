@@ -85,7 +85,7 @@ class DipoleStructure:
         for Dipole in self.Dipoles:
             self.UnderlyingBorns[str(Dipole.UnderlyingBorn)] = Dipole.UnderlyingBorn
 
-    def Show(self):
+    def Show(self,template_path,dest_path):
 
         DICT={'SubProcHeader'    : str(self.Radiative).upper() ,\
               'SubProcConst'     : '' ,\
@@ -103,7 +103,7 @@ class DipoleStructure:
         
         ## 
         ##  Fisrt we build the DipoleStructure Constructor 
-        ##  Collecting all the UNderlying Borns and allocating 
+        ##  Collecting all the Underlying Borns and allocating 
         ##  their masses withing the DipoleStructure class
         ##  Maybe it would be better to store pointers 
         ##  rather than the values.
@@ -112,25 +112,21 @@ class DipoleStructure:
         self.CollectBorns()
         count = 0 
         for Particle in self.Radiative.Particles:
-            DICT['SubProcConst'] += TAB4+'Masses['+str(count)+'] = model->'+Particle.nam+'.Mass;\n'
-            DICT['SubProcConst'] += TAB4+'PID['+str(count)+'] = model->'+Particle.nam+'.PID;\n'
+            DICT['SubProcConst'] += TAB4+'RParticles['+str(count)+'] = &(model->'+Particle.nam+');\n'
             count += 1
     
 
         DICT['SubProcConst'] += '\n'   
         DICT['SubProcConst'] += TAB4+'nBorn = '+str(len(self.UnderlyingBorns))+';\n'   
-        DICT['SubProcConst'] += TAB4+'BornMasses = new double* [nBorn];\n'
-        DICT['SubProcConst'] += TAB4+'BornPID = new int* [nBorn];\n' 
-        DICT['SubProcConst'] += TAB4+'for(int i=0;i<nBorn;i++) BornPID[i]= new int[NextR-1];\n\n'  
-        DICT['SubProcConst'] += TAB4+'for(int i=0;i<nBorn;i++) BornMasses[i]= new double[NextR-1];\n\n' 
+        DICT['SubProcConst'] += TAB4+'BParticles = new Particle**[nBorn];\n'
+        DICT['SubProcConst'] += TAB4+'for(int i=0;i<nBorn;i++) BParticles[i]= new Particle*[NextR-1];\n\n' 
              
         Bcount = 0
         for Born in self.UnderlyingBorns:
             count = 0
             DICT['SubProcConst'] += TAB4+'BornMap.insert({"'+str(Born)+'",'+str(Bcount)+'});\n'
             for Particle in self.UnderlyingBorns[Born].Particles:
-                DICT['SubProcConst'] += TAB4+'BornMasses['+str(Bcount)+']['+str(count)+']= model->'+Particle.nam+'.Mass;\n'
-                DICT['SubProcConst'] += TAB4+'BornPID['+str(Bcount)+']['+str(count)+']= model->'+Particle.nam+'.PID;\n\n'
+                DICT['SubProcConst'] += TAB4+'BParticles['+str(Bcount)+']['+str(count)+']= &(model->'+Particle.nam+');\n'
                 count += 1
             Bcount += 1
 
@@ -171,44 +167,56 @@ class DipoleStructure:
                 if str(Dipole.UnderlyingBorn) != CACHEDTAG:
                     DICT['SubProcSub'] += TAB8+'Args.SubProc = "'+str(Dipole.UnderlyingBorn)+'";\n'
                     DICT['SubProcSub'] += TAB8+'BornIndex = BornMap.at("'+str(Dipole.UnderlyingBorn)+'");\n'
-                    DICT['SubProcSub'] += TAB8+'Args.Momenta = BornMomenta;\n'
+                    DICT['SubProcSub'] += TAB8+'Args.Momenta = BMomenta;\n'
                     DICT['SubProcSub'] += TAB8+'Args.CouplingPower[0] = '+str(UBCoupling['as'])+';\n'
                     DICT['SubProcSub'] += TAB8+'Args.CouplingPower[1] = '+str(UBCoupling['ae'])+';\n\n'
                     CACHEDTAG = str(Dipole.UnderlyingBorn)
 
-                BPIndex = (0 if Dipole.DipoleType == 'ij' else 1)
+                BPIndex = (0 if Dipole.Type == 'ij' else 1)
                 BundledParticle = Dipole.DecayChannel.Particles[BPIndex]
 
+                DipoleSubtype = ('I' if (Dipole.Type == 'ai' or Dipole.Type == 'ia') else 'F')
+                print Dipole.Type,DipoleSubtype
                 for Spectator in Dipole.Spectators:
-                    DipoleSubtype = ('I' if Dipole.DipoleType == 'ai' else 'F')
                     if Spectator['Index'] < NInitials:
                         print TAB4+'Add',Dipole.DipoleType,'D',Dipole.Type,',b'
+                        print Dipole
+                        print "BundledParticle = ",Dipole.DecayChannel.Particles[BPIndex],BPIndex
                         DipoleSubtype += 'I'
+                        print DipoleSubtype
                     else:
                         print TAB4+'Add',Dipole.DipoleType,'D',Dipole.Type,',k'
+                        print Dipole
+                        print "BundledParticle = ",Dipole.DecayChannel.Particles[BPIndex],BPIndex
                         DipoleSubtype += 'F'
+                        print DipoleSubtype
 
-                    DICT['SubProcSub'] += TAB8+'//'+str(Dipole.Parent)+' : (('+str(Dipole.DecayChannel)+' '+str(Dipole.Indices)+') -> '+str(Dipole.UnderlyingBorn)+') spectated by '+str(Spectator['Particle'])+'('+str(Spectator['Index'])+')\n'
+                    DICT['SubProcSub'] += TAB8+'//'+str(Dipole.Parent)+' : (('+str(Dipole.DecayChannel)+' '+str(Dipole.Indices)+') -> '+str(Dipole.UnderlyingBorn)+')\n'
+                    DICT['SubProcSub'] += TAB8+'//'+'Spectated by '+str(Spectator['Particle'])+'('+str(Spectator['Index'])+')\n'
                     DICT['SubProcSub'] += TAB8+'// Usorted Born Map = '+str(Dipole.UBMap)+' Sorting Map = '+str(Dipole.Map)+'\n'
                     DICT['SubProcSub'] += TAB8+'IndexMap.clear();\n'
                     IndexMap = 'IndexMap = {'
+                    count = 1
                     for Index in Dipole.UBMap:
-                        IndexMap += '{'+str(Index)+','+str(Dipole.Map[Dipole.UBMap[Index]])+'}'
+                        IndexMap += '{'+str(Index)+','+str(Dipole.Map[Dipole.UBMap[Index]])+'}'+(',' if count!=len(Dipole.UBMap) else '')
+                        count += 1
                     IndexMap += '}'
                     DICT['SubProcSub'] += TAB8+IndexMap+';\n'
-                    DICT['SubProcSub'] += TAB8+'Build_'+DipoleSubtype+'_Momenta(Momenta,BornMomenta,'+\
-                                          str(Dipole.Indices[0])+','+str(Dipole.Indices[1])+\
-                                          ','+'BornMasses[BornIndex]['+str(Dipole.Map[Dipole.Indices[0]])+']'+\
-                                          ','+str(Spectator['Index'])+',Masses['+str(Spectator['Index'])+'],IndexMap);\n'
-                    DICT['SubProcSub'] += TAB8+'Provider->'+Dipole.OLPCall+('_SC' if isinstance(BundledParticle,Boson) else '')+'(&Args);\n\n'
+                    DICT['SubProcSub'] += TAB8+'Build_'+DipoleSubtype+'_Momenta(RMomenta,BMomenta,'+\
+                                          str(Dipole.Indices[0])+','+str(Dipole.Indices[1])+','+str(Spectator['Index'])+',IndexMap);\n'
+                    DICT['SubProcSub'] += TAB8+'Provider->'+Dipole.OLPCall+('_SC' if isinstance(BundledParticle,Boson) else '')+'(&Args);\n'
+                    # DICT['SubProcSub'] += TAB8+'*rval += '++'\n\n'
                     
             DICT['SubProcSub'] += TAB4+'}\n\n'  
 
 
         print '************************************************'
 
-        DIPOLESTRUCTURE = Template('/home/diogenes1991/Madisqe/tpl/Dipole_Functions_tpl.cpp','/home/diogenes1991/Madisqe/Generated/'+str(self.Radiative)+'_Real.cpp',DICT)
-        DIPOLESTRUCTURE.Write()
+        DIPOLESTRUCTUREC = Template(template_path+'/Dipole_Functions_tpl.cpp',dest_path+'/'+str(self.Radiative)+'_Real.cpp',DICT)
+        DIPOLESTRUCTUREH = Template(template_path+'/Dipole_Functions_tpl.h',dest_path+'/'+str(self.Radiative)+'_Real.h',DICT)
+        DIPOLESTRUCTUREC.Write()
+        DIPOLESTRUCTUREH.Write()
+        
 
     def Write(self,Template,Path):
     

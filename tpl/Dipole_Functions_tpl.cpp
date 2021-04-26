@@ -5,10 +5,10 @@
     Provider = &Prov;
     model = &Mod;
     nPar = NextR;
-    Momenta = new FVector[NextR];
-    Masses = new double[NextR];
-    PID = new int[NextR];
-    BornMomenta = new FVector[NextR-1];
+    RMomenta = new FVector[NextR];
+    RParticles = new Particle*[NextR];
+
+    BMomenta = new FVector[NextR-1];
 
 ####SubProcConst####
 
@@ -28,10 +28,10 @@ void ####SubProcName####::Subtracted(std::string cp, double sqrts, double* rand,
 
     OLP::Arguments Args;
     Args.mu_ren = mu;
-    Args.RVal = MatrixElement;
+    Args.RVal = &MatrixElement;
     Args.NExt = NextR;
     Args.Order = "LO";    
-    Args.Momenta = Momenta;
+    Args.Momenta = RMomenta;
     Args.SCRVal = &SpinCorr;
     Args.CCRVal = &ColorCorr;
 

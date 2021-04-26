@@ -18,27 +18,21 @@ class DipoleStructure {
         Model * model;
         std::unordered_map<std::string,int> BornMap;
 
-        FVector* Momenta;
-        double* Masses;
-        int* PID;
+        FVector * RMomenta;
+        Particle ** RParticles;
 
         int nBorn,nPar;
-        FVector* BornMomenta;
-        double** BornMasses;
-        int** BornPID;
-        
+        FVector * BMomenta;
+        Particle *** BParticles;
+
         virtual ~DipoleStructure(){
             for (int i=0; i<nBorn; i++){
-                delete BornMasses[i];
-                delete BornPID[i];
+                delete [] BParticles[i];
             }
-            delete [] BornMasses;
-            delete [] BornPID;
-
-            delete BornMomenta;
-            delete PID;
-            delete Masses;
-            delete Momenta;
+            delete [] RParticles;
+            
+            delete [] BMomenta;
+            delete [] RMomenta;
         }
 
         void BGenerate(std::string Born, double sqrts, double* rand, double* Jac){
@@ -48,18 +42,18 @@ class DipoleStructure {
             FVector P(sqrts,0,0,0);
 
             FVector PIn[2];
-            double mIn[2]={BornMasses[BornNum][0],BornMasses[BornNum][1]};
+            double mIn[2]={BParticles[BornNum][0]->Mass,BParticles[BornNum][1]->Mass};
             double rIn[2]={0.0,0.0};
             Recursive_PSP(P,2,PIn,mIn,rIn,dummy);
-            BornMomenta[0] = PIn[0];
-            BornMomenta[1] = PIn[1];
+            BMomenta[0] = PIn[0];
+            BMomenta[1] = PIn[1];
             
             FVector PFi[nPar-3];
             double mFi[nPar-3];
-            for (int i=0;i<nPar-3;i++) mFi[i] = BornMasses[BornNum][i+2];
+            for (int i=0;i<nPar-3;i++) mFi[i] = BParticles[BornNum][i+2]->Mass;
             dummy = 1.0;
             Recursive_PSP(P,nPar-3,PFi,mFi,rand,dummy);
-            for (int i=0;i<nPar-3;i++) BornMomenta[i+2] = PFi[i];
+            for (int i=0;i<nPar-3;i++) BMomenta[i+2] = PFi[i];
             *Jac = dummy;    
 
         }
@@ -70,18 +64,18 @@ class DipoleStructure {
             FVector P(sqrts,0,0,0);
 
             FVector PIn[2];
-            double mIn[2]={Masses[0],Masses[1]};
+            double mIn[2]={RParticles[0]->Mass,RParticles[1]->Mass};
             double rIn[2]={0.0,0.0};
             Recursive_PSP(P,2,PIn,mIn,rIn,dummy);
-            Momenta[0] = PIn[0];
-            Momenta[1] = PIn[1];
+            RMomenta[0] = PIn[0];
+            RMomenta[1] = PIn[1];
             
             FVector PFi[nPar-2];
             double mFi[nPar-2];
-            for (int i=0;i<nPar-2;i++) mFi[i] = Masses[i+2];
+            for (int i=0;i<nPar-2;i++) mFi[i] = RParticles[i+2]->Mass;
             dummy = 1.0;
             Recursive_PSP(P,nPar-2,PFi,mFi,rand,dummy);
-            for (int i=0;i<nPar-2;i++) Momenta[i+2] = PFi[i];
+            for (int i=0;i<nPar-2;i++) RMomenta[i+2] = PFi[i];
             *Jac = dummy;    
 
         }
@@ -130,17 +124,17 @@ class DipoleStructure {
 
         void GetMomenta(FVector* p){
 
-            for(int i=0;i<nPar;i++)p[i]=Momenta[i];
+            for(int i=0;i<nPar;i++)p[i]=RMomenta[i];
         }
 
         void GetMasses(double* m){
 
-            for(int i=0;i<nPar;i++)m[i]=Masses[i];
+            for(int i=0;i<nPar;i++)m[i]=RParticles[i]->Mass;
         }
 
         void GetPID(int* pid){
 
-            for(int i=0;i<nPar;i++)pid[i]=PID[i];
+            for(int i=0;i<nPar;i++)pid[i]=RParticles[i]->PID;
         }
 
         virtual void Subtracted(std::string cp, double sqrts, double* rand, double mu, double* rval) = 0;

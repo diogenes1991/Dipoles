@@ -67,6 +67,7 @@ class Madisqe:
         self.BuildDipoleTree()
         self.BuildRealIntegrands()
         self.Build_Dipole_Structures()
+        self.BuildRealIntegrands_New()
 
         print '                                                                   '
         print '     Dipole fetching completed at '+strftime('%d %b %Y %H:%M:%S %Z',localtime())
@@ -77,7 +78,7 @@ class Madisqe:
         print '     Generating matrix elements and Virtual Integrands             '
         print '                                                                   '
         
-        self.BuildOLP(True)
+        self.BuildOLP(False)
         self.BuildVirtualIntegrands()
 
         print '                                                                   '
@@ -416,7 +417,7 @@ class Madisqe:
                                                            'DIPTYP':TYP,'IJ':[id1,id2],'SUBTYP':SUBTYP,\
                                                            'NAME':dipole_nam,'DIPOLE':dipole,'PARTYPS':partyps})
 
-    def Build_Dipole_Structures_OLD(self,Verbose):
+    def Build_Dipole_Structures_OLD(self,Verbose=False):
 
         # We first fetch the allowed Underlying Born tags allowed by the 
         # particle content specification in the input file
@@ -626,7 +627,6 @@ class Madisqe:
                         
                         Type = ''
                         if Ei < self.RadiProc.lni: # If the radiation is off the initial state only a massless RE is allowed
-
                             Type = 'ia'
                             ParentIndices = [Ei,Ri]
                             DecayChannel = Channel([Emitter],[REParticle,Radiation],self.Model)
@@ -813,20 +813,36 @@ class Madisqe:
         MakeDir(self.SrcDir+'/Code')
 
     def BuildInterface(self):
-        CODEFILES = ['Dipole_Structure.h','Dipole_Definitions.h', \
-                     'PSP_Generator.h','Utilities.h','Virtual_Structure.h',\
-                     'Montecarlo_Integrator.h','GSL_Integrator.h','CUBA_Integrator.h', \
-                     'PDF_Set.h','LHA_PDF.h','Kinematics.h','Analysis.h', \
-                     'Dummy_PDF.h' ,\
-                     'Constants.h','XSection.h','XSection_Integrator.h',\
-                     'Integrand.h','OLP.h','Four_Vector.h','Input.h']
+
+        ## 
+        ## OLD Deprecated, this lightens the load on generated processes.
+        ## They now all point to the same directory inside src.
+        ## This could possibly impede the swift test at a PSP like we were 
+        ## doing by simply editting Virtual_Structure's BGenerate to be 
+        ## a cosntant. This also makes it more difficult to have process dependent
+        ## PSP remappings. 
+        ##
+        ## The solution to this would be to have an implementation file per process 
+        ## to define an in-house PSP Generator, then each integrand can use the 
+        ## implementation it pleases, this would be controlled by Vrtual.h and Real.h 
+        ##
+        ## The makefiles have also been edited for this reason
+        ##
+
+        ## CODEFILES = ['Dipole_Structure.h','Dipole_Definitions.h', \
+        ##              'PSP_Generator.h','Utilities.h','Virtual_Structure.h',\
+        ##              'Montecarlo_Integrator.h','GSL_Integrator.h','CUBA_Integrator.h', \
+        ##              'PDF_Set.h','LHA_PDF.h','Kinematics.h','Analysis.h', \
+        ##              'Dummy_PDF.h' ,\
+        ##              'Constants.h','XSection.h','XSection_Integrator.h',\
+        ##              'Integrand.h','OLP.h','Four_Vector.h','Input.h']
 
         INPUTFILES = ['Run_Settings.input']
 
         TOPLAYERFILES  = ['Main.cpp','Analysis.cpp','Model.cpp']
 
-        for file in CODEFILES:
-            CopyFile(self.IntDir+'/'+file,self.SrcDir+'/Code/'+file)
+        ## for file in CODEFILES:
+        ##     CopyFile(self.IntDir+'/'+file,self.SrcDir+'/Code/'+file)
         
         for file in TOPLAYERFILES:
             CopyFile(self.IntDir+'/'+file,self.SrcDir+'/'+file)
@@ -837,6 +853,7 @@ class Madisqe:
         self.LoadPaths()
         self.paths['NLOX PATH']=self.config['NLOX PATH'][0]
         self.paths['RECOLA PATH']=self.config['RECOLA PATH'][0]
+        self.paths['MADISQE PATH']=os.getcwd()
         
         Makefile = Template(self.TplDir+'/makefile',self.SrcDir+'/makefile',self.paths)
         Makefile.Write()
@@ -844,6 +861,13 @@ class Madisqe:
     ##
     ##  Build the Integrands Classes: Virtual and Real
     ##
+
+    def BuildRealIntegrands_New(self):
+        for DipoleStructure in self.DipoleStructures:
+            ChlDir = self.SrcDir+'/Real/'+str(self.DipoleStructures[DipoleStructure].Radiative)
+            MakeDir(ChlDir)
+            self.DipoleStructures[DipoleStructure].Show(self.TplDir,ChlDir)
+
 
     def BuildRealIntegrands(self):
 
@@ -869,7 +893,7 @@ class Madisqe:
             INTDICT['Integrand Catalogue'] += TAB9+'ChannelMap.insert({"'+Radiative+'",'+str(Count)+'});\n'
 
             Count += 1
-            ChlDir = self.SrcDir+'/Real/'+Radiative
+            ChlDir = self.SrcDir+'/Real_Old/'+Radiative
             MakeDir(ChlDir)
 
             DICT={'SubProcHeader'    : '' ,\
