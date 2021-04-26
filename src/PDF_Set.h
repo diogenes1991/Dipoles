@@ -7,7 +7,7 @@ class PDF_Set{
 
         virtual ~PDF_Set(){};
         virtual double Evaluate(int PID, double x, double MuFact) = 0;
-
+        virtual double Alpha_S(double Q) = 0;
 };
 
 #endif

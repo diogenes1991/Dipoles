@@ -7,7 +7,7 @@
 class LHA_PDF : public PDF_Set{
 
     public:
-
+        
         LHA_PDF(std::string NAME){
             LHAPDF::initPDFSetByName(NAME);
         }
@@ -16,6 +16,10 @@ class LHA_PDF : public PDF_Set{
 
         double Evaluate(int PID, double x, double MuFact){
             return LHAPDF::xfxphoton(x,MuFact,PID)/x;
+        }
+
+        double Alpha_S(double Q){
+            return LHAPDF::alphasPDF(Q);
         }
 
 };

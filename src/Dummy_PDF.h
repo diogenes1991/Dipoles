@@ -12,6 +12,7 @@ class Dummy_PDF : public PDF_Set{
         ~Dummy_PDF(){}
 
         double Evaluate(int PID, double x, double MuFact) {return 1.0;}
+        double Alpha_S(double Q) {return 0.118;}
 
 };
 
