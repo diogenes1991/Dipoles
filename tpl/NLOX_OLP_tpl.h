@@ -31,14 +31,6 @@ class NLOX_OLP : public OLP{
         void UpdateParameters(){
 
             //
-            //  Couplings
-            //
-
-            Proc->pc.set_param("alpha_s",model->alpha_s);
-            Proc->pc.set_param("alpha_e",model->alpha_e);
-            Proc->pc.set_param("GF",model->GFermi);
-
-            //
             //  Scheme
             //
 
@@ -55,21 +47,40 @@ class NLOX_OLP : public OLP{
 
             Proc->pc.set_param("mb",model->b.Mass);
             Proc->pc.set_param("wb",model->b.Width);
+            Proc->update_mass("mb");
+            Proc->update_mass("wb");
 
             Proc->pc.set_param("mt",model->t.Mass);
             Proc->pc.set_param("wt",model->t.Width);
+            Proc->update_mass("mt");
+            Proc->update_mass("wt");
 
             Proc->pc.set_param("mW",model->Wp.Mass);
             Proc->pc.set_param("wW",model->Wp.Width);
+            Proc->update_mass("mW");
+            Proc->update_mass("wW");
 
             Proc->pc.set_param("mZ",model->Z.Mass);
             Proc->pc.set_param("wZ",model->Z.Width);
+            Proc->update_mass("mZ");
+            Proc->update_mass("wZ");
 
             Proc->pc.set_param("mH",model->h.Mass);
             Proc->pc.set_param("wH",model->h.Width);
+            Proc->update_mass("mH");
+            Proc->update_mass("wH");
+
+            //
+            //  Couplings
+            //
+
+            Proc->pc.set_param("alpha_s",model->alpha_s);
+            Proc->pc.set_param("alpha_e",model->alpha_e);
+            Proc->pc.set_param("GF",model->GFermi);
+            Proc->pc.compute(true,true);
 
         }
-
+        
         void Evaluate(Arguments * arg){
             int Channel = SelectSubProcess(arg->SubProc);
             std::string Type = OrderMap.at(arg->Order);
