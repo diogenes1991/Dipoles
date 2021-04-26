@@ -4,4 +4,4 @@ util/*.path
 *.pyc
 test/*/*.o
 test/*/*.bin
-push.sh
+*.log
