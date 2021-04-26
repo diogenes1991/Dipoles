@@ -129,6 +129,40 @@ class PoleVector{
 };
 
 template<class T>
+class CMatrixT{
+
+    int n;
+    T ** M;
+
+    public:
+        CMatrixT(const int N){
+            n = N;
+            M = new T*[n];
+            for(int i=0;i<n;i++){
+                M[i] = new T[n];
+            }
+        }
+
+        ~CMatrixT(){
+            for(int i=0;i<n;i++){
+                delete M[i];
+            }
+            delete [] M;
+        }
+
+        T get(const int n, const int m) const {
+            return M[n][m];
+        }
+
+        T set(const int n, const int m, const T val){
+            M[n][m] = val;
+        }
+
+};
+
+typedef CMatrixT<double> CMatrix;
+
+template<class T>
 class HistogramT{
 
     struct Bin{
