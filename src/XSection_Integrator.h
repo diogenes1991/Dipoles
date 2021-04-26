@@ -121,6 +121,7 @@ class XSection_Integrator{
             mc.Params = &XS;
             double res,err;
             MCI->Integrate(&mc,&res,&err);
+            std::cout<<"XSection = "<<res<<" +/- "<<err<<std::endl;
             std::cout<<"\nThe integration took: ";
             C1.ShowTime(); 
             std::cout<<std::endl;
