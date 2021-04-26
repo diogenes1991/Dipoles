@@ -12,7 +12,7 @@ class StandardModel(Model):
         ## 
 
         g  = Boson('g', {},0,False)
-        A  = Boson("A", {},22,False)
+        A  = Boson("A", {},7,False)
         Z  = Boson("Z", {},23,True)
         Wp = Boson("Wp",{'Charge': 3},24,True)
         Wm = Boson("Wm",{'Charge':-3},-24,True)
