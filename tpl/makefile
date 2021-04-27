@@ -108,7 +108,8 @@ endif
 ##
 ## Dipoles
 
-COMMON_INC+=-I$(shell pwd)/Code
+MADISQE_DIR=####MADISQE PATH####
+COMMON_INC+=-I$(MADISQE_DIR)/src
 
 GSLDIR=####GSL PATH####
 ifdef GSLDIR
@@ -131,6 +132,7 @@ COMMON_LIBS+=-lcuba
 COMMON_LIB_DIRS+=-L$(CUBADIR)
 endif
 
+COMMON_INC+=-I$(shell pwd)/Code
 REAL_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/Real/*/*.cpp))
 VIRT_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/Virtual/*/*.cpp))
 DIPO_OBJ=$(patsubst %.cpp,%.o,$(wildcard $(shell pwd)/*.cpp))
