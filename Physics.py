@@ -285,6 +285,11 @@ class Process:
                 aux += i.nam + ""
             return aux
         
+        ##
+        ##  These functions (Print,write) were written for NLOX/aux_beta and is never used 
+        ##  elsewhere
+        ##
+
         def Print(self):
             line = ""
             for subprocess in self.scatters:
@@ -496,7 +501,6 @@ class Process:
             ##  Now we build the address space for the process
             ##  This algorithm is very similar to an algorithm 
             ##  that converts a time in seconds into years,days,hours,minutes,seconds...
-            ##  we first set the global boundaries given the depth of each list 
             ## 
 
             Scatters = []
@@ -519,8 +523,7 @@ class Process:
                     Particles.append(self.SubProc[ParticleSelector][Addres[ParticleSelector]])
                 
                 ##
-                ## Sorting both initials and finals, maybe it would be better not to do so 
-                ## since in general the process can stem from two distinct composite particles 
+                ## Sorting both initials and finals
                 ##
 
                 def sortfunction(p):
