@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include "Four_Vector.h"
 #include "Model.h"
+#include "Utilities.h"
 
 class OLP{
 
@@ -20,6 +21,8 @@ class OLP{
             FVector * Momenta;
             int NExt;
             double * RVal;
+            CMatrix * CCRVal;
+            FMatrix * SCRVal;
         };
 
         int SelectSubProcess(std::string SP){
